@@ -107,7 +107,7 @@ export class TutorAgentOrchestrator {
         luisGap
       );
 
-      const responseText = `He detectado **2 alumnos** que necesitan refuerzo en **fracciones equivalentes**:\n\n• **Mariana López** (52%) - *Error recurrente: comparación de denominadores*.\n• **Luis Hernández** (58%) - *Error recurrente: simplificación*.\n\nEl resto del grupo mantiene un desempeño óptimo (promedio 89%). Te recomiendo comenzar generando una práctica personalizada para **Mariana López**.`;
+      const responseText = `He analizado el desempeño curricular del grupo **3° B** en **Matemáticas**:\n\n• **Mariana López** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**.\n  - **Calificación actual:** 52% (4 de 7 reactivos fallados en examen diagnóstico).\n  - **Brecha de aprendizaje detectada:** *Comparación de denominadores* — Asume que a mayor denominador mayor es la fracción, sin comprobar la relación multiplicativa (confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6).\n\n• **Luis Hernández** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**.\n  - **Calificación actual:** 58%.\n  - **Brecha de aprendizaje detectada:** *Simplificación* — Omite dividir ambos términos uniformemente entre el factor común.\n\nEl resto del grupo mantiene un desempeño óptimo (promedio 89%). Te recomiendo generar una práctica de apoyo personalizada para **Mariana López**.`;
 
       const message: AgentChatMessage = {
         id: `msg-${Date.now()}`,
@@ -117,13 +117,18 @@ export class TutorAgentOrchestrator {
         agentActions: [...executedActions],
         quickActions: [
           {
-            label: "Ver diagnóstico de Mariana López",
-            actionKey: "inspect_mariana",
+            label: "Crear práctica de apoyo para Mariana",
+            actionKey: "generate_practice",
             payload: { studentId: "mariana-lopez" },
             primary: true,
           },
           {
-            label: "Ver diagnóstico de Luis Hernández",
+            label: "Ver brecha de Mariana López",
+            actionKey: "inspect_mariana",
+            payload: { studentId: "mariana-lopez" },
+          },
+          {
+            label: "Ver brecha de Luis Hernández",
             actionKey: "inspect_luis",
             payload: { studentId: "luis-hernandez" },
           },
@@ -151,13 +156,13 @@ export class TutorAgentOrchestrator {
       const gap = await get_student_learning_gap(studentId, "matematicas");
       recordAction(
         "get_student_learning_gap",
-        `Analizó brecha cognitiva de ${studentName}`,
+        `Identificó brecha de aprendizaje de ${studentName}`,
         gap.diagnosticSummary,
         { studentId, subjectId: "matematicas" },
         gap
       );
 
-      const responseText = `**Diagnóstico de ${studentName}**:\n\n${gap.diagnosticSummary}\n\n• **Materia:** Matemáticas\n• **Tema:** Fracciones equivalentes\n• **Rendimiento actual:** ${gap.currentScore}%\n• **Nivel de severidad:** Alto\n\n¿Deseas que genere una **práctica adaptativa de 5 ejercicios** con apoyos visuales y ajuste de dificultad en tiempo real?`;
+      const responseText = `**Diagnóstico de ${studentName}**:\n\n${gap.diagnosticSummary}\n\n• **Materia:** Matemáticas\n• **Tema específico:** Fracciones equivalentes\n• **Brecha concreta:** ${gap.learningGap}\n• **Evidencia de diagnóstico:** ${gap.evidence}\n• **Rendimiento actual:** ${gap.currentScore}%\n\nPulsa **"Crear práctica de apoyo"** para generar una batería adaptativa de 5 ejercicios con acompañamiento visual interactivo.`;
 
       const message: AgentChatMessage = {
         id: `msg-${Date.now()}`,
@@ -167,7 +172,7 @@ export class TutorAgentOrchestrator {
         agentActions: [...executedActions],
         quickActions: [
           {
-            label: `Crear práctica personalizada para ${studentName.split(" ")[0]}`,
+            label: `Crear práctica de apoyo para ${studentName.split(" ")[0]}`,
             actionKey: "generate_practice",
             payload: { studentId },
             primary: true,
@@ -187,7 +192,7 @@ export class TutorAgentOrchestrator {
     }
 
     // 3. QUERY: Generate Practice
-    if (q.includes("generar práctica") || q.includes("crear práctica") || q.includes("asignar práctica")) {
+    if (q.includes("generar práctica") || q.includes("crear práctica") || q.includes("asignar práctica") || q.includes("práctica de apoyo")) {
       const studentId = context?.selectedStudentId || "mariana-lopez";
       const student = repository.getStudentById(studentId) || repository.getStudents()[0];
 
@@ -200,8 +205,8 @@ export class TutorAgentOrchestrator {
       );
       recordAction(
         "generate_adaptive_practice",
-        "Generó práctica adaptativa personalizada",
-        `Creó 5 ejercicios calibrados para corregir ${student.recurringErrors["fracciones-equivalentes"] || "fracciones"}.`,
+        "Generó práctica de apoyo adaptativa",
+        `Creó 5 ejercicios calibrados para corregir: ${practiceResult.targetGapDescription}.`,
         { studentId: student.id, count: 5 },
         practiceResult
       );
@@ -211,12 +216,12 @@ export class TutorAgentOrchestrator {
       recordAction(
         "assign_practice_to_student",
         "Asignó práctica al portal del alumno",
-        `Práctica activada en la cuenta de ${student.name}.`,
+        `Práctica registrada como pendiente en la cuenta de ${student.name}.`,
         { practiceId: practiceResult.practiceId, studentId: student.id },
         assignResult
       );
 
-      const responseText = `✅ **¡Práctica generada y asignada exitosamente!**\n\n• **Alumno:** ${student.name}\n• **Práctica:** ${practiceResult.practiceTitle}\n• **Cantidad:** 5 ejercicios interactivos adaptativos\n• **Enfoque:** Superación de errores en denominadores con barras gráficas.\n\nAhora puedes cambiar al rol **Alumno** para ver cómo ${student.name.split(" ")[0]} experimenta la explicación interactiva y resuelve los ejercicios.`;
+      const responseText = `✅ **¡Práctica de apoyo asignada exitosamente!**\n\n• **Alumno:** ${student.name}\n• **Materia:** Matemáticas | **Tema:** Fracciones equivalentes\n• **Práctica:** ${practiceResult.practiceTitle}\n• **Estado:** Pendiente en portal del alumno\n• **Enfoque pedagógico:** 5 ejercicios interactivos adaptativos con apoyo visual paso a paso.\n\nAhora puedes cambiar al rol **Alumno** en la barra superior para ver la práctica asignada y comenzar la resolución guiada.`;
 
       const message: AgentChatMessage = {
         id: `msg-${Date.now()}`,

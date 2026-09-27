@@ -129,32 +129,32 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     setChatMessages((prev) => [...prev, userMsg]);
 
     const q = query.toLowerCase();
-    let steps: string[] = ["Iniciando razonamiento pedagógico..."];
+    let steps: string[] = ["Actividad del agente: Iniciando ejecución de herramientas..."];
 
     if (q.includes("apoyo") || q.includes("quién") || q.includes("quien") || q.includes("rezago")) {
       steps = [
-        "Consultando calificaciones del grupo 3° B...",
-        "Detectando patrones de error por reactivo...",
-        "Identificando brechas cognitivas individuales...",
-        "Generando recomendación pedagógica prioritaria...",
+        "✓ Consultó desempeño con analyze_student_performance()",
+        "✓ Detectó patrones de error con find_students_needing_support()",
+        "✓ Identificó brecha de Mariana López con get_student_learning_gap()",
+        "✓ Generó recomendación de práctica de apoyo",
       ];
-    } else if (q.includes("mariana") || q.includes("diagnóstico")) {
+    } else if (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha")) {
       steps = [
-        "Extrayendo historial de evaluación de Mariana López...",
-        "Analizando patrón de fallo en denominadores...",
-        "Generando perfil de brecha conceptual...",
+        "✓ Consultó historial de evaluación diagnóstica de Mariana López",
+        "✓ Identificó brecha en comparación de denominadores con get_student_learning_gap()",
+        "✓ Calibró prescripción pedagógica adaptativa",
       ];
-    } else if (q.includes("generar práctica") || q.includes("crear práctica")) {
+    } else if (q.includes("generar práctica") || q.includes("crear práctica") || q.includes("práctica de apoyo")) {
       steps = [
-        "Calibrando banco de reactivos para denominadores...",
-        "Configurando progresión de dificultad adaptativa...",
-        "Asignando práctica al aula virtual de Mariana...",
+        "✓ Generó práctica de apoyo adaptativa con generate_adaptive_practice()",
+        "✓ Asignó práctica como pendiente con assign_practice_to_student()",
+        "✓ Notificó disponibilidad en módulo Alumno",
       ];
     } else if (q.includes("mejoró") || q.includes("mejora") || q.includes("progreso")) {
       steps = [
-        "Recuperando evaluación diagnóstica inicial (52%)...",
-        "Analizando resultados de práctica guiada...",
-        "Calculando delta de progreso y conceptos dominados...",
+        "✓ Consultó historial de progreso con get_student_progress()",
+        "✓ Comparó diagnóstico inicial (52%) vs resultado final en práctica",
+        "✓ Generó reporte pedagógico con report_progress_to_teacher()",
       ];
     }
 

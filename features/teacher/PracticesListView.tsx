@@ -41,7 +41,7 @@ export function PracticesListView() {
             className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition inline-flex items-center gap-2 shadow-sm"
           >
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-            <span>Generar práctica para Mariana</span>
+            <span>Crear práctica de apoyo para Mariana</span>
           </button>
         </div>
       ) : (

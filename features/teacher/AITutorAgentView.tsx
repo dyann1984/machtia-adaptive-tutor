@@ -62,11 +62,11 @@ export function AITutorAgentView() {
                   Agente Orquestador MACHTIA
                 </h1>
                 <span className="text-[10px] font-mono uppercase bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded border border-blue-400/40">
-                  MCP Protocol v1.0
+                  Protocolo MCP v1.0
                 </span>
               </div>
               <p className="text-xs text-blue-200/80">
-                Inferencia adaptativa • Monitoreo continuo de brechas • Detección y prescripción curricular
+                Actividad del agente • Ejecución de herramientas pedagógicas • Detección y prescripción curricular
               </p>
             </div>
           </div>
@@ -74,7 +74,7 @@ export function AITutorAgentView() {
           <div className="flex items-center gap-3">
             <div className="bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs flex items-center gap-2">
               <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-slate-300 font-mono">Herramientas activas:</span>
+              <span className="text-slate-300 font-mono">Herramientas MCP:</span>
               <span className="font-bold text-emerald-400">12 / 12</span>
             </div>
             <div className="bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs flex items-center gap-2">
@@ -107,13 +107,13 @@ export function AITutorAgentView() {
             onClick={() => handleQuickAction("generate_practice", { studentId: "mariana-lopez" })}
             className="text-xs bg-amber-500/90 hover:bg-amber-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg border border-amber-400 transition shadow-sm"
           >
-            3. Generar práctica (5 reactivos)
+            3. Crear práctica de apoyo (5 reactivos)
           </button>
           <button
             onClick={() => handleQuickAction("ask_mariana_improvement")}
             className="text-xs bg-emerald-600/80 hover:bg-emerald-600 text-white font-semibold px-3 py-1.5 rounded-lg border border-emerald-400/40 transition"
           >
-            4. ¿Mejoró Mariana? (Antes/Después)
+            4. ¿Mariana mejoró? (Antes/Después)
           </button>
         </div>
       </div>
@@ -208,7 +208,7 @@ export function AITutorAgentView() {
               );
             })}
 
-            {/* Live Agent Execution / Thinking Card */}
+            {/* Live Agent Execution Card */}
             {isAgentThinking && (
               <div className="flex items-start gap-3.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0 mt-0.5 animate-pulse">
@@ -217,7 +217,7 @@ export function AITutorAgentView() {
                 <div className="bg-slate-900 text-white rounded-2xl rounded-tl-sm p-4 border border-blue-500/40 shadow-lg max-w-[85%] space-y-3 font-mono text-xs">
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-[13px] font-sans">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-                    Tutor IA está analizando el grupo...
+                    Actividad del agente: Ejecutando herramientas...
                   </div>
                   <div className="space-y-1.5 pt-1">
                     {activeAgentSteps.map((step, idx) => (
@@ -228,7 +228,7 @@ export function AITutorAgentView() {
                     ))}
                     <div className="flex items-center gap-2 text-blue-300 text-[11px] animate-pulse">
                       <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                      <span>Ejecutando inferencia pedagógica adaptativa...</span>
+                      <span>Procesando flujo de intervención adaptativa...</span>
                     </div>
                   </div>
                 </div>
@@ -257,13 +257,13 @@ export function AITutorAgentView() {
           </form>
         </div>
 
-        {/* Right Column: Agent Tool Inspector / Execution Telemetry */}
+        {/* Right Column: Agent Activity & Tool Execution */}
         <div className="lg:col-span-4 bg-slate-900 text-white rounded-2xl border border-slate-800 p-5 shadow-xl flex flex-col h-[650px] overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
             <div className="flex items-center gap-2">
               <Terminal className="w-4 h-4 text-emerald-400" />
               <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Log de Herramientas MCP
+                Actividad del agente • Herramientas MCP
               </h2>
             </div>
             <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded">

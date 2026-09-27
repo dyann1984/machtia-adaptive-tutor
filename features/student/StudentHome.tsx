@@ -51,19 +51,30 @@ export function StudentHome({
                 <BookOpen className="w-6 h-6 text-amber-700" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
-                  Nueva práctica asignada
+                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-300 inline-block mb-1">
+                  Nueva práctica asignada por tu profesor
                 </span>
                 <h2 className="text-lg font-bold text-slate-900 mt-0.5">
-                  {pendingPractice.title}
+                  Fracciones equivalentes
                 </h2>
-                <p className="text-xs text-slate-500">{pendingPractice.description}</p>
+                <div className="flex flex-wrap items-center gap-2 pt-1 text-xs">
+                  <span className="bg-blue-50 text-blue-800 font-semibold px-2 py-0.5 rounded border border-blue-200">
+                    5 ejercicios
+                  </span>
+                  <span className="bg-emerald-50 text-emerald-800 font-semibold px-2 py-0.5 rounded border border-emerald-200">
+                    Nivel adaptado
+                  </span>
+                  <span className="bg-purple-50 text-purple-800 font-semibold px-2 py-0.5 rounded border border-purple-200 flex items-center gap-1">
+                    <Bot className="w-3 h-3 text-purple-600" />
+                    Tutor disponible
+                  </span>
+                </div>
               </div>
             </div>
 
             <button
               onClick={() => onStartPractice(pendingPractice.id)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow-md flex items-center gap-2 self-start sm:self-center animate-bounce"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-3 rounded-xl transition shadow-md flex items-center gap-2 self-start sm:self-center"
             >
               <span>Comenzar práctica ahora</span>
               <ArrowRight className="w-4 h-4" />

@@ -154,7 +154,7 @@ export function TeacherDashboard() {
               onClick={() => handleQuickAction("generate_practice", { studentId: "mariana-lopez" })}
               className="text-xs bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold transition shadow-sm flex items-center gap-1.5"
             >
-              <span>Generar práctica adaptativa</span>
+              <span>Crear práctica de apoyo</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

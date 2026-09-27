@@ -67,7 +67,9 @@ export interface Exercise {
   options: string[];
   correctAnswer: string;
   explanation: string;
-  hint: string;
+  hint: string; // Nivel 1: Pista formativa sin dar respuesta
+  alternativeExplanation?: string; // Nivel 2: Explicación alternativa con otra analogía
+  guidedExample?: string; // Nivel 3: Ejemplo guiado paso a paso
   difficulty: "easy" | "medium" | "hard";
   conceptTag: string;
 }
@@ -84,9 +86,24 @@ export interface Practice {
   targetGapId?: string;
   targetGapDescription?: string;
   exercises: Exercise[];
-  status: "assigned" | "in_progress" | "completed";
+  status: "pending" | "in_progress" | "completed" | "assigned";
   createdAt: string;
   completedAt?: string;
+}
+
+export interface EvaluationFeedback {
+  exerciseId: string;
+  studentAnswer: string;
+  isCorrect: boolean;
+  attemptNumber: number;
+  supportLevel: "none" | "hint" | "alternative_explanation" | "guided_example";
+  feedback: string;
+  hint?: string;
+  alternativeExplanation?: string;
+  guidedExample?: string;
+  allowRetry: boolean;
+  difficulty: "easy" | "medium" | "hard";
+  agentObservableAction: string;
 }
 
 export interface ExerciseAnswer {

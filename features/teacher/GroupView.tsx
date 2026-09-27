@@ -112,7 +112,7 @@ export function GroupView() {
                         className="text-xs bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3.5 py-2 rounded-xl transition shadow-sm flex items-center gap-1.5"
                       >
                         <BookOpen className="w-3.5 h-3.5" />
-                        <span>Generar práctica</span>
+                        <span>Crear práctica de apoyo</span>
                       </button>
                     </>
                   ) : (

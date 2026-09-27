@@ -78,22 +78,34 @@ export async function find_students_needing_support(
     studentId: string;
     name: string;
     overallAverage: number;
+    subject: string;
+    subjectId: string;
     topic: string;
+    topicName: string;
     score: number;
     recurringError: string;
+    learningGap: string;
+    evidence: string;
     gapDetails: LearningGap[];
   }[] = [];
 
   students.forEach((student) => {
     Object.entries(student.topicPerformances).forEach(([topic, score]) => {
       if (score < threshold) {
+        const gap = student.learningGaps.find((g) => g.topicId === topic);
+        const recurring = student.recurringErrors[topic] || "Dificultad conceptual general";
         studentsNeedingSupport.push({
           studentId: student.id,
           name: student.name,
           overallAverage: student.overallAverage,
+          subject: "Matemáticas",
+          subjectId,
           topic,
+          topicName: "Fracciones equivalentes",
           score,
-          recurringError: student.recurringErrors[topic] || "Dificultad conceptual general",
+          recurringError: recurring,
+          learningGap: recurring,
+          evidence: gap?.detectionEvidence || "Falló en preguntas diagnósticas de comparación y amplificación.",
           gapDetails: student.learningGaps.filter((g) => g.topicId === topic),
         });
       }
@@ -106,7 +118,7 @@ export async function find_students_needing_support(
     students: studentsNeedingSupport,
     message:
       studentsNeedingSupport.length > 0
-        ? `He detectado ${studentsNeedingSupport.length} alumnos que necesitan refuerzo en fracciones equivalentes: ${studentsNeedingSupport
+        ? `He detectado ${studentsNeedingSupport.length} alumnos que necesitan refuerzo en fracciones equivalentes en Matemáticas: ${studentsNeedingSupport
             .map((s) => `${s.name} (${s.score}%)`)
             .join(" y ")}.`
         : "No se detectaron alumnos por debajo del umbral de rendimiento.",
@@ -127,13 +139,22 @@ export async function get_student_learning_gap(studentId: string, subjectId: str
   const currentFractionScore = student.topicPerformances["fracciones-equivalentes"] ?? 52;
 
   let diagnosticSummary = "";
+  let concreteGap = "";
+  let evidence = "";
+
   if (studentId === "mariana-lopez") {
+    concreteGap = "Comparación de denominadores: asume que mayor denominador implica mayor fracción sin considerar el numerador.";
+    evidence = "Falló 4 de 7 reactivos de comparación en el último examen diagnóstico. Confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6.";
     diagnosticSummary =
-      "Mariana presenta dificultad para identificar fracciones equivalentes cuando cambian los denominadores. Su patrón de error recurrente indica que confunde la magnitud del denominador con el valor total de la fracción, omitiendo la relación multiplicativa del numerador.";
+      "Mariana López necesita apoyo en Matemáticas, específicamente en fracciones equivalentes. Mariana presenta dificultad para identificar fracciones equivalentes cuando cambian los denominadores. Su patrón de error recurrente indica que confunde la magnitud del denominador con el valor total de la fracción, omitiendo la relación multiplicativa del numerador.";
   } else if (studentId === "luis-hernandez") {
+    concreteGap = "Simplificación: omite dividir tanto numerador como denominador entre el mismo factor común.";
+    evidence = "Al reducir 4/8 selecciona 2/8 en lugar de 1/2. No divide ambos términos uniformemente.";
     diagnosticSummary =
-      "Luis presenta dificultad al simplificar fracciones: tiende a dividir únicamente uno de los términos entre el factor común en lugar de ambos equitativamente.";
+      "Luis Hernández necesita apoyo en Matemáticas, específicamente en fracciones equivalentes. Presenta dificultad al simplificar fracciones: tiende a dividir únicamente uno de los términos entre el factor común en lugar de ambos equitativamente.";
   } else {
+    concreteGap = student.recurringErrors["fracciones-equivalentes"] || "Comparación de factores";
+    evidence = gaps[0]?.detectionEvidence || "Evaluación diagnóstica inicial";
     diagnosticSummary = `El alumno cuenta con un rendimiento de ${currentFractionScore}% en el tema seleccionado.`;
   }
 
@@ -141,10 +162,15 @@ export async function get_student_learning_gap(studentId: string, subjectId: str
     studentId: student.id,
     studentName: student.name,
     overallAverage: student.overallAverage,
+    subject: "Matemáticas",
+    subjectId: "matematicas",
     topic: "Fracciones equivalentes",
+    topicId: "fracciones-equivalentes",
     currentScore: currentFractionScore,
     gaps,
-    errorPattern: student.recurringErrors["fracciones-equivalentes"] || "Comparación de factores",
+    learningGap: concreteGap,
+    errorPattern: student.recurringErrors["fracciones-equivalentes"] || concreteGap,
+    evidence,
     diagnosticSummary,
     recommendedAction: "Generar práctica adaptativa con soporte visual paso a paso.",
   };
@@ -169,8 +195,8 @@ export async function generate_adaptive_practice(
   const exercises: Exercise[] = JSON.parse(JSON.stringify(SAMPLE_EXERCISES_POOL.slice(0, count)));
 
   const practiceId = `prac-${studentId}-${Date.now().toString().slice(-4)}`;
-  const practiceTitle = `Práctica personalizada: Fracciones equivalentes`;
-  const practiceDescription = `Refuerzo focalizado en comparación de denominadores y representaciones visuales para ${student.name}.`;
+  const practiceTitle = `Práctica de apoyo: Fracciones equivalentes`;
+  const practiceDescription = `Refuerzo adaptativo focalizado en superar errores de comparación de denominadores con barras visuales para ${student.name}.`;
 
   const newPractice: Practice = {
     id: practiceId,
@@ -184,7 +210,7 @@ export async function generate_adaptive_practice(
     targetGapId: student.learningGaps[0]?.id || "gap-generic",
     targetGapDescription: student.recurringErrors[topicId] || gapType || "Comparación de denominadores",
     exercises,
-    status: "assigned",
+    status: "pending",
     createdAt: new Date().toISOString(),
   };
 
@@ -195,8 +221,10 @@ export async function generate_adaptive_practice(
     practiceTitle: newPractice.title,
     studentName: student.name,
     exerciseCount: exercises.length,
+    subject: "Matemáticas",
     targetTopic: "Fracciones equivalentes",
-    status: "created",
+    status: "pending",
+    targetGapDescription: newPractice.targetGapDescription,
     summary: `Se ha generado una práctica adaptativa de ${exercises.length} ejercicios para ${student.name} centrada en ${newPractice.targetGapDescription}.`,
   };
 }
@@ -213,15 +241,16 @@ export async function assign_practice_to_student(practiceId: string, studentId: 
     throw new Error("Practice or Student not found");
   }
 
-  repository.updatePracticeStatus(practiceId, "assigned");
+  repository.updatePracticeStatus(practiceId, "pending");
 
   return {
     success: true,
     practiceId,
     studentId,
     studentName: student.name,
+    status: "pending",
     assignedAt: new Date().toISOString(),
-    message: `La práctica '${practice.title}' ha sido asignada exitosamente a ${student.name}. Ya se encuentra disponible en su portal de alumno.`,
+    message: `La práctica '${practice.title}' ha sido asignada exitosamente a ${student.name}. Ya se encuentra disponible en su portal de alumno como pendiente.`,
   };
 }
 
@@ -235,14 +264,14 @@ export async function explain_concept(
   studentName: string = "Mariana"
 ) {
   return {
-    title: "¡Hola! Aprendamos fracciones equivalentes paso a paso 🤖✨",
+    title: "¡Hola! Vamos a entender fracciones equivalentes paso a paso 🤖✨",
     studentName,
     topic,
     steps: [
       {
         step: 1,
         title: "¿Qué significa 'equivalente'?",
-        explanation: "Equivalente significa 'de igual valor'. Dos fracciones son equivalentes cuando representan la misma cantidad o porción, ¡aunque sus números se vean distintos!",
+        explanation: "Equivalente significa 'de igual valor'. Dos fracciones son equivalentes cuando representan exactamente la misma cantidad, ¡aunque sus números se vean distintos!",
         visualTip: "Imagina una barra de chocolate partida a la mitad (1/2), o la misma barra partida en cuatro partes y tomas dos (2/4). ¡Comes exactamente lo mismo!",
       },
       {
@@ -255,16 +284,19 @@ export async function explain_concept(
         step: 3,
         title: "La regla de oro de la multiplicación",
         explanation: "Si multiplicas arriba (numerador) y abajo (denominador) por el MISMO número, ¡la fracción mantiene su valor intacto!",
-        visualTip: "(1 × 2) / (2 × 2) = 2/4. ¡Es magia matemática!",
+        visualTip: "(1 × 2) / (2 × 2) = 2/4. ¡Es la misma proporción geométrica!",
       },
     ],
-    greeting: `Antes de comenzar, ${studentName}, te explicaré una forma sencilla de identificar fracciones equivalentes.`,
+    greeting: `Antes de empezar, ${studentName}, vamos a entender por qué 1/2 y 2/4 representan la misma cantidad.`,
   };
 }
 
 /**
  * 7. evaluate_answer
- * Evaluates the student's selected answer against ground truth, providing hints & corrective feedback.
+ * Evaluates the student's selected answer with 3-level progressive support:
+ * Level 1: Hint (Pista sin dar respuesta)
+ * Level 2: Alternative Explanation (Explicación alternativa con analogía)
+ * Level 3: Guided Example (Ejemplo guiado paso a paso con representación visual)
  */
 export async function evaluate_answer(
   exerciseId: string,
@@ -279,19 +311,47 @@ export async function evaluate_answer(
   const isCorrect = exercise.correctAnswer === studentAnswer;
 
   let feedback = "";
-  let hint = "";
+  let hint: string | undefined = undefined;
+  let alternativeExplanation: string | undefined = undefined;
+  let guidedExample: string | undefined = undefined;
+  let supportLevel: "none" | "hint" | "alternative_explanation" | "guided_example" = "none";
   let allowSecondAttempt = false;
+  let allowRetry = false;
+  let observableAction = "";
 
   if (isCorrect) {
+    supportLevel = "none";
+    allowSecondAttempt = false;
+    allowRetry = false;
     feedback = `¡Excelente trabajo! ${exercise.explanation}`;
+    observableAction = "✓ Respuesta correcta evaluada por evaluate_answer()";
   } else {
     if (attemptNumber === 1) {
+      // NIVEL 1: PISTA FORMATIVA (Sin revelar la respuesta)
+      supportLevel = "hint";
       allowSecondAttempt = true;
+      allowRetry = true;
+      hint = exercise.hint || "Observa qué pasó con el numerador y el denominador.";
       feedback = "No es correcto todavía, pero ¡no te preocupes! Vamos a razonarlo juntos.";
-      hint = exercise.hint;
+      observableAction = "✓ Error detectado • Pista formativa activada (Nivel 1: Sin revelar respuesta)";
+    } else if (attemptNumber === 2) {
+      // NIVEL 2: EXPLICACIÓN ALTERNATIVA (Con analogía cotidiana)
+      supportLevel = "alternative_explanation";
+      allowSecondAttempt = false; // preserve flag for legacy consumers
+      allowRetry = true;
+      alternativeExplanation =
+        exercise.alternativeExplanation ||
+        "Imagina una pizza dividida en 2 partes y otra dividida en 4. ¿Cuántas partes de la segunda pizza representan la mitad?";
+      feedback = "Vamos a explicarlo de otra manera: " + alternativeExplanation;
+      observableAction = "✓ Segundo intento fallido • Explicación alternativa activada (Nivel 2)";
     } else {
+      // NIVEL 3: APOYO GUIADO PASO A PASO
+      supportLevel = "guided_example";
       allowSecondAttempt = false;
-      feedback = `La respuesta correcta era: "${exercise.correctAnswer}". ${exercise.explanation}`;
+      allowRetry = false;
+      guidedExample = exercise.guidedExample || exercise.explanation;
+      feedback = `Observa la solución guiada paso a paso: ${guidedExample}`;
+      observableAction = "✓ Nivel 3 de apoyo guiado paso a paso con representación visual activado";
     }
   }
 
@@ -300,10 +360,15 @@ export async function evaluate_answer(
     studentAnswer,
     isCorrect,
     attemptNumber,
+    supportLevel,
     allowSecondAttempt,
+    allowRetry,
     feedback,
-    hint: !isCorrect ? hint : undefined,
+    hint: !isCorrect && supportLevel === "hint" ? hint : undefined,
+    alternativeExplanation: !isCorrect && supportLevel === "alternative_explanation" ? alternativeExplanation : undefined,
+    guidedExample: !isCorrect && supportLevel === "guided_example" ? guidedExample : undefined,
     difficulty: exercise.difficulty,
+    observableAction,
   };
 }
 
@@ -450,12 +515,12 @@ export async function report_progress_to_teacher(studentId: string, subjectId: s
   const student = repository.getStudentById(studentId);
 
   const before = progress.snapshot?.scoreBefore ?? 52;
-  const after = progress.snapshot?.scoreAfter ?? 80;
+  const after = progress.snapshot?.scoreAfter ?? before;
   const delta = after - before;
 
   const responseText =
     delta > 0
-      ? `¡Sí, ${student?.name} mostró una mejora notable! Su desempeño en Fracciones Equivalentes aumentó de un ${before}% inicial a un ${after}% (+${delta}%). Ha dominado la comparación visual y los factores de amplificación, resolviendo 4 de 5 reactivos con éxito.`
+      ? `¡Sí, ${student?.name} mostró una mejora notable! Su desempeño en Fracciones Equivalentes aumentó de un ${before}% inicial a un ${after}% (+${delta}%). Ha dominado la identificación de fracciones equivalentes y la comparación visual. Pendiente por reforzar: Simplificación de fracciones.`
       : `${student?.name} mantiene un desempeño de ${before}%. Aún no concluye la práctica asignada.`;
 
   return {
@@ -466,8 +531,8 @@ export async function report_progress_to_teacher(studentId: string, subjectId: s
     improvementDelta: delta,
     status: delta > 0 ? "Mejora detectada" : "En proceso",
     reportText: responseText,
-    masteredConcepts: ["Equivalencia visual de 1/2", "Amplificación por factor 2", "Comprobación por productos cruzados"],
-    pendingConcepts: ["Simplificación de fracciones de tres cifras"],
+    masteredConcepts: delta > 0 ? ["Identificación de fracciones equivalentes", "Equivalencia visual de 1/2 y 2/4", "Amplificación por factor 2", "Comprobación por productos cruzados"] : [],
+    pendingConcepts: ["Simplificación de fracciones"],
   };
 }
 

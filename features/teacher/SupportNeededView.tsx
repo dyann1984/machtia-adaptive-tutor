@@ -108,7 +108,7 @@ export function SupportNeededView() {
                 {hasAssigned ? (
                   <div className="flex items-center gap-1.5 text-xs text-blue-700 font-semibold">
                     <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                    <span>Práctica asignada al portal</span>
+                    <span>Práctica asignada: Pendiente</span>
                   </div>
                 ) : (
                   <span className="text-xs text-slate-400 italic">Sin práctica activa</span>
@@ -119,7 +119,7 @@ export function SupportNeededView() {
                   className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm flex items-center gap-1.5"
                 >
                   <BookOpen className="w-3.5 h-3.5" />
-                  <span>Generar práctica adaptativa</span>
+                  <span>Crear práctica de apoyo</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </button>
               </div>
