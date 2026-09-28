@@ -1,0 +1,25 @@
+# ========================================================
+# MACHTIA Adaptive Tutor - Render Blueprint Configuration
+# ========================================================
+# Deploy as a Web Service on Render (https://render.com)
+# Protocol: Model Context Protocol (MCP 2025-11-25)
+# Transport: Streamable HTTP & SSE
+
+services:
+  - type: web
+    name: machtia-tutor-mcp-server
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm run mcp:start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AI_PROVIDER
+        value: mock
+      - key: JUDGE_DEMO
+        value: "true"
+      - key: MCP_ALLOWED_ORIGINS
+        value: "http://localhost:3000,https://*.vercel.app"
