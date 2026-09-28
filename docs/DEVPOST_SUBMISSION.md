@@ -68,7 +68,7 @@ La visión de Alexa+ transforma la interacción en el aula y el hogar al conecta
 ### ACCOMPLISHMENTS
 - Creamos un agente educativo que demuestra un flujo completo, reproducible y pedagógicamente sólido de 5 etapas: Detección → Diagnóstico → Prescripción → Tutoría → Evidencia.
 - Logramos una arquitectura MCP transparente con telemetría en tiempo real accesible tanto para usuarios no técnicos como para jurados técnicos mediante el botón "Ver detalles técnicos".
-- 20/20 pruebas automatizadas pasando con análisis estático, verificación de tipos y compilación limpia de producción.
+- 25/25 pruebas automatizadas pasando con análisis estático, verificación de tipos y compilación limpia de producción.
 
 ---
 
@@ -90,12 +90,31 @@ La visión de Alexa+ transforma la interacción en el aula y el hogar al conecta
 - **Lenguaje:** TypeScript 5
 - **Estilos:** Tailwind CSS
 - **Protocolo de Agentes:** Model Context Protocol (MCP) versión 2025-11-25 (Streamable HTTP, SSE, JSON-RPC 2.0)
-- **Testing:** Vitest
+- **Testing:** Vitest (25/25 passing)
 - **Efectos e Interactividad:** Lucide React, Canvas Confetti
 
 ---
 
+### SCREENSHOTS & EVIDENCE GALLERY
+1. **01 - Landing & MCP Telemetry:** `docs/screenshots/01-landing-and-mcp-status.png`  
+   *Presentación de la propuesta de valor y estado de conexión en vivo con el servidor MCP.*
+2. **02 - Diagnóstico Docente & Prescripción Adaptativa:** `docs/screenshots/02-teacher-alert-and-prescription.png`  
+   *Detección de Mariana López (52%), consulta de causas cognitivas raíz y generación de práctica de apoyo.*
+3. **03 - Explicación Previa Guiada:** `docs/screenshots/03-student-pre-explanation.png`  
+   *El tutor enseña visualmente mediante `FractionBarVisualizer` antes de formular preguntas.*
+4. **04 - Pistas Adaptativas Nivel 1:** `docs/screenshots/04-student-adaptive-hints.png`  
+   *Andamiaje formativo tras error en reactivo 2 sin regalar la solución.*
+5. **05 - Resultado Auténticamente Calculado:** `docs/screenshots/05-student-result-calculated.png`  
+   *Calificación final real (80%, 4/5 reactivos, +28 puntos porcentuales de mejora).*
+6. **06 - Evidencia de Aprendizaje Antes vs. Después:** `docs/screenshots/06-teacher-before-after-evidence.png`  
+   *Tarjeta de evidencia comparativa en el panel docente (Antes 52% → Después 80%).*
+
+---
+
 ### LINKS
-- **DEMO URL:** [https://machtia-tutor.vercel.app](https://machtia-tutor.vercel.app) *(Placeholder)*
-- **REPOSITORY URL:** [https://github.com/machtia/machtia-adaptive-tutor](https://github.com/machtia/machtia-adaptive-tutor) *(Placeholder)*
-- **VIDEO URL:** [https://youtu.be/placeholder-video-id](https://youtu.be/placeholder-video-id) *(Placeholder)*
+- **FRONTEND DEPLOYMENT:** `https://machtia-tutor.vercel.app` *(Pendiente vinculación Vercel)*
+- **MCP SERVER DEPLOYMENT:**
+  - Health Check: `https://machtia-tutor-mcp-server.onrender.com/health` *(Pendiente vinculación Render)*
+  - Endpoint MCP: `https://machtia-tutor-mcp-server.onrender.com/mcp`
+- **REPOSITORY URL:** `https://github.com/dyann1984/machtia-adaptive-tutor`
+- **VIDEO DEMO:** *(Pendiente de grabación por el usuario; guion estructurado en `docs/VIDEO_DEMO_SCRIPT.md`)*
