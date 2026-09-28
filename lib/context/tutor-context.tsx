@@ -27,6 +27,8 @@ export interface McpStatusInfo {
   latencyMs?: number;
   protocolVersion?: string;
   transport?: string;
+  serverName?: string;
+  toolsCount?: number;
   error?: string;
 }
 
@@ -39,6 +41,9 @@ interface TutorContextType {
   setActiveStudentTab: (tab: "home" | "practices" | "tutor" | "progress") => void;
   selectedStudentId: string;
   setSelectedStudentId: (id: string) => void;
+  showLanding: boolean;
+  setShowLanding: (show: boolean) => void;
+  isJudgeDemo: boolean;
   teacher: Teacher;
   group: Group;
   subject: Subject;
@@ -66,11 +71,16 @@ interface TutorContextType {
 const TutorContext = createContext<TutorContextType | undefined>(undefined);
 
 export function TutorProvider({ children }: { children: React.ReactNode }) {
+  const isJudgeDemo =
+    process.env.NEXT_PUBLIC_JUDGE_DEMO === "true" ||
+    process.env.JUDGE_DEMO === "true";
+
   const [role, setRole] = useState<"teacher" | "student">("teacher");
   const [activeTeacherTab, setActiveTeacherTab] = useState<"dashboard" | "group" | "tutor" | "support" | "practices" | "evidences" | "progress">("dashboard");
   const [activeStudentTab, setActiveStudentTab] = useState<"home" | "practices" | "tutor" | "progress">("home");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("mariana-lopez");
   const [currentPracticingId, setCurrentPracticingId] = useState<string | null>(null);
+  const [showLanding, setShowLanding] = useState<boolean>(true);
 
   const [teacher, setTeacher] = useState<Teacher>(repository.getTeacher());
   const [group, setGroup] = useState<Group>(repository.getGroup());
@@ -128,6 +138,8 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         latencyMs: status.latencyMs,
         protocolVersion: status.protocolVersion || "2025-11-25",
         transport: status.transport || "Streamable HTTP",
+        serverName: status.serverName,
+        toolsCount: status.toolsCount,
         error: status.error,
       });
     } catch (e: any) {
@@ -141,9 +153,16 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
+    if (isJudgeDemo) {
+      repository.resetToInitialState();
+      setRole("teacher");
+      setActiveTeacherTab("dashboard");
+      setSelectedStudentId("mariana-lopez");
+      setCurrentPracticingId(null);
+    }
     refreshState();
     checkMcpConnection();
-  }, []);
+  }, [isJudgeDemo]);
 
   const simulateAgentSteps = async (steps: string[]) => {
     setIsAgentThinking(true);
@@ -169,50 +188,51 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     const q = query.toLowerCase();
     const isMcpOnline = mcpStatus.connected;
     const mcpNote = isMcpOnline
-      ? "MCP Server Conectado (Streamable HTTP 2025-11-25)"
-      : "MCP Offline (Modo Demo Activo - Streamable HTTP)";
+      ? "Conectado a MACHTIA Tutor Server"
+      : "MCP Offline (Modo Demo Activo)";
 
     let steps: string[] = [
-      "AGENT | Analizando solicitud del profesor...",
+      "AGENT | Analizando solicitud del profesor",
       `MCP | ${mcpNote}`,
     ];
 
     if (q.includes("apoyo") || q.includes("quién") || q.includes("quien") || q.includes("rezago")) {
       steps = [
-        "AGENT | Analizando solicitud del profesor...",
+        "AGENT | Analizando solicitud del profesor",
         `MCP | ${mcpNote}`,
-        "TOOL | analyze_student_performance(groupId: 'grupo-3b', subjectId: 'matematicas')",
-        "RESULT | Fracciones equivalentes identificado como tema crítico (58% promedio)",
-        "TOOL | find_students_needing_support(threshold: 65%)",
-        "RESULT | 2 alumnos detectados: Mariana López (52%) y Luis Hernández (58%)",
-        "TOOL | get_student_learning_gap(studentId: 'mariana-lopez')",
-        "RESULT | Mariana → Matemáticas → Fracciones equivalentes → 52% (comparación de denominadores)",
+        "TOOL | analyze_student_performance",
+        "RESULT | Tema con menor desempeño: Fracciones equivalentes",
+        "TOOL | find_students_needing_support",
+        "RESULT | 2 alumnos necesitan apoyo",
+        "TOOL | get_student_learning_gap",
+        "RESULT | Mariana López — Matemáticas — Fracciones equivalentes — 52%",
       ];
     } else if (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha")) {
       steps = [
-        "AGENT | Procesando consulta diagnóstica de Mariana López...",
+        "AGENT | Analizando solicitud del profesor",
         `MCP | ${mcpNote}`,
-        "TOOL | get_student_learning_gap(studentId: 'mariana-lopez', subjectId: 'matematicas')",
-        "RESULT | Brecha confirmada: Comparación errónea de denominadores (52% aciertos)",
-        "AGENT | Calibrando batería de 5 ejercicios adaptativos para prescripción docente...",
+        "TOOL | get_student_learning_gap",
+        "RESULT | Mariana López — Matemáticas — Fracciones equivalentes — 52%",
+        "TOOL | analyze_student_performance",
+        "RESULT | Error recurrente: Comparación errónea de denominadores (52% aciertos)",
       ];
     } else if (q.includes("generar práctica") || q.includes("crear práctica") || q.includes("práctica de apoyo")) {
       steps = [
-        "AGENT | Preparando prescripción pedagógica adaptativa...",
+        "AGENT | Analizando solicitud del profesor",
         `MCP | ${mcpNote}`,
-        "TOOL | generate_adaptive_practice(studentId: 'mariana-lopez', topic: 'fracciones-equivalentes')",
+        "TOOL | generate_adaptive_practice",
         "RESULT | Práctica de apoyo generada con 5 ejercicios y 3 niveles de andamiaje",
-        "TOOL | assign_practice_to_student(practiceId, studentId: 'mariana-lopez')",
-        "RESULT | Estado actualizado: 'pending' en el portal del alumno",
+        "TOOL | assign_practice_to_student",
+        "RESULT | Mariana López — Práctica asignada con éxito (estado: pending)",
       ];
     } else if (q.includes("mejoró") || q.includes("mejora") || q.includes("progreso")) {
       steps = [
-        "AGENT | Evaluando impacto pedagógico antes vs después...",
+        "AGENT | Analizando solicitud del profesor",
         `MCP | ${mcpNote}`,
-        "TOOL | get_student_progress(studentId: 'mariana-lopez', subjectId: 'matematicas')",
+        "TOOL | get_student_progress",
         "RESULT | Diagnóstico inicial: 52% → Práctica completada: 80%",
-        "TOOL | report_progress_to_teacher(studentId: 'mariana-lopez')",
-        "RESULT | Delta de mejora: +28% (Mejora detectada • Concepto asimilado)",
+        "TOOL | report_progress_to_teacher",
+        "RESULT | Mariana López: +28 puntos porcentuales (Mejora detectada)",
       ];
     }
 
@@ -334,6 +354,13 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     repository.resetToInitialState();
     refreshState();
     checkMcpConnection();
+    setRole("teacher");
+    setActiveTeacherTab("dashboard");
+    setActiveStudentTab("home");
+    setSelectedStudentId("mariana-lopez");
+    setCurrentPracticingId(null);
+    setIsAgentThinking(false);
+    setActiveAgentSteps([]);
     setChatMessages([
       {
         id: "initial-welcome",
@@ -367,6 +394,9 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         setActiveStudentTab,
         selectedStudentId,
         setSelectedStudentId,
+        showLanding,
+        setShowLanding,
+        isJudgeDemo,
         teacher,
         group,
         subject,

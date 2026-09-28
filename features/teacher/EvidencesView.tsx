@@ -65,9 +65,13 @@ export function EvidencesView() {
 
                 <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl border border-emerald-300 flex items-center gap-1">
                   <TrendingUp className="w-3.5 h-3.5" />
-                  +{ev.improvementDelta}% • {ev.status}
+                  +{ev.improvementDelta} puntos porcentuales • {ev.status}
                 </span>
               </div>
+            </div>
+
+            <div className="text-[11px] text-slate-500 italic bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">
+              Resultado generado a partir de la práctica realizada.
             </div>
 
             {/* Observations from AI Tutor */}

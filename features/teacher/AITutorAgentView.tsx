@@ -34,6 +34,7 @@ export function AITutorAgentView() {
   const [inputQuery, setInputQuery] = useState("");
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
   const [isCheckingMcp, setIsCheckingMcp] = useState(false);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -332,21 +333,65 @@ export function AITutorAgentView() {
 
         {/* Right Column: Agent Activity & Tool Execution with AGENT / MCP / TOOL / RESULT structure */}
         <div className="lg:col-span-4 bg-slate-900 text-white rounded-2xl border border-slate-800 p-5 shadow-xl flex flex-col h-[650px] overflow-hidden">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
-            <div className="flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-emerald-400" />
-              <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
-                Actividad del agente • Herramientas MCP
-              </h2>
+          <div className="flex flex-col gap-2 border-b border-slate-800 pb-3 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+                  Actividad del agente • MCP
+                </h2>
+              </div>
+              <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                mcpStatus.connected
+                  ? "bg-emerald-950 text-emerald-400 border-emerald-800"
+                  : "bg-amber-950 text-amber-400 border-amber-800"
+              }`}>
+                {mcpStatus.connected ? "MCP: CONNECTED" : "MCP: OFFLINE (DEMO)"}
+              </span>
             </div>
-            <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-              mcpStatus.connected
-                ? "bg-emerald-950 text-emerald-400 border-emerald-800"
-                : "bg-amber-950 text-amber-400 border-amber-800"
-            }`}>
-              {mcpStatus.connected ? "MCP: CONNECTED" : "MCP: OFFLINE (DEMO)"}
-            </span>
+
+            {/* Ver detalles técnicos Toggle Button */}
+            <div className="flex items-center justify-between pt-1">
+              <button
+                onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                className={`text-[10px] px-2.5 py-1 rounded-lg border font-mono transition flex items-center gap-1.5 ${
+                  showTechnicalDetails
+                    ? "bg-cyan-950 text-cyan-300 border-cyan-600 shadow-sm"
+                    : "bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border-slate-700"
+                }`}
+              >
+                <Cpu className="w-3 h-3 text-cyan-400" />
+                <span>{showTechnicalDetails ? "Ocultar detalles técnicos" : "Ver detalles técnicos"}</span>
+              </button>
+
+              <span className="text-[10px] text-slate-400 font-sans">
+                {showTechnicalDetails ? "Vista avanzada" : "Vista no técnica"}
+              </span>
+            </div>
           </div>
+
+          {/* Technical Health details panel (only in technical mode) */}
+          {showTechnicalDetails && (
+            <div className="bg-slate-950/90 rounded-xl p-3 border border-cyan-900/60 text-xs font-mono space-y-1.5 mb-3 shrink-0">
+              <div className="flex items-center justify-between text-cyan-400 font-bold text-[11px] pb-1 border-b border-slate-800">
+                <span className="flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5" />
+                  Salud y Protocolo MCP (/health)
+                </span>
+                <span className="text-[10px] text-emerald-400 font-bold">
+                  {mcpStatus.connected ? "STATUS: 200 OK" : "MODO DEMO ACTIVO"}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-1 text-[10px] text-slate-300 pt-0.5">
+                <div>Protocolo: <span className="text-cyan-300 font-bold">{mcpStatus.protocolVersion || "2025-11-25"}</span></div>
+                <div>Transporte: <span className="text-cyan-300 font-bold">{mcpStatus.transport || "Streamable HTTP"}</span></div>
+                <div>Tools registradas: <span className="text-amber-300 font-bold">{mcpStatus.toolsCount ?? 7} herramientas</span></div>
+                <div>Latencia: <span className="text-emerald-300 font-bold">{mcpStatus.latencyMs ?? 5}ms</span></div>
+                <div>Endpoint: <span className="text-slate-400">POST /mcp</span></div>
+                <div>Health Check: <span className="text-slate-400">GET /health</span></div>
+              </div>
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
             {actionLogs.length === 0 ? (
@@ -355,7 +400,7 @@ export function AITutorAgentView() {
               </div>
             ) : (
               actionLogs.map((log) => {
-                const isExpanded = expandedActionId === log.id;
+                const isExpanded = showTechnicalDetails || expandedActionId === log.id;
                 const isMcpSource = log.source === "mcp";
 
                 return (
@@ -383,7 +428,7 @@ export function AITutorAgentView() {
                             {log.toolName}
                           </span>
                         </div>
-                        <p className="text-slate-300 font-sans text-[11px] leading-tight font-medium">
+                        <p className="text-slate-200 font-sans text-[11px] leading-tight font-medium">
                           {log.displayName}
                         </p>
                       </div>
@@ -397,10 +442,14 @@ export function AITutorAgentView() {
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 font-sans">{log.description}</p>
+                    <p className="text-[11px] text-slate-300 font-sans">{log.description}</p>
 
                     {isExpanded && (
                       <div className="pt-2 border-t border-slate-700/80 space-y-2 font-mono text-[10px]">
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pb-1 border-b border-slate-800">
+                          <span>Endpoint: {isMcpSource ? "POST /mcp" : "local-fallback"}</span>
+                          <span>Protocolo: {log.mcpProtocol || "2025-11-25"}</span>
+                        </div>
                         <div>
                           <div className="flex items-center justify-between text-slate-400 mb-1">
                             <span className="font-semibold text-[9px] uppercase flex items-center gap-1 text-cyan-400">

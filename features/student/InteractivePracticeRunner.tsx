@@ -51,8 +51,87 @@ export function InteractivePracticeRunner({
   // Final calculated score state
   const [finalCalculatedScore, setFinalCalculatedScore] = useState<number>(80);
   const [finalCorrectCount, setFinalCorrectCount] = useState<number>(4);
+  const [totalAttemptsCount, setTotalAttemptsCount] = useState<number>(5);
+  const [totalApoyosCount, setTotalApoyosCount] = useState<number>(1);
 
   const currentExercise = practice.exercises[exerciseIndex];
+
+  // Pedagogical Progression Bar: 1. Explicación -> 2. Práctica -> 3. Pista -> 4. Nueva explicación -> 5. Evidencia
+  const renderPedagogicalProgression = () => {
+    return (
+      <div className="bg-slate-100/90 border border-slate-200 rounded-2xl p-2.5 mb-5 shadow-inner">
+        <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 overflow-x-auto gap-1 sm:gap-2">
+          {/* Step 1: Explicación */}
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition ${
+              phase === "explanation"
+                ? "bg-blue-600 text-white shadow-sm font-bold"
+                : "text-slate-600 bg-white/70 border border-slate-200"
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4 font-mono">1</span>
+            <span>Explicación</span>
+          </div>
+
+          <span className="text-slate-400 font-bold">→</span>
+
+          {/* Step 2: Práctica */}
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition ${
+              phase === "questions" && (!isEvaluated || evaluationResult?.isCorrect)
+                ? "bg-blue-600 text-white shadow-sm font-bold"
+                : "text-slate-600 bg-white/70 border border-slate-200"
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4 font-mono">2</span>
+            <span>Práctica</span>
+          </div>
+
+          <span className="text-slate-400 font-bold">→</span>
+
+          {/* Step 3: Pista */}
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition ${
+              phase === "questions" && isEvaluated && !evaluationResult?.isCorrect && attemptCount === 1
+                ? "bg-amber-500 text-slate-950 shadow-sm font-bold"
+                : "text-slate-400 bg-slate-50"
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-black/10 text-center text-[10px] leading-4 font-mono">3</span>
+            <span>Pista</span>
+          </div>
+
+          <span className="text-slate-400 font-bold">→</span>
+
+          {/* Step 4: Nueva explicación */}
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition ${
+              phase === "questions" && isEvaluated && !evaluationResult?.isCorrect && attemptCount >= 2
+                ? "bg-purple-600 text-white shadow-sm font-bold"
+                : "text-slate-400 bg-slate-50"
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4 font-mono">4</span>
+            <span>Nueva explicación</span>
+          </div>
+
+          <span className="text-slate-400 font-bold">→</span>
+
+          {/* Step 5: Evidencia */}
+          <div
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl transition ${
+              phase === "results"
+                ? "bg-emerald-600 text-white shadow-sm font-bold"
+                : "text-slate-400 bg-slate-50"
+            }`}
+          >
+            <span className="w-4 h-4 rounded-full bg-white/20 text-center text-[10px] leading-4 font-mono">5</span>
+            <span>Evidencia</span>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   // Explanatory steps
   const explanationSteps = [
@@ -206,6 +285,8 @@ export function InteractivePracticeRunner({
 
     return (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 max-w-3xl mx-auto space-y-6">
+        {renderPedagogicalProgression()}
+
         <div className="flex items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-sm">
@@ -284,6 +365,8 @@ export function InteractivePracticeRunner({
   if (phase === "questions") {
     return (
       <div className="bg-white rounded-2xl border border-slate-200 shadow-md p-6 max-w-3xl mx-auto space-y-6">
+        {renderPedagogicalProgression()}
+
         {/* Header: Progress & Adaptive Difficulty */}
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -487,12 +570,14 @@ export function InteractivePracticeRunner({
     );
   }
 
-  // 3. PHASE: RESULTS & LEARNING EVIDENCE (ENFOCADO EN APRENDIZAJE)
+  // 3. PHASE: RESULTS & LEARNING EVIDENCE (DERIVADO DE RESPUESTAS REALES)
   const initialScore = 52;
   const delta = finalCalculatedScore - initialScore;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-xl p-8 max-w-2xl mx-auto space-y-6 text-center">
+      {renderPedagogicalProgression()}
+
       <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-500 text-slate-950 flex items-center justify-center mx-auto shadow-lg">
         <Award className="w-10 h-10" />
       </div>
@@ -505,11 +590,11 @@ export function InteractivePracticeRunner({
           ¡Gran avance, Mariana! 🎉
         </h2>
         <p className="text-xs text-slate-600 max-w-md mx-auto">
-          Mejoraste en identificación de fracciones equivalentes.
+          Resultado derivado directamente de tus respuestas y apoyos pedagógicos interactivos.
         </p>
       </div>
 
-      {/* Score Comparison Badge computed from actual responses */}
+      {/* Main Derived Score Comparison */}
       <div className="bg-gradient-to-r from-blue-900 to-indigo-900 text-white p-5 rounded-2xl shadow-md flex items-center justify-around">
         <div>
           <span className="text-[10px] text-blue-200 uppercase font-bold block">
@@ -520,7 +605,7 @@ export function InteractivePracticeRunner({
         <div className="text-2xl font-bold text-blue-300">→</div>
         <div>
           <span className="text-[10px] text-blue-200 uppercase font-bold block">
-            Resultado en Práctica ({finalCorrectCount}/{practice.exercises.length})
+            Resultado Obtenido ({finalCorrectCount}/{practice.exercises.length})
           </span>
           <span className="text-3xl font-black text-emerald-400 font-mono">
             {finalCalculatedScore}%
@@ -528,11 +613,38 @@ export function InteractivePracticeRunner({
         </div>
         <div className="border-l border-blue-700/80 pl-4 text-left">
           <span className="text-[10px] text-blue-200 uppercase font-bold block">
-            Progreso
+            Mejora Detectada
           </span>
           <span className="text-sm font-bold text-emerald-300">
-            {delta >= 0 ? `+${delta}% Mejora` : `${delta}%`}
+            {delta >= 0 ? `+${delta} puntos porcentuales` : `${delta}%`}
           </span>
+        </div>
+      </div>
+
+      {/* Grid: 4 Key Derived Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left text-xs">
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <span className="text-[10px] text-slate-500 uppercase font-bold block">Resultado Obtenido</span>
+          <span className="text-lg font-extrabold text-blue-700 font-mono">{finalCalculatedScore}%</span>
+          <span className="text-[10px] text-slate-400 block">{finalCorrectCount}/{practice.exercises.length} reactivos</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <span className="text-[10px] text-slate-500 uppercase font-bold block">Mejora Detectada</span>
+          <span className="text-lg font-extrabold text-emerald-600 font-mono">+{delta}%</span>
+          <span className="text-[10px] text-emerald-600 font-medium block">Puntos porcentuales</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <span className="text-[10px] text-slate-500 uppercase font-bold block">Número de Intentos</span>
+          <span className="text-lg font-extrabold text-purple-700 font-mono">{totalAttemptsCount}</span>
+          <span className="text-[10px] text-slate-400 block">Intentos totales</span>
+        </div>
+
+        <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+          <span className="text-[10px] text-slate-500 uppercase font-bold block">Apoyos Utilizados</span>
+          <span className="text-lg font-extrabold text-amber-600 font-mono">{totalApoyosCount}</span>
+          <span className="text-[10px] text-slate-400 block">Pistas / Re-explicación</span>
         </div>
       </div>
 
@@ -562,7 +674,7 @@ export function InteractivePracticeRunner({
         <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200 space-y-2">
           <span className="font-bold text-amber-900 text-[11px] uppercase tracking-wider flex items-center gap-1.5">
             <HelpCircle className="w-4 h-4 text-amber-600" />
-            Por Reforzar en Próxima Sesión
+            Conceptos Pendientes
           </span>
           <ul className="space-y-1.5 text-slate-700 pt-1">
             <li className="flex items-center gap-2">
@@ -575,6 +687,10 @@ export function InteractivePracticeRunner({
             </li>
           </ul>
         </div>
+      </div>
+
+      <div className="text-xs text-slate-500 font-medium italic pt-1">
+        Resultado generado a partir de la práctica realizada.
       </div>
 
       <div className="pt-2">

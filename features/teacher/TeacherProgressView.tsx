@@ -43,6 +43,66 @@ export function TeacherProgressView() {
         </button>
       </div>
 
+      {/* Required Judge Comparison Card */}
+      <div className="bg-white rounded-2xl border-2 border-blue-200 shadow-md p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
+              Auditoría Pedagógica Docente • Evaluación
+            </span>
+            <h2 className="text-xl font-black text-slate-900 mt-1">Mariana López</h2>
+            <p className="text-xs text-slate-500">
+              Materia: <strong className="text-slate-700">Matemáticas</strong> • Tema: <strong className="text-slate-700">Fracciones equivalentes</strong>
+            </p>
+          </div>
+          <div className="text-xs text-slate-500 italic bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 self-start">
+            &ldquo;Resultado generado a partir de la práctica realizada.&rdquo;
+          </div>
+        </div>
+
+        {/* ANTES / DESPUÉS / MEJORA */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
+          <div className="p-4 rounded-xl bg-amber-50/80 border border-amber-200">
+            <span className="text-xs font-bold text-amber-800 uppercase tracking-wider block">ANTES</span>
+            <span className="text-3xl font-black text-amber-600 font-mono mt-1 block">{initial}%</span>
+            <span className="text-[11px] text-amber-700 block mt-0.5">Diagnóstico Inicial</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200">
+            <span className="text-xs font-bold text-blue-800 uppercase tracking-wider block">DESPUÉS</span>
+            <span className="text-3xl font-black text-blue-700 font-mono mt-1 block">{marianaCurrent}%</span>
+            <span className="text-[11px] text-blue-600 block mt-0.5">Práctica con Tutor IA</span>
+          </div>
+
+          <div className="p-4 rounded-xl bg-emerald-50/80 border border-emerald-200">
+            <span className="text-xs font-bold text-emerald-800 uppercase tracking-wider block">MEJORA</span>
+            <span className="text-3xl font-black text-emerald-600 font-mono mt-1 block">+{delta}</span>
+            <span className="text-[11px] text-emerald-700 font-semibold block mt-0.5">puntos porcentuales</span>
+          </div>
+        </div>
+
+        {/* DOMINADO / PENDIENTE */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+          <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200 text-xs space-y-1.5">
+            <span className="font-bold text-emerald-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              Dominado:
+            </span>
+            <p className="text-slate-800 font-bold text-sm">Identificación de equivalencias</p>
+            <p className="text-slate-500 text-[11px]">Equivalencia visual de 1/2 y 2/4, amplificación por factor común y comprobación por productos cruzados.</p>
+          </div>
+
+          <div className="p-4 rounded-xl bg-amber-50/50 border border-amber-200 text-xs space-y-1.5">
+            <span className="font-bold text-amber-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-amber-600" />
+              Pendiente:
+            </span>
+            <p className="text-slate-800 font-bold text-sm">Simplificación</p>
+            <p className="text-slate-500 text-[11px]">Reducción de fracciones con máximo común divisor mayor a 10 para la siguiente sesión de refuerzo.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Hero Before vs After Metric Card */}
       <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 rounded-2xl p-6 text-white shadow-xl border border-blue-900/60 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">

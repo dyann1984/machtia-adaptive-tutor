@@ -21,16 +21,45 @@ export const SERVER_VERSION = "1.0.0";
  * Creates and configures the Streamable HTTP MCP Server.
  */
 export function createMcpHttpServer(config: TransportConfig): http.Server {
-  const { port, host = "0.0.0.0", corsOrigin = "*" } = config;
+  const { port, host = "0.0.0.0", corsOrigin } = config;
 
   const server = http.createServer(async (req, res) => {
-    // 1. Setup CORS Headers
-    res.setHeader("Access-Control-Allow-Origin", corsOrigin);
+    // 1. Setup CORS Headers dynamically supporting MCP_ALLOWED_ORIGINS
+    const incomingOrigin = req.headers.origin;
+    const envOrigins = process.env.MCP_ALLOWED_ORIGINS;
+    let resolvedOrigin = "*";
+
+    if (envOrigins) {
+      const allowed = envOrigins.split(",").map((s) => s.trim()).filter(Boolean);
+      if (incomingOrigin) {
+        const matches = allowed.some((allowedOrigin) => {
+          if (allowedOrigin === "*") return true;
+          if (allowedOrigin === incomingOrigin) return true;
+          if (allowedOrigin.includes("*")) {
+            const regex = new RegExp("^" + allowedOrigin.replace(/\./g, "\\.").replace(/\*/g, ".*") + "$");
+            return regex.test(incomingOrigin);
+          }
+          return false;
+        });
+        if (matches) {
+          resolvedOrigin = incomingOrigin;
+        } else {
+          resolvedOrigin = allowed[0] || "*";
+        }
+      } else {
+        resolvedOrigin = allowed[0] || "*";
+      }
+    } else if (corsOrigin) {
+      resolvedOrigin = corsOrigin;
+    }
+
+    res.setHeader("Access-Control-Allow-Origin", resolvedOrigin);
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
     res.setHeader(
       "Access-Control-Allow-Headers",
       "Content-Type, Authorization, x-mcp-session-id, x-mcp-protocol-version"
     );
+    res.setHeader("Access-Control-Max-Age", "86400");
 
     if (req.method === "OPTIONS") {
       res.writeHead(204);

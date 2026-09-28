@@ -21,6 +21,7 @@ export interface McpConnectionStatus {
   latencyMs?: number;
   error?: string;
   transport?: string;
+  toolsCount?: number;
 }
 
 export interface McpClientToolCallResponse<T = any> {
@@ -46,12 +47,50 @@ export class McpClient {
       "http://localhost:3100/mcp";
   }
 
+  public getServerUrl(): string {
+    return this.serverUrl;
+  }
+
+  public getHealthUrl(): string {
+    try {
+      const url = new URL(this.serverUrl);
+      url.pathname = "/health";
+      return url.toString();
+    } catch {
+      return this.serverUrl.replace(/\/mcp\/?$/, "/health");
+    }
+  }
+
+  /**
+   * Directly queries the /health endpoint of the MCP server.
+   */
+  async checkHealth(): Promise<{ status: string; protocolVersion: string; transport: string; server: string; toolsCount: number } | null> {
+    try {
+      const healthUrl = this.getHealthUrl();
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 1500) : null;
+      const res = await fetch(healthUrl, {
+        method: "GET",
+        signal: controller ? controller.signal : undefined,
+      });
+      if (timeoutId) clearTimeout(timeoutId);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch {
+      // offline or unreachable
+    }
+    return null;
+  }
+
   /**
    * Checks real connectivity with the MCP Server over HTTP.
    */
   async checkConnection(): Promise<McpConnectionStatus> {
     const startTime = Date.now();
     try {
+      const health = await this.checkHealth();
+
       const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
       const timeoutId = controller ? setTimeout(() => controller.abort(), 1800) : null;
 
@@ -88,14 +127,15 @@ export class McpClient {
       if (data?.result?.serverInfo) {
         this.isConnected = true;
         this.lastCheckTime = Date.now();
-        this.cachedProtocolVersion = data.result.protocolVersion || "2025-11-25";
+        this.cachedProtocolVersion = data.result.protocolVersion || health?.protocolVersion || "2025-11-25";
 
         return {
           connected: true,
           protocolVersion: this.cachedProtocolVersion,
           serverName: data.result.serverInfo.name,
           latencyMs,
-          transport: "Streamable HTTP",
+          transport: health?.transport || "Streamable HTTP",
+          toolsCount: health?.toolsCount ?? 7,
         };
       }
 
@@ -107,6 +147,7 @@ export class McpClient {
         error: err?.message || "MCP Server unreachable",
         latencyMs: Date.now() - startTime,
         transport: "Streamable HTTP (Offline fallback)",
+        toolsCount: undefined,
       };
     }
   }

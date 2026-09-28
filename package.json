@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev",
     "mcp": "tsx mcp/server/index.ts",
+    "mcp:start": "tsx mcp/server/index.ts",
     "dev:all": "node scripts/dev-all.mjs",
     "build": "next build",
     "start": "next start",

@@ -1,82 +1,105 @@
-# Guion de Demostración: MACHTIA Adaptive Tutor (3 Minutos)
+# Guion de Video Demo: MACHTIA Adaptive Tutor
 
-**Hackathon Amazon / Alexa+ & Nebius / NVIDIA**  
-**Proyecto:** MACHTIA Adaptive Tutor  
-**Flujo Principal:** Profesor → Tutor IA → Alumno → Evidencia de Aprendizaje
-
----
-
-## 🎯 Objetivo de la Demostración
-Demostrar en vivo cómo un Agente Tutor con arquitectura MCP y razonamiento pedagógico adaptativo detecta rezagos curriculares específicos en un grupo de primaria (3° B en Fracciones Equivalentes), prescribe una práctica interactiva paso a paso para el alumno, adapta la dificultad en tiempo real y devuelve al profesor una evidencia cuantitativa y cualitativa de mejora (**52% → 80%**).
+**Competición:** Amazon / Alexa+ Developer Hackathon  
+**Objetivo de duración:** 2:30 a 2:50 minutos  
+**Formato:** Grabación de pantalla con voz en off (1920x1080 o 1440x900)  
 
 ---
 
-## ⏱️ Minuto a Minuto (Duración total: 2:45 min)
+## Estructura Minuto a Minuto
 
-### 0:00 - 0:35 | Introducción y Detección con el Agente (Rol Profesor)
-1. **Pantalla inicial:** Dashboard del Profesor (Prof. Carlos Vega, Grupo 3° B).
-2. **Explicación del problema:** *"En un aula con 30 alumnos, el profesor no tiene tiempo de crear una práctica personalizada para cada error conceptual recurrente."*
-3. **Acción en vivo:**
-   - Hacer clic en el botón superior o escribir en la pantalla de **Tutor IA**:  
-     `"¿Quién necesita apoyo en matemáticas?"`
-4. **Lo que ve el jurado:**
-   - Animación de razonamiento y telemetría de herramientas MCP:  
-     `✓ Consultó desempeño (analyze_student_performance)`  
-     `✓ Detectó patrones (find_students_needing_support)`  
-     `✓ Identificó brechas (get_student_learning_gap)`
-   - El Tutor responde:  
-     *"He detectado 2 alumnos que necesitan refuerzo en fracciones equivalentes: Mariana López (52%) y Luis Hernández (58%)."*
-   - Muestra la evidencia: *Mariana presenta dificultad al comparar denominadores.*
+### 0:00 – 0:15 | El Problema
+- **Audio (Voz en off):**  
+  *“Un profesor puede saber que un alumno va mal, pero saber exactamente qué necesita y darle atención individual toma tiempo.”*
+- **Pantalla:**  
+  Vista de la Landing inicial de MACHTIA Adaptive Tutor. Mostrar el descriptor nítido y la propuesta pedagógica: *"Detecta quién necesita ayuda, crea la práctica adecuada y acompaña al alumno hasta comprobar si aprendió."*
 
 ---
 
-### 0:35 - 1:15 | Prescripción y Generación Adaptativa
-1. **Acción en vivo:**
-   - El profesor selecciona a **Mariana López** y pulsa:  
-     `"Generar práctica personalizada"`
-2. **Lo que ve el jurado:**
-   - El agente ejecuta `generate_adaptive_practice()` y `assign_practice_to_student()`.
-   - Genera 5 ejercicios calibrados con soporte visual (barras de fracciones proporcionales) dirigidos específicamente a corregir su confusión de denominadores.
-   - La práctica queda asignada instantáneamente al portal del alumno.
+### 0:15 – 0:30 | La Solución
+- **Audio (Voz en off):**  
+  *“MACHTIA Adaptive Tutor convierte esa evidencia en intervención personalizada. Es un agente educativo impulsado por Model Context Protocol que detecta brechas conceptuales, prescribe ejercicios adaptativos y acompaña al estudiante con andamiaje activo.”*
+- **Pantalla:**  
+  Clic en el botón **“Iniciar demostración”**. Transición fluida al Panel del Profesor (Prof. Carlos Vega, Grupo 3° B).
 
 ---
 
-### 1:15 - 2:05 | Experiencia del Alumno y Resolución Guiada (Rol Alumna)
-1. **Acción en vivo:**
-   - Cambiar de rol en la barra superior al botón: **Rol: Alumna (Mariana)**.
-2. **Lo que ve el jurado:**
-   - Mariana ve la notificación: *"Nueva práctica asignada: Fracciones equivalentes"*.
-   - Pulsa *"Comenzar práctica ahora"*.
-3. **Paso A - Explicación interactiva:**
-   - El Tutor IA saluda: *"¡Hola Mariana! Antes de comenzar, te explicaré una forma sencilla de identificar fracciones equivalentes con barras de chocolate..."*
-   - Muestra la barra interactiva demostrando que `1/2 = 2/4` porque ocupan el mismo espacio gráfico.
-4. **Paso B - Ejercicios interactivos con pistas:**
-   - Ejercicio 1: Selecciona `2/4`. El Tutor valida y refuerza positivamente.
-   - En caso de error simulado en intento 1: El Tutor no castiga; ofrece una **pista formativa** y permite un **segundo intento**, adaptando la dificultad del siguiente ejercicio.
-5. **Paso C - Finalización y Celebración:**
-   - Termina los 5 reactivos.
-   - Explosión de confeti en pantalla. Calificación: **80%** (4 de 5 aciertos).
-   - Conceptos dominados: *Equivalencia visual de 1/2* y *Amplificación por factor 2*.
-   - Mariana pulsa: *"Guardar evidencia y regresar al Panel del Profesor"*.
+### 0:30 – 1:05 | Diagnóstico con el Agente (Rol Profesor)
+- **Audio (Voz en off):**  
+  *“En el aula, el docente consulta al agente orquestador: '¿Quién necesita apoyo en matemáticas?'. A través de herramientas MCP en tiempo real, el agente examina el desempeño del grupo, detecta que fracciones equivalentes es el tema crítico e identifica a dos alumnos con rezago: Mariana López con 52% y Luis Hernández con 58%. Además, diagnostica la brecha concreta: Mariana confunde denominadores al comparar fracciones.”*
+- **Pantalla:**  
+  - En la pestaña **Tutor IA**, hacer clic en el botón de acción rápida:  
+    `"1. ¿Quién necesita apoyo en matemáticas?"`
+  - Mostrar en pantalla:
+    - **Agent Activity:** Badges limpios de `AGENT`, `MCP`, `TOOL` (`find_students_needing_support`, `get_student_learning_gap`) y `RESULT`.
+    - Indicador de estado real: **MCP: Connected (Streamable HTTP 2025-11-25)**.
+    - Datos diagnósticos de Mariana López (52%) y Luis Hernández (58%).
 
 ---
 
-### 2:05 - 2:45 | Cierre: Evidencia de Aprendizaje y Comparativa (Rol Profesor)
-1. **Acción en vivo:**
-   - El sistema regresa al panel del profesor (o pestaña **Progreso Antes/Después**).
-   - El profesor consulta: `"¿Mejoró Mariana López?"`
-2. **Lo que ve el jurado:**
-   - Tarjeta comparativa con métricas reales:
-     - **ANTES (Diagnóstico inicial):** `52%`
-     - **DESPUÉS (Práctica con Tutor):** `80%`
-     - **DELTA:** `+28%`
-     - **ESTADO:** `Mejora detectada`
-   - Auditoría cualitativa: Conceptos dominados vs. conceptos pendientes para el siguiente ciclo.
-3. **Cierre de impacto (Discurso final):**
-   *"Con MACHTIA Adaptive Tutor cerramos la brecha educativa. No es solo un chatbot; es un agente orquestador compatible con MCP que diagnostica, prescribe, enseña interactivamente y demuestra el progreso medible de cada niño."*
+### 1:05 – 1:25 | Prescripción Adaptativa mediante MCP
+- **Audio (Voz en off):**  
+  *“Con un solo clic, el profesor solicita: 'Crear práctica de apoyo'. El agente invoca las herramientas MCP `generate_adaptive_practice` y `assign_practice_to_student`, calibrando cinco ejercicios con andamiaje visual dirigidos específicamente al error de Mariana, asignándolos de inmediato a su expediente.”*
+- **Pantalla:**  
+  - Clic en el botón: `"Crear práctica de apoyo (5 reactivos)"`.
+  - Se visualizan las llamadas MCP con duración en milisegundos y la notificación de práctica asignada en estado `pending`.
 
 ---
 
-## 🛠️ Plan de Contingencia / Tips para el Presentador
-- **Botón de Reinicio Rápido:** Si deseas repetir la demo desde cero, pulsa el botón **"Reiniciar Demo"** ubicado en el encabezado superior derecho.
-- **Botones de un clic:** Toda la secuencia cuenta con botones de acción rápida precargados en la pantalla del Tutor IA para evitar errores de escritura durante el video o presentación en vivo.
+### 1:25 – 2:05 | Acompañamiento y Tutoría Activa (Rol Alumna)
+- **Audio (Voz en off):**  
+  *“Cambiamos al rol de la alumna. Mariana recibe la práctica asignada. Pero antes de preguntar, el Tutor IA enseña: muestra una barra interactiva explicando visualmente por qué 1/2 y 2/4 representan exactamente la misma porción del entero.  
+  Al iniciar los ejercicios, Mariana comete un primer error: el tutor no regala la respuesta, sino que activa una pista formativa. En un segundo intento con explicación alternativa cotidiana, Mariana comprende la relación y resuelve correctamente. El tutor adapta la dificultad en vivo.”*
+- **Pantalla:**  
+  - Clic en el encabezado superior: **Rol: Alumna (Mariana)**.
+  - Mostrar la progresión visual superior:  
+    `1. Explicación → 2. Práctica → 3. Pista → 4. Nueva explicación → 5. Evidencia`.
+  - **FractionBarVisualizer** mostrando las barras de 1/2 y 2/4.
+  - En el ejercicio: seleccionar opción incorrecta en intento 1 → ver tarjeta de **Pista del Tutor (Nivel 1)**.
+  - Pulsar *"Intentar de nuevo con la pista"* → seleccionar opción correcta → ver retroalimentación positiva y avance adaptativo.
+  - Completar los reactivos y presenciar la celebración con confeti.
+
+---
+
+### 2:05 – 2:30 | Evidencia Comprobada Antes vs. Después (Rol Profesor)
+- **Audio (Voz en off):**  
+  *“Al terminar la práctica, el sistema no inventa números: calcula el puntaje auténtico de las respuestas obtenidas. Mariana logra un 80%, superando su diagnóstico de 52%.  
+  Regresamos al panel docente: el profesor tiene evidencia clara e indiscutible: 52% inicial a 80% final, una mejora de +28 puntos porcentuales, con conceptos dominados y recomendaciones para la siguiente sesión.”*
+- **Pantalla:**  
+  - Clic en *"Guardar evidencia y regresar al Panel del Profesor"*.
+  - Mostrar la tarjeta de auditoría pedagógica en **Progreso Antes/Después**:
+    - **Mariana López**
+    - **ANTES:** `52%`
+    - **DESPUÉS:** `80%`
+    - **MEJORA:** `+28 puntos porcentuales`
+    - **Materia:** Matemáticas • **Tema:** Fracciones equivalentes
+    - **Dominado:** Identificación de equivalencias
+    - **Pendiente:** Simplificación
+    - Leyenda: *“Resultado generado a partir de la práctica realizada.”*
+
+---
+
+### 2:30 – 2:45 | Arquitectura y Conexión Alexa+ / MCP
+- **Audio (Voz en off):**  
+  *“Esta experiencia está construida sobre una arquitectura abierta y robusta:  
+  Alexa+ Experience → Tutor Agent Orchestrator → Model Context Protocol (Streamable HTTP 2025-11-25) → Educational Tools.  
+  El docente puede pulsar 'Ver detalles técnicos' en cualquier momento para inspeccionar la salud del endpoint `/health`, esquemas validados y tiempos de ejecución del servidor.”*
+- **Pantalla:**  
+  - En la pestaña **Tutor IA**, activar el botón **“Ver detalles técnicos”**.
+  - Mostrar el panel de salud `/health` (Protocolo 2025-11-25, Streamable HTTP, 7 Tools registradas, latencia en ms, JSON de entrada y salida).
+
+---
+
+### 2:45 – 2:50 | Cierre
+- **Audio (Voz en off):**  
+  *“MACHTIA Adaptive Tutor: detecta, interviene, acompaña y demuestra aprendizaje.”*
+- **Pantalla:**  
+  Logo central de MACHTIA Adaptive Tutor con la leyenda:  
+  *Built for Amazon Alexa+ Developer Hackathon • Powered by Model Context Protocol*.
+
+---
+
+## Consejos para la Grabación
+1. **Resolución sugerida:** 1920x1080 a 60 fps o 1440x900.
+2. **Audio:** Micrófono claro, sin ruido de fondo y dicción pausada.
+3. **Repetición limpia:** Si se desea repetir una toma, utilizar el botón **"Reiniciar demostración"** en el banner superior; este restaura los datos instantáneamente sin dejar residuos.

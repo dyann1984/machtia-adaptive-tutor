@@ -26,6 +26,9 @@ export function Navbar() {
     setActiveStudentTab,
     resetDemo,
     students,
+    mcpStatus,
+    showLanding,
+    setShowLanding,
   } = useTutor();
 
   const studentsNeedingSupportCount = students.filter(
@@ -39,21 +42,45 @@ export function Navbar() {
         <div className="flex items-center gap-2">
           <span className="bg-amber-500/20 text-amber-400 font-semibold px-2 py-0.5 rounded border border-amber-500/30 flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-400 animate-spin" />
-            Hackathon Amazon / Alexa+ & Nebius Ready
+            Hackathon Amazon / Alexa+ Developer Ready
           </span>
           <span className="hidden md:inline text-slate-400">|</span>
-          <span className="hidden md:inline text-slate-300 font-mono text-[11px]">
-            MCP Tool Protocol: 12 Tools Activas
-          </span>
+          <div className="hidden md:flex items-center gap-1.5 font-mono text-[11px]">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                mcpStatus.connected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+              }`}
+            ></span>
+            <span className={mcpStatus.connected ? "text-emerald-300 font-bold" : "text-amber-300"}>
+              {mcpStatus.connected
+                ? `MCP Connected (${mcpStatus.latencyMs ?? 5}ms • ${mcpStatus.toolsCount ?? 7} Tools)`
+                : "MCP Offline • Modo Demo Activo"}
+            </span>
+          </div>
         </div>
 
-        {/* Global Demo Switcher */}
-        <div className="flex items-center gap-3">
+        {/* Global Demo Switcher & Reset */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            onClick={() => setShowLanding(!showLanding)}
+            className={`text-[11px] px-2.5 py-1 rounded border transition flex items-center gap-1 font-medium ${
+              showLanding
+                ? "bg-blue-600 text-white border-blue-500"
+                : "text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 border-slate-700"
+            }`}
+            title="Ver presentación / Landing inicial"
+          >
+            <span>Landing</span>
+          </button>
+
           <div className="flex items-center bg-slate-800 p-0.5 rounded-lg border border-slate-700">
             <button
-              onClick={() => setRole("teacher")}
+              onClick={() => {
+                setShowLanding(false);
+                setRole("teacher");
+              }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                role === "teacher"
+                !showLanding && role === "teacher"
                   ? "bg-blue-600 text-white shadow-sm font-semibold"
                   : "text-slate-300 hover:text-white"
               }`}
@@ -62,9 +89,12 @@ export function Navbar() {
               <span>Rol: Profesor (Prof. Vega)</span>
             </button>
             <button
-              onClick={() => setRole("student")}
+              onClick={() => {
+                setShowLanding(false);
+                setRole("student");
+              }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                role === "student"
+                !showLanding && role === "student"
                   ? "bg-amber-600 text-white shadow-sm font-semibold"
                   : "text-slate-300 hover:text-white"
               }`}
@@ -75,12 +105,15 @@ export function Navbar() {
           </div>
 
           <button
-            onClick={resetDemo}
-            title="Reiniciar datos para nuevo pitch de demostración"
-            className="flex items-center gap-1 text-[11px] text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded border border-slate-700 transition"
+            onClick={() => {
+              resetDemo();
+              setShowLanding(false);
+            }}
+            title="Reiniciar demostración exactamente al estado inicial"
+            className="flex items-center gap-1 text-[11px] text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1 rounded border border-slate-700 transition font-medium"
           >
-            <RotateCcw className="w-3 h-3 text-slate-400" />
-            <span className="hidden sm:inline">Reiniciar Demo</span>
+            <RotateCcw className="w-3 h-3 text-amber-400" />
+            <span>Reiniciar demostración</span>
           </button>
         </div>
       </div>

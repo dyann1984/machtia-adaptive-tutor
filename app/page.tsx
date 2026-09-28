@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useTutor } from "@/lib/context/tutor-context";
+import { LandingView } from "@/components/LandingView";
 import { TeacherDashboard } from "@/features/teacher/TeacherDashboard";
 import { GroupView } from "@/features/teacher/GroupView";
 import { AITutorAgentView } from "@/features/teacher/AITutorAgentView";
@@ -18,11 +19,29 @@ import { StudentProgressView } from "@/features/student/StudentProgressView";
 export default function Home() {
   const {
     role,
+    setRole,
     activeTeacherTab,
+    setActiveTeacherTab,
     activeStudentTab,
     setActiveStudentTab,
     setCurrentPracticingId,
+    showLanding,
+    setShowLanding,
+    resetDemo,
   } = useTutor();
+
+  if (showLanding) {
+    return (
+      <LandingView
+        onStartDemo={() => {
+          resetDemo();
+          setRole("teacher");
+          setActiveTeacherTab("dashboard");
+          setShowLanding(false);
+        }}
+      />
+    );
+  }
 
   if (role === "teacher") {
     switch (activeTeacherTab) {
