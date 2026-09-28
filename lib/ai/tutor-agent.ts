@@ -150,7 +150,7 @@ export class TutorAgentOrchestrator {
     }
 
     // 2. QUERY: Gap diagnosis for specific student
-    if (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha")) {
+    if (!q.includes("práctica") && (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha"))) {
       const studentId = q.includes("luis") ? "luis-hernandez" : "mariana-lopez";
       const studentName = studentId === "mariana-lopez" ? "Mariana López" : "Luis Hernández";
 
@@ -209,6 +209,25 @@ export class TutorAgentOrchestrator {
         5
       );
       const practiceResult = practiceCall.result;
+
+      // Sync generated practice into client repository if executing over remote/local MCP HTTP
+      if (!repository.getPracticeById(practiceResult.practiceId) && practiceResult.exercises) {
+        repository.savePractice({
+          id: practiceResult.practiceId,
+          title: practiceResult.practiceTitle,
+          description: `Refuerzo adaptativo focalizado en superar errores de comparación de denominadores con barras visuales para ${student.name}.`,
+          subjectId: "matematicas",
+          topicId: "fracciones-equivalentes",
+          topicName: practiceResult.targetTopic || "Fracciones equivalentes",
+          studentId: student.id,
+          studentName: student.name,
+          targetGapId: student.learningGaps[0]?.id || "gap-generic",
+          targetGapDescription: practiceResult.targetGapDescription || "Comparación de denominadores",
+          exercises: practiceResult.exercises,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        });
+      }
 
       recordAction(
         "generate_adaptive_practice",

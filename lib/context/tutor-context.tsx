@@ -207,7 +207,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         "TOOL | get_student_learning_gap",
         "RESULT | Mariana López — Matemáticas — Fracciones equivalentes — 52%",
       ];
-    } else if (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha")) {
+    } else if (!q.includes("práctica") && (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha"))) {
       steps = [
         "AGENT | Analizando solicitud del profesor",
         `MCP | ${mcpNote}`,
