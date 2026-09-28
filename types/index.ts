@@ -158,6 +158,8 @@ export interface TutorAction {
   timestamp: string;
   status: "running" | "success" | "error";
   durationMs?: number;
+  source?: "mcp" | "local-fallback";
+  mcpProtocol?: string;
 }
 
 export interface ProgressSnapshot {

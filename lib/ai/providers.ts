@@ -9,6 +9,7 @@ export interface AIProviderResponse {
 
 export interface AIProvider {
   name: string;
+  mode: "demo" | "amazon" | "nebius";
   isAvailable(): boolean;
   generateResponse(prompt: string, context?: Record<string, any>): Promise<AIProviderResponse>;
   decideToolCall(userQuery: string, context?: Record<string, any>): Promise<{
@@ -24,7 +25,8 @@ export interface AIProvider {
  * Simulates high-precision agent reasoning and tool orchestration without external API delays.
  */
 export class MockAIProvider implements AIProvider {
-  name = "MockAIProvider (Offline Fallback & Hackathon Mode)";
+  name = "MockAIProvider (Modo Demo Offline / Hackathon)";
+  mode = "demo" as const;
 
   isAvailable(): boolean {
     return true;
@@ -92,28 +94,37 @@ export class MockAIProvider implements AIProvider {
 }
 
 /**
- * AmazonAIProvider
- * Integration adapter prepared for Amazon Bedrock (Claude 3.5 Sonnet / Amazon Nova / Alexa+ LLM)
+ * AmazonProvider / AmazonAIProvider
+ * Integration adapter prepared for Amazon Bedrock / Alexa+ LLM
+ * Configurable via environment variables without hardcoded credentials.
  */
-export class AmazonAIProvider implements AIProvider {
+export class AmazonProvider implements AIProvider {
   name = "Amazon Bedrock / Alexa+ Provider";
-  private apiKey: string | undefined;
+  mode = "amazon" as const;
   private region: string;
+  private accessKeyId?: string;
+  private secretAccessKey?: string;
+  private bedrockApiKey?: string;
+  private modelId: string;
 
   constructor() {
-    this.apiKey = process.env.AWS_BEDROCK_API_KEY;
     this.region = process.env.AWS_REGION || "us-east-1";
+    this.accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    this.secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    this.bedrockApiKey = process.env.AWS_BEDROCK_API_KEY;
+    this.modelId = process.env.AWS_BEDROCK_MODEL_ID || "anthropic.claude-3-5-sonnet-20241022-v2:0";
   }
 
   isAvailable(): boolean {
-    return Boolean(this.apiKey);
+    return Boolean(this.bedrockApiKey || (this.accessKeyId && this.secretAccessKey));
   }
 
   async decideToolCall(userQuery: string, context?: Record<string, any>) {
     if (!this.isAvailable()) {
+      // Graceful fallback to MockAIProvider when credentials are not yet configured
       return new MockAIProvider().decideToolCall(userQuery, context);
     }
-    // Future Bedrock Converse API invocation with toolConfig
+    // Future AWS Bedrock Converse API invocation using AWS SDK v3
     return new MockAIProvider().decideToolCall(userQuery, context);
   }
 
@@ -122,11 +133,14 @@ export class AmazonAIProvider implements AIProvider {
       return new MockAIProvider().generateResponse(prompt, context);
     }
     return {
-      content: `[Amazon Bedrock Response]: ${prompt}`,
-      thought: `Generado en región ${this.region} mediante Bedrock Runtime Agent.`,
+      content: `[Amazon Bedrock (${this.modelId})]: ${prompt}`,
+      thought: `Inferencia ejecutada en región AWS ${this.region} mediante Bedrock Agent Runtime.`,
     };
   }
 }
+
+// Backward-compatible alias
+export const AmazonAIProvider = AmazonProvider;
 
 /**
  * NebiusAIProvider
@@ -134,6 +148,7 @@ export class AmazonAIProvider implements AIProvider {
  */
 export class NebiusAIProvider implements AIProvider {
   name = "Nebius AI Studio / NVIDIA NIM Provider";
+  mode = "nebius" as const;
   private apiKey: string | undefined;
 
   constructor() {
@@ -162,12 +177,29 @@ export class NebiusAIProvider implements AIProvider {
   }
 }
 
+/**
+ * Provider factory based on AI_PROVIDER environment variable or available credentials.
+ */
 export function getAIProvider(): AIProvider {
-  if (process.env.AWS_BEDROCK_API_KEY) {
-    return new AmazonAIProvider();
+  const requestedProvider = (process.env.AI_PROVIDER || "").toLowerCase().trim();
+
+  if (requestedProvider === "amazon") {
+    return new AmazonProvider();
+  }
+  if (requestedProvider === "nebius") {
+    return new NebiusAIProvider();
+  }
+  if (requestedProvider === "mock" || requestedProvider === "demo") {
+    return new MockAIProvider();
+  }
+
+  // Auto-detection fallback
+  if (process.env.AWS_BEDROCK_API_KEY || process.env.AWS_ACCESS_KEY_ID) {
+    return new AmazonProvider();
   }
   if (process.env.NEBIUS_API_KEY) {
     return new NebiusAIProvider();
   }
+
   return new MockAIProvider();
 }

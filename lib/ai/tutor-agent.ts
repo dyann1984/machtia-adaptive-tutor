@@ -1,17 +1,4 @@
-import {
-  analyze_student_performance,
-  find_students_needing_support,
-  get_student_learning_gap,
-  generate_adaptive_practice,
-  assign_practice_to_student,
-  explain_concept,
-  evaluate_answer,
-  adapt_difficulty,
-  evaluate_practice,
-  save_learning_evidence,
-  get_student_progress,
-  report_progress_to_teacher,
-} from "@/lib/tools/tutor-tools";
+import { mcpClient } from "@/lib/mcp/client";
 import { getAIProvider } from "./providers";
 import { repository } from "@/lib/data/repository";
 import { AgentChatMessage, TutorAction } from "@/types";
@@ -27,9 +14,10 @@ export interface AgentExecutionResult {
 
 export class TutorAgentOrchestrator {
   private provider = getAIProvider();
+  private mcp = mcpClient;
 
   /**
-   * Main agent execution pipeline. Processes teacher queries and dispatches tools.
+   * Main agent execution pipeline. Processes teacher queries and dispatches tools via MCP Client.
    */
   async processTeacherQuery(
     query: string,
@@ -42,7 +30,9 @@ export class TutorAgentOrchestrator {
       displayName: string,
       description: string,
       input: Record<string, any>,
-      output: Record<string, any>
+      output: Record<string, any>,
+      source: "mcp" | "local-fallback" = "mcp",
+      durationMs: number = 140
     ) => {
       const action = repository.logAction({
         toolName,
@@ -51,7 +41,9 @@ export class TutorAgentOrchestrator {
         input,
         output,
         status: "success",
-        durationMs: Math.floor(Math.random() * 200) + 120,
+        durationMs,
+        source,
+        mcpProtocol: "2025-11-25",
       });
       executedActions.push(action);
       return action;
@@ -68,46 +60,55 @@ export class TutorAgentOrchestrator {
       q.includes("apoyo") ||
       q.includes("rezago")
     ) {
-      // Step A: analyze_student_performance
-      const perf = await analyze_student_performance("grupo-3b", "matematicas");
+      // Step A: analyze_student_performance via MCP Client
+      const perfCall = await this.mcp.analyzeStudentPerformance("grupo-3b", "matematicas");
       recordAction(
         "analyze_student_performance",
         "Consultó desempeño del grupo",
         "Analizó calificaciones de 5 alumnos en 3 temas curriculares.",
         { groupId: "grupo-3b", subjectId: "matematicas" },
-        perf
+        perfCall.result,
+        perfCall.source,
+        perfCall.durationMs
       );
 
-      // Step B: find_students_needing_support
-      const support = await find_students_needing_support("grupo-3b", "matematicas", 65);
+      // Step B: find_students_needing_support via MCP Client
+      const supportCall = await this.mcp.findStudentsNeedingSupport("grupo-3b", "matematicas", 65);
       recordAction(
         "find_students_needing_support",
         "Detectó patrones y alumnos con rezago",
         "Identificó alumnos con rendimiento inferior al 65%.",
         { groupId: "grupo-3b", subjectId: "matematicas", threshold: 65 },
-        support
+        supportCall.result,
+        supportCall.source,
+        supportCall.durationMs
       );
 
-      // Step C: get_student_learning_gap for detected students
-      const marianaGap = await get_student_learning_gap("mariana-lopez", "matematicas");
+      // Step C: get_student_learning_gap for detected students via MCP Client
+      const marianaGapCall = await this.mcp.getStudentLearningGap("mariana-lopez", "matematicas");
       recordAction(
         "get_student_learning_gap",
         "Identificó brecha de Mariana López",
         "Error recurrente: comparación de denominadores (52% de aciertos).",
         { studentId: "mariana-lopez", subjectId: "matematicas" },
-        marianaGap
+        marianaGapCall.result,
+        marianaGapCall.source,
+        marianaGapCall.durationMs
       );
 
-      const luisGap = await get_student_learning_gap("luis-hernandez", "matematicas");
+      const luisGapCall = await this.mcp.getStudentLearningGap("luis-hernandez", "matematicas");
       recordAction(
         "get_student_learning_gap",
         "Identificó brecha de Luis Hernández",
         "Error recurrente: simplificación de fracciones (58% de aciertos).",
         { studentId: "luis-hernandez", subjectId: "matematicas" },
-        luisGap
+        luisGapCall.result,
+        luisGapCall.source,
+        luisGapCall.durationMs
       );
 
-      const responseText = `He analizado el desempeño curricular del grupo **3° B** en **Matemáticas**:\n\n• **Mariana López** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**.\n  - **Calificación actual:** 52% (4 de 7 reactivos fallados en examen diagnóstico).\n  - **Brecha de aprendizaje detectada:** *Comparación de denominadores* — Asume que a mayor denominador mayor es la fracción, sin comprobar la relación multiplicativa (confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6).\n\n• **Luis Hernández** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**.\n  - **Calificación actual:** 58%.\n  - **Brecha de aprendizaje detectada:** *Simplificación* — Omite dividir ambos términos uniformemente entre el factor común.\n\nEl resto del grupo mantiene un desempeño óptimo (promedio 89%). Te recomiendo generar una práctica de apoyo personalizada para **Mariana López**.`;
+      const supportData = supportCall.result;
+      const responseText = `He analizado el desempeño curricular del grupo **3° B** en **Matemáticas** mediante herramientas MCP:\n\n• **Mariana López** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**.\n  - **Calificación actual:** 52% (4 de 7 reactivos fallados en examen diagnóstico).\n  - **Brecha de aprendizaje detectada:** *Comparación de denominadores* — Asume que a mayor denominador mayor es la fracción, sin comprobar la relación multiplicativa (confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6).\n\n• **Luis Hernández** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**.\n  - **Calificación actual:** 58%.\n  - **Brecha de aprendizaje detectada:** *Simplificación* — Omite dividir ambos términos uniformemente entre el factor común.\n\nEl resto del grupo mantiene un desempeño óptimo (promedio 89%). Te recomiendo generar una práctica de apoyo personalizada para **Mariana López**.`;
 
       const message: AgentChatMessage = {
         id: `msg-${Date.now()}`,
@@ -134,7 +135,7 @@ export class TutorAgentOrchestrator {
           },
         ],
         dataPayload: {
-          supportList: support.students,
+          supportList: supportData?.students || [],
         },
       };
 
@@ -153,16 +154,20 @@ export class TutorAgentOrchestrator {
       const studentId = q.includes("luis") ? "luis-hernandez" : "mariana-lopez";
       const studentName = studentId === "mariana-lopez" ? "Mariana López" : "Luis Hernández";
 
-      const gap = await get_student_learning_gap(studentId, "matematicas");
+      const gapCall = await this.mcp.getStudentLearningGap(studentId, "matematicas");
+      const gap = gapCall.result;
+
       recordAction(
         "get_student_learning_gap",
         `Identificó brecha de aprendizaje de ${studentName}`,
-        gap.diagnosticSummary,
+        gap.diagnosticSummary || `Brecha identificada en ${gap.topicName || "fracciones"}.`,
         { studentId, subjectId: "matematicas" },
-        gap
+        gap,
+        gapCall.source,
+        gapCall.durationMs
       );
 
-      const responseText = `**Diagnóstico de ${studentName}**:\n\n${gap.diagnosticSummary}\n\n• **Materia:** Matemáticas\n• **Tema específico:** Fracciones equivalentes\n• **Brecha concreta:** ${gap.learningGap}\n• **Evidencia de diagnóstico:** ${gap.evidence}\n• **Rendimiento actual:** ${gap.currentScore}%\n\nPulsa **"Crear práctica de apoyo"** para generar una batería adaptativa de 5 ejercicios con acompañamiento visual interactivo.`;
+      const responseText = `**Diagnóstico de ${studentName}**:\n\n${gap.diagnosticSummary || ""}\n\n• **Materia:** Matemáticas\n• **Tema específico:** Fracciones equivalentes\n• **Brecha concreta:** ${gap.learningGap}\n• **Evidencia de diagnóstico:** ${gap.evidence}\n• **Rendimiento actual:** ${gap.currentScore}%\n\nPulsa **"Crear práctica de apoyo"** para generar una batería adaptativa de 5 ejercicios con acompañamiento visual interactivo.`;
 
       const message: AgentChatMessage = {
         id: `msg-${Date.now()}`,
@@ -196,29 +201,37 @@ export class TutorAgentOrchestrator {
       const studentId = context?.selectedStudentId || "mariana-lopez";
       const student = repository.getStudentById(studentId) || repository.getStudents()[0];
 
-      // Step A: generate_adaptive_practice
-      const practiceResult = await generate_adaptive_practice(
+      // Step A: generate_adaptive_practice via MCP Client
+      const practiceCall = await this.mcp.generateAdaptivePractice(
         student.id,
         "fracciones-equivalentes",
-        student.recurringErrors["fracciones-equivalentes"],
+        "easy",
         5
       );
+      const practiceResult = practiceCall.result;
+
       recordAction(
         "generate_adaptive_practice",
         "Generó práctica de apoyo adaptativa",
         `Creó 5 ejercicios calibrados para corregir: ${practiceResult.targetGapDescription}.`,
         { studentId: student.id, count: 5 },
-        practiceResult
+        practiceResult,
+        practiceCall.source,
+        practiceCall.durationMs
       );
 
-      // Step B: assign_practice_to_student
-      const assignResult = await assign_practice_to_student(practiceResult.practiceId, student.id);
+      // Step B: assign_practice_to_student via MCP Client
+      const assignCall = await this.mcp.assignPracticeToStudent(practiceResult.practiceId, student.id);
+      const assignResult = assignCall.result;
+
       recordAction(
         "assign_practice_to_student",
         "Asignó práctica al portal del alumno",
         `Práctica registrada como pendiente en la cuenta de ${student.name}.`,
         { practiceId: practiceResult.practiceId, studentId: student.id },
-        assignResult
+        assignResult,
+        assignCall.source,
+        assignCall.durationMs
       );
 
       const responseText = `✅ **¡Práctica de apoyo asignada exitosamente!**\n\n• **Alumno:** ${student.name}\n• **Materia:** Matemáticas | **Tema:** Fracciones equivalentes\n• **Práctica:** ${practiceResult.practiceTitle}\n• **Estado:** Pendiente en portal del alumno\n• **Enfoque pedagógico:** 5 ejercicios interactivos adaptativos con apoyo visual paso a paso.\n\nAhora puedes cambiar al rol **Alumno** en la barra superior para ver la práctica asignada y comenzar la resolución guiada.`;
@@ -262,27 +275,35 @@ export class TutorAgentOrchestrator {
       const studentId = context?.selectedStudentId || "mariana-lopez";
       const student = repository.getStudentById(studentId) || repository.getStudents()[0];
 
-      // Step A: get_student_progress
-      const progress = await get_student_progress(student.id, "matematicas");
+      // Step A: get_student_progress via MCP Client
+      const progressCall = await this.mcp.getStudentProgress(student.id, "matematicas");
+      const progress = progressCall.result;
+
       recordAction(
         "get_student_progress",
         "Consultó historial de progreso",
         `Recuperó diagnóstico inicial vs calificaciones de prácticas completadas.`,
         { studentId: student.id, subjectId: "matematicas" },
-        progress
+        progress,
+        progressCall.source,
+        progressCall.durationMs
       );
 
-      // Step B: report_progress_to_teacher
-      const report = await report_progress_to_teacher(student.id, "matematicas");
+      // Step B: report_progress_to_teacher via MCP Client
+      const reportCall = await this.mcp.reportProgressToTeacher(student.id, "matematicas");
+      const report = reportCall.result;
+
       recordAction(
         "report_progress_to_teacher",
         "Generó reporte pedagógico consolidado",
         `Calculó delta de mejora (+${report.improvementDelta}%) y conceptos dominados.`,
         { studentId: student.id, subjectId: "matematicas" },
-        report
+        report,
+        reportCall.source,
+        reportCall.durationMs
       );
 
-      const responseText = `📊 **Reporte de Progreso de ${student.name}**\n\n• **Materia:** Matemáticas | **Tema:** Fracciones equivalentes\n• **ANTES:** ${report.scoreBefore}%\n• **DESPUÉS:** ${report.scoreAfter}%\n• **DELTA DE MEJORA:** +${report.improvementDelta}% 📈\n• **ESTADO:** **${report.status}**\n\n**Evidencia del progreso:**\n${report.reportText}\n\n**Conceptos dominados:**\n${report.masteredConcepts.map((c) => `✓ ${c}`).join("\n")}\n\n**Pendientes para siguiente ciclo:**\n${report.pendingConcepts.map((c) => `⏳ ${c}`).join("\n")}`;
+      const responseText = `📊 **Reporte de Progreso de ${student.name}**\n\n• **Materia:** Matemáticas | **Tema:** Fracciones equivalentes\n• **ANTES:** ${report.scoreBefore}%\n• **DESPUÉS:** ${report.scoreAfter}%\n• **DELTA DE MEJORA:** +${report.improvementDelta}% 📈\n• **ESTADO:** **${report.status}**\n\n**Evidencia del progreso:**\n${report.reportText}\n\n**Conceptos dominados:**\n${report.masteredConcepts.map((c: string) => `✓ ${c}`).join("\n")}\n\n**Pendientes para siguiente ciclo:**\n${report.pendingConcepts.map((c: string) => `⏳ ${c}`).join("\n")}`;
 
       const message: AgentChatMessage = {
         id: `msg-${Date.now()}`,

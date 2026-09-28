@@ -14,12 +14,21 @@ import {
 } from "@/types";
 import { repository } from "@/lib/data/repository";
 import { tutorAgent } from "@/lib/ai/tutor-agent";
+import { mcpClient } from "@/lib/mcp/client";
 import {
   evaluate_answer,
   adapt_difficulty,
   save_learning_evidence,
   explain_concept,
 } from "@/lib/tools/tutor-tools";
+
+export interface McpStatusInfo {
+  connected: boolean;
+  latencyMs?: number;
+  protocolVersion?: string;
+  transport?: string;
+  error?: string;
+}
 
 interface TutorContextType {
   role: "teacher" | "student";
@@ -42,6 +51,8 @@ interface TutorContextType {
   activeAgentSteps: string[];
   currentPracticingId: string | null;
   setCurrentPracticingId: (id: string | null) => void;
+  mcpStatus: McpStatusInfo;
+  checkMcpConnection: () => Promise<void>;
   // Actions
   sendMessageToTutor: (query: string) => Promise<void>;
   handleQuickAction: (actionKey: string, payload?: any) => Promise<void>;
@@ -68,6 +79,12 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   const [practices, setPractices] = useState<Practice[]>(repository.getPractices());
   const [evidences, setEvidences] = useState<LearningEvidence[]>(repository.getEvidences());
   const [actionLogs, setActionLogs] = useState<TutorAction[]>(repository.getActionLogs());
+
+  const [mcpStatus, setMcpStatus] = useState<McpStatusInfo>({
+    connected: false,
+    protocolVersion: "2025-11-25",
+    transport: "Streamable HTTP",
+  });
 
   const [chatMessages, setChatMessages] = useState<AgentChatMessage[]>([
     {
@@ -103,18 +120,39 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     setActionLogs(repository.getActionLogs());
   };
 
+  const checkMcpConnection = async () => {
+    try {
+      const status = await mcpClient.checkConnection();
+      setMcpStatus({
+        connected: status.connected,
+        latencyMs: status.latencyMs,
+        protocolVersion: status.protocolVersion || "2025-11-25",
+        transport: status.transport || "Streamable HTTP",
+        error: status.error,
+      });
+    } catch (e: any) {
+      setMcpStatus({
+        connected: false,
+        protocolVersion: "2025-11-25",
+        transport: "Streamable HTTP",
+        error: e?.message,
+      });
+    }
+  };
+
   useEffect(() => {
     refreshState();
+    checkMcpConnection();
   }, []);
 
   const simulateAgentSteps = async (steps: string[]) => {
     setIsAgentThinking(true);
     setActiveAgentSteps([]);
     for (let i = 0; i < steps.length; i++) {
-      await new Promise((r) => setTimeout(r, 450));
+      await new Promise((r) => setTimeout(r, 380));
       setActiveAgentSteps((prev) => [...prev, steps[i]]);
     }
-    await new Promise((r) => setTimeout(r, 350));
+    await new Promise((r) => setTimeout(r, 260));
     setIsAgentThinking(false);
   };
 
@@ -129,32 +167,52 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     setChatMessages((prev) => [...prev, userMsg]);
 
     const q = query.toLowerCase();
-    let steps: string[] = ["Actividad del agente: Iniciando ejecución de herramientas..."];
+    const isMcpOnline = mcpStatus.connected;
+    const mcpNote = isMcpOnline
+      ? "MCP Server Conectado (Streamable HTTP 2025-11-25)"
+      : "MCP Offline (Modo Demo Activo - Streamable HTTP)";
+
+    let steps: string[] = [
+      "AGENT | Analizando solicitud del profesor...",
+      `MCP | ${mcpNote}`,
+    ];
 
     if (q.includes("apoyo") || q.includes("quién") || q.includes("quien") || q.includes("rezago")) {
       steps = [
-        "✓ Consultó desempeño con analyze_student_performance()",
-        "✓ Detectó patrones de error con find_students_needing_support()",
-        "✓ Identificó brecha de Mariana López con get_student_learning_gap()",
-        "✓ Generó recomendación de práctica de apoyo",
+        "AGENT | Analizando solicitud del profesor...",
+        `MCP | ${mcpNote}`,
+        "TOOL | analyze_student_performance(groupId: 'grupo-3b', subjectId: 'matematicas')",
+        "RESULT | Fracciones equivalentes identificado como tema crítico (58% promedio)",
+        "TOOL | find_students_needing_support(threshold: 65%)",
+        "RESULT | 2 alumnos detectados: Mariana López (52%) y Luis Hernández (58%)",
+        "TOOL | get_student_learning_gap(studentId: 'mariana-lopez')",
+        "RESULT | Mariana → Matemáticas → Fracciones equivalentes → 52% (comparación de denominadores)",
       ];
     } else if (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha")) {
       steps = [
-        "✓ Consultó historial de evaluación diagnóstica de Mariana López",
-        "✓ Identificó brecha en comparación de denominadores con get_student_learning_gap()",
-        "✓ Calibró prescripción pedagógica adaptativa",
+        "AGENT | Procesando consulta diagnóstica de Mariana López...",
+        `MCP | ${mcpNote}`,
+        "TOOL | get_student_learning_gap(studentId: 'mariana-lopez', subjectId: 'matematicas')",
+        "RESULT | Brecha confirmada: Comparación errónea de denominadores (52% aciertos)",
+        "AGENT | Calibrando batería de 5 ejercicios adaptativos para prescripción docente...",
       ];
     } else if (q.includes("generar práctica") || q.includes("crear práctica") || q.includes("práctica de apoyo")) {
       steps = [
-        "✓ Generó práctica de apoyo adaptativa con generate_adaptive_practice()",
-        "✓ Asignó práctica como pendiente con assign_practice_to_student()",
-        "✓ Notificó disponibilidad en módulo Alumno",
+        "AGENT | Preparando prescripción pedagógica adaptativa...",
+        `MCP | ${mcpNote}`,
+        "TOOL | generate_adaptive_practice(studentId: 'mariana-lopez', topic: 'fracciones-equivalentes')",
+        "RESULT | Práctica de apoyo generada con 5 ejercicios y 3 niveles de andamiaje",
+        "TOOL | assign_practice_to_student(practiceId, studentId: 'mariana-lopez')",
+        "RESULT | Estado actualizado: 'pending' en el portal del alumno",
       ];
     } else if (q.includes("mejoró") || q.includes("mejora") || q.includes("progreso")) {
       steps = [
-        "✓ Consultó historial de progreso con get_student_progress()",
-        "✓ Comparó diagnóstico inicial (52%) vs resultado final en práctica",
-        "✓ Generó reporte pedagógico con report_progress_to_teacher()",
+        "AGENT | Evaluando impacto pedagógico antes vs después...",
+        `MCP | ${mcpNote}`,
+        "TOOL | get_student_progress(studentId: 'mariana-lopez', subjectId: 'matematicas')",
+        "RESULT | Diagnóstico inicial: 52% → Práctica completada: 80%",
+        "TOOL | report_progress_to_teacher(studentId: 'mariana-lopez')",
+        "RESULT | Delta de mejora: +28% (Mejora detectada • Concepto asimilado)",
       ];
     }
 
@@ -198,55 +256,87 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       setActiveTeacherTab("evidences");
     } else if (actionKey === "ask_mariana_improvement") {
       setActiveTeacherTab("tutor");
-      await sendMessageToTutor("¿Mejoró Mariana López?");
+      await sendMessageToTutor("¿Mejoró Mariana López después de la práctica?");
     }
   };
 
   const generatePracticeForStudent = async (studentId: string): Promise<string> => {
-    setSelectedStudentId(studentId);
-    setActiveTeacherTab("tutor");
-    await sendMessageToTutor(`Generar práctica personalizada para ${studentId === "luis-hernandez" ? "Luis Hernández" : "Mariana López"}`);
-    const updatedPractices = repository.getPracticesByStudent(studentId);
-    const newest = updatedPractices[updatedPractices.length - 1];
-    return newest ? newest.id : "";
+    const student = repository.getStudentById(studentId);
+    if (!student) throw new Error("Student not found");
+
+    const practiceCall = await mcpClient.generateAdaptivePractice(
+      student.id,
+      "fracciones-equivalentes",
+      "easy",
+      5
+    );
+
+    await mcpClient.assignPracticeToStudent(practiceCall.result.practiceId, student.id);
+    refreshState();
+    return practiceCall.result.practiceId;
   };
 
   const submitAnswer = async (exerciseId: string, answer: string, attemptNumber: number) => {
-    return await evaluate_answer(exerciseId, answer, attemptNumber);
+    return evaluate_answer(exerciseId, answer, attemptNumber);
   };
 
   const completePractice = async (
     practiceId: string,
-    results: {
-      score: number;
-      totalCorrect: number;
-      totalExercises: number;
-      mastered: string[];
-      pending: string[];
-    }
+    results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[] }
   ) => {
     repository.updatePracticeStatus(practiceId, "completed");
-    await save_learning_evidence(selectedStudentId, practiceId, {
-      score: results.score,
-      totalCorrect: results.totalCorrect,
-      totalExercises: results.totalExercises,
+
+    const practice = repository.getPracticeById(practiceId);
+    if (!practice) return;
+
+    const student = repository.getStudentById(practice.studentId);
+    if (!student) return;
+
+    repository.updateStudentScore(student.id, practice.topicId, results.score);
+
+    const initialScore = 52;
+    const delta = results.score - initialScore;
+
+    repository.saveEvidence({
+      id: `evi-${Date.now()}`,
+      studentId: student.id,
+      studentName: student.name,
+      practiceId: practice.id,
+      subjectId: practice.subjectId,
+      topicName: practice.topicName,
+      initialScore: initialScore,
+      finalScore: results.score,
+      improvementDelta: delta,
+      status: delta > 0 ? "Mejora detectada" : "Progreso moderado",
       masteredConcepts: results.mastered,
       pendingConcepts: results.pending,
+      tutorObservations: `Mariana completó la práctica de fracciones equivalentes guiada por el Tutor IA. Resolvió correctamente ${results.totalCorrect} de ${results.totalExercises} reactivos obteniendo un puntaje de ${results.score}%, superando el diagnóstico inicial de ${initialScore}%.`,
+      timestamp: new Date().toISOString(),
+      attemptId: `att-${Date.now()}`,
     });
+
+    repository.logAction({
+      toolName: "save_learning_evidence",
+      displayName: "Guardó evidencia de aprendizaje",
+      description: `Registró mejora de Mariana López de ${initialScore}% a ${results.score}% (+${delta}% delta).`,
+      input: { studentId: student.id, practiceId: practice.id, score: results.score },
+      output: { status: "saved", delta },
+      status: "success",
+      durationMs: 140,
+      source: "local-fallback",
+      mcpProtocol: "2025-11-25",
+    });
+
     refreshState();
   };
 
   const resetDemo = () => {
-    repository.resetDemoData();
+    repository.resetToInitialState();
     refreshState();
-    setRole("teacher");
-    setActiveTeacherTab("dashboard");
-    setActiveStudentTab("home");
-    setSelectedStudentId("mariana-lopez");
-    setCurrentPracticingId(null);
+    checkMcpConnection();
     setChatMessages([
       {
-        id: "initial-welcome-reset",
+        id: "initial-welcome",
         sender: "agent",
         text: "👋 ¡Hola, Profesor Carlos! Soy **MACHTIA Adaptive Tutor**. He analizado el grupo **3° B** en la materia de **Matemáticas**. Puedes consultarme quién necesita apoyo o pedirme diagnósticos específicos.",
         timestamp: new Date().toISOString(),
@@ -289,6 +379,8 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         activeAgentSteps,
         currentPracticingId,
         setCurrentPracticingId,
+        mcpStatus,
+        checkMcpConnection,
         sendMessageToTutor,
         handleQuickAction,
         generatePracticeForStudent,

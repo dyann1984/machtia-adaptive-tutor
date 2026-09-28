@@ -7,7 +7,7 @@
 
 ## 1. Qué es MACHTIA Adaptive Tutor
 
-**MACHTIA Adaptive Tutor** es un sistema de tutoría educativa inteligente basado en agentes de IA y compatible con el protocolo **Model Context Protocol (MCP)**. 
+**MACHTIA Adaptive Tutor** es un sistema de tutoría educativa inteligente basado en agentes de IA y compatible con el protocolo estándar **Model Context Protocol (MCP)** versión **2025-11-25**.
 
 Conecta de manera fluida el ecosistema pedagógico:
 ```
@@ -18,165 +18,117 @@ Permite a los docentes supervisar grupos escolares, diagnosticar patrones de err
 
 ---
 
-## 2. Problema que Resuelve
+## 2. Amazon Alexa+ Hackathon Integration
 
-1. **Atención a la diversidad en aulas masivas:** En clases de 30 o más alumnos, un profesor no cuenta con el tiempo para generar 5 ejercicios específicos dirigidos a la brecha conceptual particular de cada alumno con rezago.
-2. **Chatbots genéricos no pedagógicos:** Los chatbots convencionales simplemente dan la respuesta directa o arrojan textos largos que el niño no comprende.
-3. **Falta de evidencia formativa medible:** Las herramientas existentes no vinculan la evaluación diagnóstica inicial con la práctica interactiva ni demuestran el delta de mejora post-intervención.
+### 2.1. ¿Por qué MACHTIA Adaptive Tutor encaja en Alexa+?
+- **Asistencia Docente Manos Libres:** En el aula, el profesor puede consultar a un dispositivo Alexa+: *“Alexa, ¿qué alumnos necesitan apoyo en matemáticas?”* y recibir un diagnóstico preciso con datos en tiempo real.
+- **Multimodalidad y Pantallas Inteligentes (Echo Show):** Alexa+ combina la interacción por voz con interfaces visuales interactivas para mostrar barras de fracciones de chocolate al estudiante y gráficos de progreso al docente.
+- **Tutoría Adaptativa en el Hogar:** Los alumnos pueden interactuar conversacionalmente con el tutor adaptativo para resolver sus tareas escolares con pistas progresivas (Nivel 1: Pista, Nivel 2: Explicación alternativa con analogía, Nivel 3: Ejemplo guiado paso a paso).
 
-**La Solución de MACHTIA:**
-Un agente que no solo responde preguntas, sino que ejecuta herramientas diagnósticas, genera representaciones gráficas interactivas (fracciones visuales de chocolate), brinda pistas formativas sin regalar la respuesta, y registra la evidencia oficial de impacto (+28% de progreso).
-
----
-
-## 3. Flujo Profesor - Alumno
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Prof as Profesor (Prof. Vega)
-    participant Agent as MACHTIA Tutor IA (MCP)
-    actor Student as Alumna (Mariana)
-    participant Repo as Registro Pedagógico
-
-    Prof->>Agent: "¿Quién necesita apoyo en matemáticas?"
-    Agent->>Repo: analyze_student_performance() & find_students_needing_support()
-    Agent-->>Prof: "2 alumnos en rezago: Mariana (52%) y Luis (58%)"
-    Prof->>Agent: "Generar práctica adaptativa para Mariana"
-    Agent->>Repo: generate_adaptive_practice() & assign_practice_to_student()
-    Agent-->>Prof: Práctica de 5 reactivos asignada al portal
-    Note over Student: Mariana entra a su portal de alumna
-    Student->>Agent: Abre práctica: Fracciones equivalentes
-    Agent-->>Student: Explicación paso a paso interactiva (barras visuales)
-    Student->>Agent: Resuelve reactivos (con pistas formativas si falla)
-    Agent->>Repo: evaluate_practice() & save_learning_evidence()
-    Note over Prof: Profesor consulta seguimiento
-    Prof->>Agent: "¿Mejoró Mariana López?"
-    Agent-->>Prof: Comparativa: Antes 52% ➔ Después 80% (+28% Mejora detectada)
-```
-
----
-
-## 4. Arquitectura del Agente
-
-El sistema cuenta con una arquitectura modular y limpia, diseñada para desacoplar la interfaz de usuario de las herramientas de inferencia y almacenamiento:
+### 2.2. Arquitectura de Integración MCP
 
 ```
-├── app/                      # Rutas Next.js App Router (layout, page, estilos)
-├── components/               # Componentes UI compartidos (Navbar, FractionBarVisualizer)
-├── features/
-│   ├── teacher/              # Módulo Profesor: Dashboard, Tutor IA, Grupo, Rezago, Evidencias
-│   └── student/              # Módulo Alumno: Home, Prácticas, Runner Interactivo, Chat
-├── lib/
-│   ├── ai/
-│   │   ├── tutor-agent.ts    # Orquestador del Agente y ejecutor de telemetría
-│   │   └── providers.ts      # Abstracción de proveedores (Mock, Bedrock, Nebius)
-│   ├── tools/
-│   │   └── tutor-tools.ts    # Capa de 12 Herramientas compatibles con MCP
-│   ├── data/
-│   │   ├── mock-data.ts      # Banco inicial de datos de Grupo 3° B y reactivos
-│   │   └── repository.ts     # Repositorio con persistencia y control de estado
-│   └── context/
-│       └── tutor-context.tsx # React Context con alternancia instantánea de roles
-├── types/                    # Interfaces TypeScript del dominio pedagógico
-├── tests/                    # Pruebas unitarias automatizadas con Vitest
-└── docs/                     # Guion de demo (HACKATHON_DEMO.md)
+Teacher / Alexa+
+       ↓
+MACHTIA Adaptive Tutor UI
+       ↓
+Tutor Agent Orchestrator
+       ↓
+MCP Client
+       ↓  (JSON-RPC 2.0 / Streamable HTTP)
+MACHTIA Tutor MCP Server (Puerto 3100)
+       ↓
+Educational Tools Registry
+       ↓
+Learning Data Repository
 ```
 
+Ver documento detallado en: [`docs/AMAZON_MCP_ARCHITECTURE.md`](docs/AMAZON_MCP_ARCHITECTURE.md).
+
+### 2.3. Especificación MCP Implementada
+- **Versión del Protocolo:** `2025-11-25`
+- **Transporte:** **Streamable HTTP** con soporte Server-Sent Events (SSE) y JSON-RPC 2.0.
+- **Servidor MCP Ejecutable:** Implementado en `mcp/server/index.ts`, configurable en puerto `3100`.
+- **Endpoints del Servidor:**
+  - `POST http://localhost:3100/mcp`: Endpoint JSON-RPC 2.0 (`initialize`, `tools/list`, `tools/call`, `ping`).
+  - `GET  http://localhost:3100/mcp`: Streaming SSE con heartbeat y eventos de estado.
+  - `GET  http://localhost:3100/health`: Health check con versión del protocolo y conteo de herramientas.
+
+### 2.4. Herramientas MCP Expuestas
+
+| Herramienta | Entrada JSON Schema | Salida Estructurada |
+|---|---|---|
+| `analyze_student_performance` | `{ groupId, subjectId }` | Métricas grupales y tema con mayor rezago. |
+| `find_students_needing_support` | `{ groupId, subjectId?, threshold? }` | Lista de alumnos con rendimiento < 65% y evidencia de rezago. |
+| `get_student_learning_gap` | `{ studentId, subjectId?, topicId? }` | Diagnóstico de error recurrente y evidencia empírica. |
+| `generate_adaptive_practice` | `{ studentId, topicId, initialDifficulty?, exerciseCount? }` | Práctica de 5 reactivos con estado `"pending"`. |
+| `assign_practice_to_student` | `{ practiceId, studentId }` | Asignación confirmada en el expediente del alumno. |
+| `get_student_progress` | `{ studentId, subjectId? }` | Historial comparativo de evaluaciones y prácticas. |
+| `report_progress_to_teacher` | `{ studentId, practiceId?, subjectId? }` | Reporte antes/después (+28% delta) con conceptos dominados. |
+
 ---
 
-## 5. Herramientas Disponibles (Capa MCP)
+## 3. Modos de Ejecución
 
-El agente dispone de 12 herramientas compatibles conceptual y estructuralmente con el protocolo **Model Context Protocol (MCP)**:
+### Modo Demo (Default - Offline & Hackathon Safe)
+- Activado por defecto con `AI_PROVIDER=mock`.
+- Utiliza inferencia local determinista y ejecuta herramientas contra el servidor MCP real o fallback local.
+- **No requiere credenciales externas ni tarjetas de crédito.**
 
-| Herramienta | Descripción MCP |
-|---|---|
-| `analyze_student_performance` | Analiza el desempeño del grupo e identifica temas con mayor rezago curricular. |
-| `find_students_needing_support` | Filtra alumnos con calificación inferior al umbral configurable (ej. 65%). |
-| `get_student_learning_gap` | Diagnostica la causa raíz y el error recurrente específico del estudiante. |
-| `generate_adaptive_practice` | Construye una batería de 5 ejercicios adaptados al patrón de error detectado. |
-| `assign_practice_to_student` | Publica la práctica generada directamente en la vista del alumno. |
-| `explain_concept` | Genera una explicación multi-paso con analogías visuales adaptadas a la edad. |
-| `evaluate_answer` | Calibra respuestas, ofreciendo pistas en el primer fallo y explicación formativa en el segundo. |
-| `adapt_difficulty` | Ajusta la dificultad hacia arriba o hacia abajo en tiempo real según el desempeño del alumno. |
-| `evaluate_practice` | Totaliza aciertos, porcentaje y categoriza conceptos dominados vs pendientes. |
-| `save_learning_evidence` | Registra formalmente el delta comparativo de impacto pedagógico. |
-| `get_student_progress` | Consulta el histórico de evolución académica del alumno. |
-| `report_progress_to_teacher` | Sintetiza el reporte de mejora para respuesta ejecutiva al docente. |
+### Modo Amazon (`AI_PROVIDER=amazon`)
+- Preparado para conectarse con **Amazon Bedrock** (Claude 3.5 Sonnet / Amazon Nova Pro).
+- Configuración mediante variables de entorno en `.env.local` (ver `.env.example`):
+  ```bash
+  AI_PROVIDER=amazon
+  AWS_REGION=us-east-1
+  AWS_ACCESS_KEY_ID=tu_access_key
+  AWS_SECRET_ACCESS_KEY=tu_secret_key
+  AWS_BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+  ```
+- Si las credenciales no están presentes, conmuta automáticamente al proveedor seguro sin romper la aplicación.
 
 ---
 
-## 6. Cómo Ejecutar
-
-### Prerrequisitos
-- Node.js 18+ (recomendado Node 20 o 22)
-- npm o pnpm
-
-### Pasos de Instalación y Ejecución
+## 4. Scripts y Comandos de Ejecución
 
 ```bash
-# 1. Instalar dependencias
-npm install
+# Iniciar servidor MCP y Frontend simultáneamente
+npm run dev:all
 
-# 2. Ejecutar suite de pruebas unitarias
+# Iniciar únicamente el servidor MCP real (puerto 3100)
+npm run mcp
+
+# Iniciar únicamente el frontend Next.js (puerto 3000)
+npm run dev
+
+# Ejecutar suite de 20 pruebas automatizadas (Pedagogía + MCP Real)
 npm test
 
-# 3. Validar tipos TypeScript
+# Validar tipos TypeScript
 npm run typecheck
 
-# 4. Validar linter
+# Validar linter ESLint
 npm run lint
 
-# 5. Compilar versión de producción
+# Compilar versión de producción
 npm run build
-
-# 6. Iniciar servidor de desarrollo
-npm run dev
 ```
 
-Abre en tu navegador:  
-👉 **`http://localhost:3000`**
-
 ---
 
-## 7. Cómo Integrar Posteriormente Amazon Alexa+ / MCP
+## 5. Flujo Pedagógico Completo (Demostración)
 
-La arquitectura fue construida para integrarse con **Amazon Alexa+** y **AWS Bedrock**:
-
-1. **Exposición como Servidor MCP:**
-   - La capa `lib/tools/tutor-tools.ts` exporta `MCP_TOOLS_REGISTRY` con esquemas JSON Schema estándar.
-   - Basta con levantar un transporte MCP stdio o SSE (`@modelcontextprotocol/sdk`) que envuelva estas funciones.
-2. **Integración con Alexa+ Skills:**
-   - En Alexa Developer Console, configurar una Skill de tipo *Custom Voice Agent*.
-   - El endpoint Lambda de la Skill invoca `tutorAgent.processTeacherQuery(alexaUtterance)`.
-   - Soporta comandos de voz directos como:  
-     *“Alexa, pregunta a MACHTIA quién necesita apoyo en mi salón de tercero de primaria”*.
-3. **AWS Bedrock:**
-   - Reemplazar `MockAIProvider` en `lib/ai/providers.ts` por el adapter `AmazonAIProvider` conectado a `BedrockRuntimeClient` con modelos como Claude 3.5 Sonnet o Amazon Nova.
-
----
-
-## 8. Cómo Adaptar Posteriormente a Nebius / NVIDIA
-
-1. **Inferencia en Nebius AI Studio:**
-   - Configurar la variable de entorno `NEBIUS_API_KEY` en el archivo `.env.local`.
-   - `NebiusAIProvider` utiliza el cliente estándar OpenAI-compatible apuntando a `https://api.studio.nebius.ai/v1`.
-2. **Aceleración con NVIDIA NIM Microservices:**
-   - Para despliegue local o privado en servidores con GPUs NVIDIA, levantar contenedores NIM de modelos abiertos (ej. Llama 3.1 70B Instruct).
-   - Apuntar el endpoint de inferencia al microservicio local de NVIDIA NIM (`http://localhost:8000/v1`), manteniendo intacta la lógica de las 12 herramientas MCP.
-
----
-
-## 📋 Datos Demo Incluidos
-
-- **Grupo:** 3° B Primaria (5 alumnos)
-- **Materia:** Matemáticas
-- **Tema:** Fracciones equivalentes
-- **Alumnos con rezago:**
-  - **Mariana López:** Promedio 8.1 • Fracciones 52% • Error: Comparación de denominadores
-  - **Luis Hernández:** Promedio 7.8 • Fracciones 58% • Error: Simplificación
-- **Alumnos con desempeño óptimo:** Sofía Martínez (95%), Diego Ramírez (84%), Valeria Torres (88%)
-- **Resultado post-práctica de Mariana:** **52% ➔ 80% (+28% Mejora detectada)**
+1. **Profesor entra al Dashboard:** Pulsa *"1. ¿Quién necesita apoyo en matemáticas?"*.
+2. **Actividad del Agente:**
+   - `AGENT`: Analizando desempeño grupal...
+   - `MCP`: Conectado a MACHTIA Tutor Server (Streamable HTTP 2025-11-25).
+   - `TOOL`: `find_students_needing_support()` y `get_student_learning_gap()`.
+   - `RESULT`: Detecta a Mariana López (52%) y Luis Hernández (58%).
+3. **Prescripción Docente:** El profesor pulsa *"Crear práctica de apoyo"* para Mariana. Se ejecuta `generate_adaptive_practice()` y `assign_practice_to_student()`.
+4. **Alumno:** Mariana abre su portal, ve su nueva práctica asignada con tutor disponible.
+5. **Tutor IA:** Enseña con barras de fracciones interactivas antes de preguntar; si comete un error, brinda soporte formativo progresivo (Pista ➔ Explicación alternativa con pizza/chocolate ➔ Ejemplo guiado).
+6. **Resultados Reales:** Mariana resuelve 4 de 5 reactivos y obtiene **80% de calificación**.
+7. **Cierre de Ciclo:** El profesor consulta *"¿Mariana mejoró?"* y recibe el reporte consolidado: **52% ➔ 80% (+28% de delta)**.
 
 ---
 

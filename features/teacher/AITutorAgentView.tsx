@@ -10,13 +10,13 @@ import {
   CheckCircle2,
   Clock,
   ArrowRight,
-  UserCheck,
   ChevronDown,
   ChevronUp,
   Cpu,
-  Layers,
-  BarChart,
   Zap,
+  RefreshCw,
+  Radio,
+  ExternalLink,
 } from "lucide-react";
 
 export function AITutorAgentView() {
@@ -27,10 +27,13 @@ export function AITutorAgentView() {
     isAgentThinking,
     activeAgentSteps,
     actionLogs,
+    mcpStatus,
+    checkMcpConnection,
   } = useTutor();
 
   const [inputQuery, setInputQuery] = useState("");
   const [expandedActionId, setExpandedActionId] = useState<string | null>(null);
+  const [isCheckingMcp, setIsCheckingMcp] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,52 +47,117 @@ export function AITutorAgentView() {
     setExpandedActionId(expandedActionId === id ? null : id);
   };
 
+  const handleManualMcpCheck = async () => {
+    setIsCheckingMcp(true);
+    await checkMcpConnection();
+    setTimeout(() => setIsCheckingMcp(false), 300);
+  };
+
+  const renderStepBadge = (stepText: string) => {
+    if (stepText.includes(" | ")) {
+      const [type, ...rest] = stepText.split(" | ");
+      const text = rest.join(" | ");
+
+      let badgeClasses = "bg-slate-700 text-slate-200 border-slate-600";
+      if (type === "AGENT") badgeClasses = "bg-purple-900/60 text-purple-200 border-purple-600/60";
+      if (type === "MCP") badgeClasses = "bg-cyan-900/60 text-cyan-200 border-cyan-600/60";
+      if (type === "TOOL") badgeClasses = "bg-amber-900/60 text-amber-200 border-amber-600/60";
+      if (type === "RESULT") badgeClasses = "bg-emerald-900/60 text-emerald-200 border-emerald-600/60";
+
+      return (
+        <div className="flex items-start gap-2 text-[11px] leading-tight">
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase tracking-wider border shrink-0 ${badgeClasses}`}>
+            {type}
+          </span>
+          <span className="text-slate-200 pt-0.5">{text}</span>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex items-center gap-2 text-emerald-300 text-[11px]">
+        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+        <span>{stepText}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      {/* Agent Header / Telemetry Status */}
-      <div className="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white p-6 rounded-2xl shadow-xl border border-blue-800/60 relative overflow-hidden">
+      {/* Agent Header / MCP Status / Alexa+ Simulation Indicator */}
+      <div className="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 text-white p-6 rounded-2xl shadow-xl border border-blue-900/70 relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-xl bg-blue-600/80 border border-blue-400/50 flex items-center justify-center shadow-lg relative">
               <Bot className="w-7 h-7 text-amber-300" />
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-400 rounded-full border-2 border-slate-900 animate-pulse"></span>
+              <span className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-slate-900 ${
+                mcpStatus.connected ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+              }`}></span>
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-lg font-bold text-white tracking-wide">
                   Agente Orquestador MACHTIA
                 </h1>
-                <span className="text-[10px] font-mono uppercase bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded border border-blue-400/40">
-                  Protocolo MCP v1.0
+                {/* Alexa+ Discreet Experience Indicator */}
+                <span className="text-[10px] font-semibold bg-violet-500/20 text-violet-200 px-2.5 py-0.5 rounded-full border border-violet-400/40 flex items-center gap-1 shadow-sm">
+                  <Radio className="w-3 h-3 text-violet-300 animate-pulse" />
+                  Alexa+ Experience Simulation
+                </span>
+                <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-200 px-2 py-0.5 rounded border border-cyan-400/30">
+                  MCP 2025-11-25
                 </span>
               </div>
-              <p className="text-xs text-blue-200/80">
+              <p className="text-xs text-blue-200/80 mt-0.5">
                 Actividad del agente • Ejecución de herramientas pedagógicas • Detección y prescripción curricular
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-slate-300 font-mono">Herramientas MCP:</span>
-              <span className="font-bold text-emerald-400">12 / 12</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Live MCP Status Pill with Connection Ping */}
+            <div
+              className={`px-3 py-1.5 rounded-xl border text-xs flex items-center gap-2 transition ${
+                mcpStatus.connected
+                  ? "bg-emerald-950/80 border-emerald-700/60 text-emerald-300"
+                  : "bg-amber-950/80 border-amber-700/60 text-amber-300"
+              }`}
+            >
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  mcpStatus.connected ? "bg-emerald-400 animate-ping" : "bg-amber-400"
+                }`}
+              ></span>
+              <span className="font-bold">
+                {mcpStatus.connected ? "MCP: Connected" : "MCP: Offline"}
+              </span>
+              <span className="text-[10px] opacity-75 font-mono">
+                {mcpStatus.connected ? `(${mcpStatus.latencyMs}ms)` : "(Modo Demo activo)"}
+              </span>
+              <button
+                onClick={handleManualMcpCheck}
+                title="Verificar conexión con el servidor MCP"
+                className="hover:text-white p-0.5 rounded transition"
+              >
+                <RefreshCw className={`w-3 h-3 ${isCheckingMcp ? "animate-spin" : ""}`} />
+              </button>
             </div>
-            <div className="bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-lg border border-slate-700 text-xs flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-slate-300">Latencia:</span>
-              <span className="font-bold text-amber-300">~180ms</span>
+
+            <div className="bg-slate-800/80 backdrop-blur px-3 py-1.5 rounded-xl border border-slate-700 text-xs flex items-center gap-2">
+              <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="text-slate-300 font-mono">Transport:</span>
+              <span className="font-semibold text-cyan-300">Streamable HTTP</span>
             </div>
           </div>
         </div>
 
         {/* Quick Demo Prompts */}
-        <div className="mt-5 pt-4 border-t border-blue-800/60 flex flex-wrap items-center gap-2">
+        <div className="mt-5 pt-4 border-t border-blue-900/60 flex flex-wrap items-center gap-2">
           <span className="text-xs text-blue-200 font-medium flex items-center gap-1">
             <Sparkles className="w-3 h-3 text-amber-300" />
-            Acciones clave del demo:
+            Flujo clave Amazon / Alexa+:
           </span>
           <button
             onClick={() => handleQuickAction("ask_who_needs_support")}
@@ -156,7 +224,7 @@ export function AITutorAgentView() {
                             <Terminal className="w-3.5 h-3.5" />
                             Herramientas MCP ejecutadas ({msg.agentActions.length})
                           </span>
-                          <span className="text-[10px]">Trace ID: {msg.id.slice(-6)}</span>
+                          <span className="text-[10px] text-cyan-300">MCP Streamable HTTP 2025-11-25</span>
                         </div>
                         <div className="space-y-1.5 pt-0.5">
                           {msg.agentActions.map((act) => (
@@ -165,13 +233,19 @@ export function AITutorAgentView() {
                               className="flex items-center justify-between bg-slate-800/80 px-2.5 py-1.5 rounded border border-slate-700/60"
                             >
                               <div className="flex items-center gap-2">
-                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                <span className={`px-1 py-0.5 text-[9px] font-bold rounded ${
+                                  act.source === "mcp"
+                                    ? "bg-cyan-900 text-cyan-300 border border-cyan-700"
+                                    : "bg-amber-900 text-amber-300 border border-amber-700"
+                                }`}>
+                                  {act.source === "mcp" ? "MCP" : "DEMO"}
+                                </span>
                                 <span className="font-bold text-amber-300">{act.toolName}()</span>
-                                <span className="text-slate-300 font-sans text-[11px]">
+                                <span className="text-slate-300 font-sans text-[11px] truncate max-w-xs">
                                   — {act.displayName}
                                 </span>
                               </div>
-                              <span className="text-[10px] text-slate-400">{act.durationMs}ms</span>
+                              <span className="text-[10px] text-slate-400 font-mono">{act.durationMs}ms</span>
                             </div>
                           ))}
                         </div>
@@ -208,7 +282,7 @@ export function AITutorAgentView() {
               );
             })}
 
-            {/* Live Agent Execution Card */}
+            {/* Live Agent Execution Card with AGENT / MCP / TOOL / RESULT badges */}
             {isAgentThinking && (
               <div className="flex items-start gap-3.5">
                 <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white shrink-0 mt-0.5 animate-pulse">
@@ -217,18 +291,17 @@ export function AITutorAgentView() {
                 <div className="bg-slate-900 text-white rounded-2xl rounded-tl-sm p-4 border border-blue-500/40 shadow-lg max-w-[85%] space-y-3 font-mono text-xs">
                   <div className="flex items-center gap-2 text-amber-300 font-bold text-[13px] font-sans">
                     <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping"></span>
-                    Actividad del agente: Ejecutando herramientas...
+                    Actividad del agente • Ejecutando herramientas MCP...
                   </div>
-                  <div className="space-y-1.5 pt-1">
+                  <div className="space-y-2 pt-1 border-t border-slate-800">
                     {activeAgentSteps.map((step, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-emerald-300 text-[11px]">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>{step}</span>
+                      <div key={idx}>
+                        {renderStepBadge(step)}
                       </div>
                     ))}
-                    <div className="flex items-center gap-2 text-blue-300 text-[11px] animate-pulse">
+                    <div className="flex items-center gap-2 text-blue-300 text-[11px] animate-pulse pt-1">
                       <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                      <span>Procesando flujo de intervención adaptativa...</span>
+                      <span>Procesando ciclo adaptativo con Streamable HTTP...</span>
                     </div>
                   </div>
                 </div>
@@ -242,7 +315,7 @@ export function AITutorAgentView() {
               type="text"
               value={inputQuery}
               onChange={(e) => setInputQuery(e.target.value)}
-              placeholder="Haz una pregunta o instrucción al Tutor (ej. ¿Quién necesita apoyo en matemáticas?)..."
+              placeholder="Pregunta al Tutor (ej. ¿Quién necesita apoyo en matemáticas?)..."
               disabled={isAgentThinking}
               className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-slate-800 disabled:opacity-60"
             />
@@ -257,7 +330,7 @@ export function AITutorAgentView() {
           </form>
         </div>
 
-        {/* Right Column: Agent Activity & Tool Execution */}
+        {/* Right Column: Agent Activity & Tool Execution with AGENT / MCP / TOOL / RESULT structure */}
         <div className="lg:col-span-4 bg-slate-900 text-white rounded-2xl border border-slate-800 p-5 shadow-xl flex flex-col h-[650px] overflow-hidden">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
             <div className="flex items-center gap-2">
@@ -266,8 +339,12 @@ export function AITutorAgentView() {
                 Actividad del agente • Herramientas MCP
               </h2>
             </div>
-            <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded">
-              ONLINE
+            <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+              mcpStatus.connected
+                ? "bg-emerald-950 text-emerald-400 border-emerald-800"
+                : "bg-amber-950 text-amber-400 border-amber-800"
+            }`}>
+              {mcpStatus.connected ? "MCP: CONNECTED" : "MCP: OFFLINE (DEMO)"}
             </span>
           </div>
 
@@ -279,6 +356,8 @@ export function AITutorAgentView() {
             ) : (
               actionLogs.map((log) => {
                 const isExpanded = expandedActionId === log.id;
+                const isMcpSource = log.source === "mcp";
+
                 return (
                   <div
                     key={log.id}
@@ -288,14 +367,23 @@ export function AITutorAgentView() {
                       onClick={() => toggleExpand(log.id)}
                       className="flex items-start justify-between cursor-pointer gap-2"
                     >
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-1.5">
-                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase tracking-wider bg-amber-900/60 text-amber-200 border border-amber-600/60">
+                            TOOL
+                          </span>
+                          <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold uppercase tracking-wider border ${
+                            isMcpSource
+                              ? "bg-cyan-900/60 text-cyan-200 border-cyan-600/60"
+                              : "bg-slate-800 text-slate-300 border-slate-600"
+                          }`}>
+                            {isMcpSource ? "MCP 2025-11-25" : "FALLBACK"}
+                          </span>
                           <span className="font-mono font-bold text-amber-300 text-[11px]">
                             {log.toolName}
                           </span>
                         </div>
-                        <p className="text-slate-300 font-sans text-[11px] leading-tight">
+                        <p className="text-slate-300 font-sans text-[11px] leading-tight font-medium">
                           {log.displayName}
                         </p>
                       </div>
@@ -314,18 +402,24 @@ export function AITutorAgentView() {
                     {isExpanded && (
                       <div className="pt-2 border-t border-slate-700/80 space-y-2 font-mono text-[10px]">
                         <div>
-                          <span className="text-slate-400 block font-semibold text-[9px] uppercase">
-                            Input Payload:
-                          </span>
-                          <pre className="bg-slate-950 p-2 rounded text-emerald-300 overflow-x-auto mt-0.5">
+                          <div className="flex items-center justify-between text-slate-400 mb-1">
+                            <span className="font-semibold text-[9px] uppercase flex items-center gap-1 text-cyan-400">
+                              <span className="px-1 py-0.2 bg-cyan-900/60 rounded text-[8px]">INPUT</span>
+                              Parámetros:
+                            </span>
+                          </div>
+                          <pre className="bg-slate-950 p-2 rounded text-cyan-300 overflow-x-auto text-[10px]">
                             {JSON.stringify(log.input, null, 2)}
                           </pre>
                         </div>
                         <div>
-                          <span className="text-slate-400 block font-semibold text-[9px] uppercase">
-                            Output Result:
-                          </span>
-                          <pre className="bg-slate-950 p-2 rounded text-blue-300 overflow-x-auto mt-0.5">
+                          <div className="flex items-center justify-between text-slate-400 mb-1">
+                            <span className="font-semibold text-[9px] uppercase flex items-center gap-1 text-emerald-400">
+                              <span className="px-1 py-0.2 bg-emerald-900/60 rounded text-[8px]">RESULT</span>
+                              Resultado estructurado:
+                            </span>
+                          </div>
+                          <pre className="bg-slate-950 p-2 rounded text-emerald-300 overflow-x-auto text-[10px]">
                             {JSON.stringify(log.output, null, 2)}
                           </pre>
                         </div>

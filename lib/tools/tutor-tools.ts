@@ -129,7 +129,11 @@ export async function find_students_needing_support(
  * 3. get_student_learning_gap
  * Retrieves in-depth diagnostic evidence and root-cause error pattern for a student.
  */
-export async function get_student_learning_gap(studentId: string, subjectId: string) {
+export async function get_student_learning_gap(
+  studentId: string,
+  subjectId: string = "matematicas",
+  topicId?: string
+) {
   const student = repository.getStudentById(studentId);
   if (!student) {
     throw new Error(`Student ${studentId} not found`);
@@ -165,6 +169,7 @@ export async function get_student_learning_gap(studentId: string, subjectId: str
     subject: "Matemáticas",
     subjectId: "matematicas",
     topic: "Fracciones equivalentes",
+    topicName: "Fracciones equivalentes",
     topicId: "fracciones-equivalentes",
     currentScore: currentFractionScore,
     gaps,
@@ -221,6 +226,7 @@ export async function generate_adaptive_practice(
     practiceTitle: newPractice.title,
     studentName: student.name,
     exerciseCount: exercises.length,
+    exercises: newPractice.exercises,
     subject: "Matemáticas",
     targetTopic: "Fracciones equivalentes",
     status: "pending",

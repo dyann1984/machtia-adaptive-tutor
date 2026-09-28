@@ -86,6 +86,10 @@ class TutorRepository {
     }
   }
 
+  public resetToInitialState() {
+    this.resetDemoData();
+  }
+
   public getTeacher(): Teacher {
     return this.teacher;
   }
