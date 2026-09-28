@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { useTutor } from "@/lib/context/tutor-context";
-import { Bot, Send, Sparkles } from "lucide-react";
+import { TutorRobotAvatar } from "@/components/TutorRobotAvatar";
+import { Bot, Send, Sparkles, User } from "lucide-react";
 
 export function StudentTutorChat() {
   const { selectedStudentId, students } = useTutor();
@@ -13,7 +14,7 @@ export function StudentTutorChat() {
   >([
     {
       sender: "tutor",
-      text: `¡Hola ${student.name.split(" ")[0]}! 🤖 Soy tu Tutor IA de Matemáticas. Si tienes dudas sobre fracciones, simplificación o cómo resolver tus tareas, ¡pregúntame lo que quieras!`,
+      text: `¡Hola ${student.name.split(" ")[0]}! 🤖 Soy tu Tutor IA de Matemáticas. Si tienes dudas sobre fracciones, denominadores o simplificación, ¡pregúntame lo que quieras!`,
       time: "Ahora",
     },
   ]);
@@ -49,23 +50,23 @@ export function StudentTutorChat() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col h-[580px] overflow-hidden max-w-3xl mx-auto">
-      <div className="bg-blue-900 text-white p-4 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center">
-            <Bot className="w-5 h-5 text-amber-300" />
-          </div>
+    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm flex flex-col h-[600px] overflow-hidden max-w-4xl mx-auto py-2">
+      {/* Header limpio */}
+      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <TutorRobotAvatar size="sm" showGlow />
           <div>
-            <h2 className="text-sm font-bold text-white">MACHTIA Tutor IA (Modo Alumno)</h2>
-            <p className="text-[11px] text-blue-200">Asistente pedagógico interactivo 24/7</p>
+            <h2 className="text-base font-bold text-slate-900">MACHTIA Tutor IA</h2>
+            <p className="text-xs text-slate-500">Sesión de acompañamiento individual • {student.name}</p>
           </div>
         </div>
-        <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2 py-0.5 rounded-full font-mono">
-          ACTIVO
+        <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full font-semibold">
+          En línea
         </span>
       </div>
 
-      <div className="flex-1 p-5 overflow-y-auto space-y-4">
+      {/* Messages */}
+      <div className="flex-1 p-6 overflow-y-auto space-y-4">
         {messages.map((m, idx) => {
           const isTutor = m.sender === "tutor";
           return (
@@ -73,16 +74,12 @@ export function StudentTutorChat() {
               key={idx}
               className={`flex gap-3 ${isTutor ? "items-start" : "items-end justify-end"}`}
             >
-              {isTutor && (
-                <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 text-amber-300" />
-                </div>
-              )}
+              {isTutor && <TutorRobotAvatar size="xs" />}
               <div
-                className={`max-w-[80%] p-3.5 rounded-2xl text-xs sm:text-sm leading-relaxed ${
+                className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${
                   isTutor
-                    ? "bg-slate-50 border border-slate-200 text-slate-800 rounded-tl-sm"
-                    : "bg-blue-600 text-white rounded-br-sm"
+                    ? "bg-slate-50 border border-slate-200/80 text-slate-800"
+                    : "bg-blue-600 text-white font-medium"
                 }`}
               >
                 {m.text}
@@ -92,20 +89,21 @@ export function StudentTutorChat() {
         })}
       </div>
 
-      <form onSubmit={handleSend} className="p-3 bg-slate-50 border-t border-slate-200 flex gap-2">
+      {/* Input */}
+      <form onSubmit={handleSend} className="p-4 bg-slate-50 border-t border-slate-200 flex gap-3">
         <input
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
           placeholder="Escribe tu duda sobre fracciones (ej. ¿Por qué 1/2 es igual a 2/4?)..."
-          className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+          className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-slate-800"
         />
         <button
           type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-xs shrink-0"
         >
           <span>Preguntar</span>
-          <Send className="w-3.5 h-3.5" />
+          <Send className="w-4 h-4" />
         </button>
       </form>
     </div>

@@ -21,6 +21,7 @@ import {
   save_learning_evidence,
   explain_concept,
 } from "@/lib/tools/tutor-tools";
+import { cancelGlobalSpeech } from "@/lib/hooks/use-speech";
 
 export interface McpStatusInfo {
   connected: boolean;
@@ -196,7 +197,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       `MCP | ${mcpNote}`,
     ];
 
-    if (q.includes("apoyo") || q.includes("quién") || q.includes("quien") || q.includes("rezago")) {
+    if (!q.includes("práctica") && (q.includes("apoyo") || q.includes("quién") || q.includes("quien") || q.includes("rezago"))) {
       steps = [
         "AGENT | Analizando solicitud del profesor",
         `MCP | ${mcpNote}`,
@@ -250,27 +251,46 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     if (actionKey === "ask_who_needs_support") {
       setActiveTeacherTab("tutor");
       await sendMessageToTutor("¿Quién necesita apoyo en matemáticas?");
-    } else if (actionKey === "inspect_mariana" || (actionKey === "inspect_student" && payload?.studentId === "mariana-lopez")) {
+    } else if (
+      actionKey === "ask_mariana_gap" ||
+      actionKey === "inspect_mariana" ||
+      (actionKey === "inspect_student" && payload?.studentId === "mariana-lopez")
+    ) {
       setSelectedStudentId("mariana-lopez");
       setActiveTeacherTab("tutor");
       await sendMessageToTutor("Ver diagnóstico de Mariana López");
-    } else if (actionKey === "inspect_luis" || (actionKey === "inspect_student" && payload?.studentId === "luis-hernandez")) {
+    } else if (
+      actionKey === "ask_luis_gap" ||
+      actionKey === "inspect_luis" ||
+      (actionKey === "inspect_student" && payload?.studentId === "luis-hernandez")
+    ) {
       setSelectedStudentId("luis-hernandez");
       setActiveTeacherTab("tutor");
       await sendMessageToTutor("Ver diagnóstico de Luis Hernández");
-    } else if (actionKey === "generate_practice") {
-      const studentId = payload?.studentId || selectedStudentId;
+    } else if (
+      actionKey === "create_practice_mariana" ||
+      actionKey === "generate_practice"
+    ) {
+      const studentId = payload?.studentId || "mariana-lopez";
       setSelectedStudentId(studentId);
       setActiveTeacherTab("tutor");
-      await sendMessageToTutor(`Generar práctica personalizada para ${studentId === "luis-hernandez" ? "Luis Hernández" : "Mariana López"}`);
-    } else if (actionKey === "switch_student_role") {
+      await sendMessageToTutor(
+        `Crear práctica de apoyo para ${studentId === "luis-hernandez" ? "Luis Hernández" : "Mariana López"}`
+      );
+    } else if (
+      actionKey === "enter_as_mariana" ||
+      actionKey === "switch_student_role"
+    ) {
       const studentId = payload?.studentId || "mariana-lopez";
-      const practiceId = payload?.practiceId;
       setSelectedStudentId(studentId);
       setRole("student");
       setActiveStudentTab("practices");
-      if (practiceId) {
-        setCurrentPracticingId(practiceId);
+      const currentList = repository.getPracticesByStudent(studentId);
+      const pendingPractice = currentList.find((p: Practice) => p.status !== "completed");
+      if (payload?.practiceId) {
+        setCurrentPracticingId(payload.practiceId);
+      } else if (pendingPractice) {
+        setCurrentPracticingId(pendingPractice.id);
       }
     } else if (actionKey === "view_evidences_tab") {
       setActiveTeacherTab("evidences");
@@ -350,7 +370,28 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     refreshState();
   };
 
+  const handleSetRole = (newRole: "teacher" | "student") => {
+    cancelGlobalSpeech();
+    setRole(newRole);
+  };
+
+  const handleSetActiveTeacherTab = (tab: "dashboard" | "group" | "tutor" | "support" | "practices" | "evidences" | "progress") => {
+    cancelGlobalSpeech();
+    setActiveTeacherTab(tab);
+  };
+
+  const handleSetActiveStudentTab = (tab: "home" | "practices" | "tutor" | "progress") => {
+    cancelGlobalSpeech();
+    setActiveStudentTab(tab);
+  };
+
+  const handleSetCurrentPracticingId = (id: string | null) => {
+    cancelGlobalSpeech();
+    setCurrentPracticingId(id);
+  };
+
   const resetDemo = () => {
+    cancelGlobalSpeech();
     repository.resetToInitialState();
     refreshState();
     checkMcpConnection();
@@ -387,11 +428,11 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     <TutorContext.Provider
       value={{
         role,
-        setRole,
+        setRole: handleSetRole,
         activeTeacherTab,
-        setActiveTeacherTab,
+        setActiveTeacherTab: handleSetActiveTeacherTab,
         activeStudentTab,
-        setActiveStudentTab,
+        setActiveStudentTab: handleSetActiveStudentTab,
         selectedStudentId,
         setSelectedStudentId,
         showLanding,
@@ -408,7 +449,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         isAgentThinking,
         activeAgentSteps,
         currentPracticingId,
-        setCurrentPracticingId,
+        setCurrentPracticingId: handleSetCurrentPracticingId,
         mcpStatus,
         checkMcpConnection,
         sendMessageToTutor,

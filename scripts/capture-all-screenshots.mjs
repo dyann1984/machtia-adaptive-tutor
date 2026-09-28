@@ -107,7 +107,7 @@ async function main() {
 
   async function selectOptionByIndex(index) {
     await evaluate(`(() => {
-      const container = document.querySelector('div.space-y-2\\\\.5') || document.querySelector('.space-y-2\\\\.5');
+      const container = document.querySelector('div[class*="space-y-2.5"]') || document.querySelector('.space-y-2\\\\.5');
       if (container) {
         const opts = container.querySelectorAll('button');
         if (opts[${index}]) {
@@ -157,38 +157,49 @@ async function main() {
   await sleep(2500);
   await saveScreenshot("01-landing-and-mcp-status.png");
 
+  // Capturing 07: Header Branding
+  console.log("\n--- Capturing 07: Header Branding ---");
+  await saveScreenshot("07-header-branding.png");
+
   // 2. SCREENSHOT 02: Teacher Alert & Prescription
   console.log("\n--- Capturing 02: Teacher Alert & Prescription ---");
-  await waitForButton("Profesor");
-  await sleep(1000);
-
-  // Trigger quick prompt 1: "¿Quién necesita apoyo en matemáticas?"
-  console.log("Asking who needs support...");
-  await waitForButton("¿Quién necesita apoyo");
-  await waitForText("Mariana López");
-  await sleep(1000);
-
-  // Trigger quick prompt 3: "Crear práctica de apoyo (5 reactivos)"
-  console.log("Triggering prompt 3: Crear práctica de apoyo...");
-  await waitForButton("Crear práctica de apoyo (5 reactivos)");
-  await sleep(2000);
-
-  // Click the action button "Crear práctica de apoyo para Mariana"
-  console.log("Confirming creation of practice for Mariana...");
-  await waitForButton("Crear práctica de apoyo para Mariana");
-  await waitForText("¡Práctica de apoyo asignada exitosamente!");
+  console.log("Clicking 'Ver demostración'...");
+  await waitForButton("Ver demostración");
   await sleep(1500);
 
+  // Navigate to Tutor IA tab to capture initial teacher robot greeting
+  console.log("Navigating to Tutor IA tab...");
+  await waitForButton("Tutor IA");
+  await sleep(1500);
   await saveScreenshot("02-teacher-alert-and-prescription.png");
 
-  // Click quick action "Entrar como Mariana a resolver práctica"
-  console.log("Clicking 'Entrar como Mariana a resolver práctica'...");
-  await waitForButton("Entrar como Mariana");
+  // On Tutor IA: click "¿Quién necesita apoyo en matemáticas?"
+  console.log("Clicking '¿Quién necesita apoyo en matemáticas?'...");
+  await waitForButton("¿Quién necesita apoyo en matemáticas?");
+  await waitForText("Mariana López");
+  await sleep(2000);
+
+  // Click "Crear práctica de apoyo" for Mariana
+  console.log("Clicking 'Crear práctica de apoyo'...");
+  await waitForButton("Crear práctica de apoyo");
+  await waitForText("¡Práctica de apoyo asignada exitosamente!");
+  await sleep(2000);
+
+  // Switch to Student role to capture Student Home with Robot Companion
+  console.log("\n--- Capturing 08: Student Tutor Home Companion ---");
+  await waitForButton("Alumna");
+  await sleep(1500);
+  await waitForButton("Inicio Alumna");
+  await sleep(1500);
+  await saveScreenshot("08-student-tutor-home.png");
+
+  // Start practice
+  console.log("Starting practice from Student Home...");
+  await waitForButton("Comenzar");
   await sleep(2000);
 
   // 3. SCREENSHOT 03: Student Pre-explanation
   console.log("\n--- Capturing 03: Student Pre-explanation ---");
-  // Mariana is now in InteractivePracticeRunner viewing FractionBarVisualizer pre-explanation!
   await saveScreenshot("03-student-pre-explanation.png");
 
   // Advance explanation: Step 1 -> Step 2 -> Step 3 -> Start Questions
@@ -216,7 +227,7 @@ async function main() {
   await selectOptionByIndex(2);
   await sleep(500);
   await waitForButton("Comprobar respuesta");
-  await waitForText("Pista");
+  await waitForText("Casi lo tienes");
   await sleep(1000);
 
   // Level 1 hint is displayed now!
@@ -225,7 +236,7 @@ async function main() {
   // 5. SCREENSHOT 05: Student Result Calculated
   console.log("\n--- Capturing 05: Student Result Calculated ---");
   // Click "Intentar de nuevo con la pista" on reactivo 2
-  await waitForButton("Intentar de nuevo");
+  await waitForButton("Intentar de nuevo con la pista");
   await sleep(600);
 
   // Answer reactivo 2 correctly: Option B (2 partes (2/6))
@@ -278,8 +289,10 @@ async function main() {
   await waitForButton("Comprobar respuesta");
   await sleep(800);
   await waitForButton("Finalizar y ver progreso");
-  await waitForText("completada con éxito");
-  await sleep(2500); // Wait for celebratory confetti & score calculation
+  await waitForText("completada");
+  await sleep(1500);
+  await evaluate("window.scrollTo(0, 0)");
+  await sleep(1000);
 
   // Result screen is visible with authentic 80% calculated score!
   await saveScreenshot("05-student-result-calculated.png");
@@ -288,7 +301,7 @@ async function main() {
   console.log("\n--- Capturing 06: Teacher Before/After Evidence ---");
   // Click "Guardar evidencia y regresar al Panel del Profesor"
   await waitForButton("Guardar evidencia");
-  await waitForText("MEJORA");
+  await waitForText("Mejora detectada");
   await sleep(1500);
 
   await saveScreenshot("06-teacher-before-after-evidence.png");

@@ -53,12 +53,13 @@ export class TutorAgentOrchestrator {
 
     // 1. QUERY: Who needs support? / Detección de rezago
     if (
-      q.includes("quién necesita apoyo") ||
-      q.includes("quien necesita apoyo") ||
-      q.includes("qué alumnos") ||
-      q.includes("que alumnos") ||
-      q.includes("apoyo") ||
-      q.includes("rezago")
+      !q.includes("práctica") &&
+      (q.includes("quién necesita apoyo") ||
+        q.includes("quien necesita apoyo") ||
+        q.includes("qué alumnos") ||
+        q.includes("que alumnos") ||
+        q.includes("apoyo") ||
+        q.includes("rezago"))
     ) {
       // Step A: analyze_student_performance via MCP Client
       const perfCall = await this.mcp.analyzeStudentPerformance("grupo-3b", "matematicas");
