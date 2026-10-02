@@ -1,5 +1,18 @@
 # Guía de Despliegue en Producción: MACHTIA Adaptive Tutor
 
+## Servicio existente en Render (2 de octubre de 2026)
+
+El servicio `srv-datcvj2d0e5s73bjorbg`, conectado a `dyann1984/machtia-adaptive-tutor` en `main`, conserva su dominio público `https://machtia-tutor-mcp-server.onrender.com`.
+El blueprint original ejecutaba solamente MCP: `/health` funcionaba, pero `/?demo=judge` devolvía 404. El blueprint actualizado construye Next.js y ejecuta `npm run start:render`, sirviendo frontend, `/health` y `/mcp` en el mismo puerto `$PORT`.
+
+- Build: `npm ci --include=dev && npm run build`.
+- Start: `npm run start:render`.
+- `NEXT_PUBLIC_MCP_URL=https://machtia-tutor-mcp-server.onrender.com/mcp` debe configurarse antes del build.
+- `NEXT_PUBLIC_JUDGE_DEMO=true` y `JUDGE_DEMO=true`.
+- Demo: `https://machtia-tutor-mcp-server.onrender.com/?demo=judge`.
+
+No se requiere crear otro servicio ni configurar el dominio de ejemplo Vercel. Las opciones siguientes describen despliegues separados alternativos.
+
 Este documento detalla los pasos para desplegar **MACHTIA Adaptive Tutor** en entornos de producción (Vercel, AWS ECS/Fargate, Render, Fly.io, Railway o VPS), manteniendo desacoplados el **Frontend Next.js** y el **Servidor MCP**.
 
 ---

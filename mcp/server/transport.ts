@@ -11,6 +11,7 @@ export interface TransportConfig {
   port: number;
   host?: string;
   corsOrigin?: string;
+  webHandler?: http.RequestListener;
 }
 
 export const PROTOCOL_VERSION = "2025-11-25";
@@ -24,6 +25,13 @@ export function createMcpHttpServer(config: TransportConfig): http.Server {
   const { port, host = "0.0.0.0", corsOrigin } = config;
 
   const server = http.createServer(async (req, res) => {
+    const requestPath = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`).pathname;
+    const isMcpRequest = ["/health", "/healthz", "/mcp", "/sse", "/mcp/stream"].includes(requestPath)
+      || (req.method === "POST" && requestPath === "/");
+    if (config.webHandler && !isMcpRequest) {
+      await config.webHandler(req, res);
+      return;
+    }
     // 1. Setup CORS Headers dynamically supporting MCP_ALLOWED_ORIGINS
     const incomingOrigin = req.headers.origin;
     const envOrigins = process.env.MCP_ALLOWED_ORIGINS;
