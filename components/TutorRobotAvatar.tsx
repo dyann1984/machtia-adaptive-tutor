@@ -4,7 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { Volume2, Sparkles, Lightbulb, PartyPopper, BookOpen, BrainCircuit } from "lucide-react";
 
-export type TutorEmotion = "idle" | "normal" | "thinking" | "speaking" | "explaining" | "success" | "hint" | "celebrating";
+export type TutorEmotion = "idle" | "normal" | "thinking" | "speaking" | "explaining" | "success" | "hint" | "celebrating" | "encouraging";
 
 interface TutorRobotAvatarProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl";
@@ -39,6 +39,7 @@ export function TutorRobotAvatar({
 
   return (
     <div
+      data-tutor-state={effectiveEmotion}
       className={`relative inline-flex items-center justify-center shrink-0 select-none ${conf.class} ${className} transition-all duration-300 ${
         effectiveEmotion === "speaking"
           ? "motion-safe:animate-pulse motion-safe:scale-105"
@@ -52,7 +53,9 @@ export function TutorRobotAvatar({
           ? "motion-safe:animate-pulse"
           : effectiveEmotion === "celebrating"
           ? "motion-safe:animate-[tutor-success_450ms_ease-out_1] motion-safe:scale-110"
-          : "hover:scale-102"
+          : effectiveEmotion === "encouraging"
+          ? "motion-safe:animate-[tutor-success_450ms_ease-out_1]"
+          : "motion-safe:hover:scale-102"
       }`}
     >
       {/* Dynamic ambient halo based on emotional state */}

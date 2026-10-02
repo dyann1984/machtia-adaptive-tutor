@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { SupportLedger } from "@/components/SupportLedger";
 import { useTutor } from "@/lib/context/tutor-context";
 import {
   TrendingUp,
@@ -18,7 +19,7 @@ export function TeacherProgressView() {
 
   const mariana = students.find((s) => s.id === "mariana-lopez");
   const marianaCurrent = mariana?.topicPerformances["fracciones-equivalentes"] ?? 52;
-  const evidence = [...evidences].reverse().find((item) => item.studentId === "mariana-lopez" && item.topicName === "Fracciones equivalentes");
+  const evidence = evidences.find((item) => item.studentId === "mariana-lopez" && item.topicName === "Fracciones equivalentes");
   const initial = evidence?.initialScore ?? 52;
   const delta = marianaCurrent - initial;
   const isImproved = delta > 0;
@@ -139,6 +140,7 @@ export function TeacherProgressView() {
           </div>
         </div>
 
+        {evidence && <SupportLedger evidence={evidence} />}
         {/* Dictamen Pedagógico */}
         <div className="p-5 bg-blue-50/50 rounded-2xl border border-blue-100 flex items-start gap-3">
           <Bot className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />

@@ -54,6 +54,9 @@ export interface LearningGap {
 }
 
 export interface Exercise {
+  activityKind?: "choice" | "reading" | "classification" | "sequence";
+  context?: string;
+  visualCue?: string;
   id: string;
   questionNumber: number;
   prompt: string;
@@ -75,6 +78,12 @@ export interface Exercise {
 }
 
 export interface Practice {
+  learningObjective?: string;
+  grade?: number;
+  estimatedMinutes?: number;
+  initialSupport?: "independent" | "verbal" | "visual";
+  teacherCreated?: boolean;
+  instructions?: string;
   id: string;
   title: string;
   description: string;
@@ -144,6 +153,10 @@ export interface PracticeAttempt {
 }
 
 export interface LearningEvidence {
+  baselineAvailable?: boolean;
+  totalCorrect?: number;
+  totalExercises?: number;
+  supportEvents?: SupportEvent[];
   totalAttempts?: number;
   hintsUsed?: number;
   reexplanationsUsed?: number;
@@ -156,12 +169,21 @@ export interface LearningEvidence {
   initialScore: number;
   finalScore: number;
   improvementDelta: number;
-  status: "Mejora detectada" | "Progreso moderado" | "Requiere refuerzo adicional";
+  status: "Mejora detectada" | "Progreso moderado" | "Requiere refuerzo adicional" | "Primera medición" | "Resultado estable";
   masteredConcepts: string[];
   pendingConcepts: string[];
   tutorObservations: string;
   timestamp: string;
   attemptId: string;
+}
+
+export type SupportKind = "verbal_hint" | "visual_hint" | "alternative_representation" | "guided_steps";
+export interface SupportEvent {
+  exerciseId: string;
+  kind: SupportKind;
+  representation?: string;
+  source: "requested" | "teacher" | "automatic";
+  timestamp: string;
 }
 
 export interface TutorAction {

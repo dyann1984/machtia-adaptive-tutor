@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import { SupportLedger } from "@/components/SupportLedger";
+import { subjectName } from "@/lib/learning/catalog";
 import { useTutor } from "@/lib/context/tutor-context";
 import {
   Award,
@@ -44,7 +46,8 @@ export function EvidencesView() {
         {evidences.map((ev) => (
           <div
             key={ev.id}
-            className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-8 sm:p-10 space-y-6 hover:border-slate-300 transition"
+            data-subject={ev.subjectId}
+            className="subject-shell theme-card rounded-3xl border shadow-sm p-5 sm:p-10 space-y-6 transition"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
               <div className="flex items-center gap-4">
@@ -62,7 +65,7 @@ export function EvidencesView() {
               <div className="flex flex-wrap items-center gap-3">
                 <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs flex items-center gap-2">
                   <span className="text-slate-500">Antes:</span>
-                  <span className="font-extrabold text-amber-700">{ev.initialScore}%</span>
+                  <span className="font-extrabold text-amber-700">{ev.baselineAvailable === false ? "Sin diagnóstico" : `${ev.initialScore}%`}</span>
                   <span className="text-slate-300">→</span>
                   <span className="text-slate-500">Después:</span>
                   <span className="font-extrabold text-blue-700">{ev.finalScore}%</span>
@@ -70,13 +73,13 @@ export function EvidencesView() {
 
                 <span className="text-xs font-bold bg-emerald-50 text-emerald-800 px-3.5 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  <span>{ev.improvementDelta >= 0 ? "+" : ""}{ev.improvementDelta} pts • {ev.status}</span>
+                  <span>{ev.baselineAvailable === false ? "Primera medición" : `${ev.improvementDelta >= 0 ? "+" : ""}${ev.improvementDelta} pts`} • {ev.status}</span>
                 </span>
               </div>
             </div>
 
             <div className="text-xs text-slate-500 bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 font-medium">
-              Resultado generado a partir de la práctica realizada
+              {subjectName(ev.subjectId)} · Resultado generado a partir de la práctica realizada
             </div>
 
             {/* Observations from AI Tutor */}
@@ -91,6 +94,7 @@ export function EvidencesView() {
             </div>
 
             {/* Mastered vs Pending concepts */}
+            <SupportLedger evidence={ev} />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
                 <span className="font-bold text-emerald-900 text-xs uppercase tracking-wide flex items-center gap-2">

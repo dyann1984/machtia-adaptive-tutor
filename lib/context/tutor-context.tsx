@@ -11,6 +11,7 @@ import {
   LearningEvidence,
   TutorAction,
   AgentChatMessage,
+  SupportEvent,
 } from "@/types";
 import { repository } from "@/lib/data/repository";
 import { tutorAgent } from "@/lib/ai/tutor-agent";
@@ -71,7 +72,7 @@ interface TutorContextType {
   handleQuickAction: (actionKey: string, payload?: any) => Promise<void>;
   generatePracticeForStudent: (studentId: string) => Promise<string>;
   submitAnswer: (exerciseId: string, answer: string, attemptNumber: number) => Promise<any>;
-  completePractice: (practiceId: string, results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number }) => Promise<void>;
+  completePractice: (practiceId: string, results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number; supportEvents?: SupportEvent[] }) => Promise<void>;
   resetDemo: () => void;
   refreshState: () => void;
 }
@@ -183,8 +184,11 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let shouldActivateJudge = isJudgeDemo;
+    let teacherWorkspace = false;
     if (typeof window !== "undefined") {
       const urlParams = new URLSearchParams(window.location.search);
+      teacherWorkspace = urlParams.get("mode") === "teacher";
+      if (teacherWorkspace) shouldActivateJudge = false;
       if (urlParams.get("demo") === "judge" || urlParams.get("judge") === "true") {
         shouldActivateJudge = true;
       }
@@ -204,6 +208,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       setIsJudgeDemo(true);
     } else {
       repository.loadFromStorage();
+      if (teacherWorkspace) { setShowLanding(false); setIsJudgeDemo(false); }
     }
     refreshState();
     checkMcpConnection();
@@ -389,7 +394,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
 
   const completePractice = async (
     practiceId: string,
-    results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number }
+    results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number; supportEvents?: SupportEvent[] }
   ) => {
     repository.updatePracticeStatus(practiceId, "completed");
 
@@ -399,6 +404,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     const student = repository.getStudentById(practice.studentId);
     if (!student) return;
 
+    const baselineAvailable = student.topicPerformances[practice.topicId] !== undefined;
     const initialScore = student.topicPerformances[practice.topicId] ?? 0;
     repository.updateStudentScore(student.id, practice.topicId, results.score);
 
@@ -413,15 +419,19 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       subjectId: practice.subjectId,
       topicName: practice.topicName,
       initialScore: initialScore,
+      baselineAvailable,
+      totalCorrect: results.totalCorrect,
+      totalExercises: results.totalExercises,
+      supportEvents: results.supportEvents,
       finalScore: results.score,
       totalAttempts: results.totalAttempts,
       hintsUsed: results.hintsUsed,
       reexplanationsUsed: results.reexplanationsUsed,
-      improvementDelta: delta,
-      status: delta > 0 ? "Mejora detectada" : "Progreso moderado",
+      improvementDelta: baselineAvailable ? delta : 0,
+      status: !baselineAvailable ? "Primera medición" : delta > 0 ? "Mejora detectada" : delta < 0 ? "Requiere refuerzo adicional" : "Resultado estable",
       masteredConcepts: results.mastered,
       pendingConcepts: results.pending,
-      tutorObservations: `${student.name} completó la práctica guiada por el Tutor IA. Resolvió correctamente ${results.totalCorrect} de ${results.totalExercises} reactivos obteniendo un puntaje de ${results.score}%, con un diagnóstico inicial de ${initialScore}%. Intentos: ${results.totalAttempts ?? "sin registro"}. Pistas: ${results.hintsUsed ?? "sin registro"}. Re-explicaciones: ${results.reexplanationsUsed ?? "sin registro"}.`,
+      tutorObservations: `${student.name} completó la práctica guiada por el Tutor IA. Resolvió correctamente ${results.totalCorrect} de ${results.totalExercises} reactivos obteniendo un puntaje de ${results.score}%. ${baselineAvailable ? `Diagnóstico inicial: ${initialScore}%.` : "Sin diagnóstico inicial comparable; este resultado establece su primera medición."} Intentos: ${results.totalAttempts ?? "sin registro"}. Pistas: ${results.hintsUsed ?? "sin registro"}. Re-explicaciones: ${results.reexplanationsUsed ?? "sin registro"}.`,
       timestamp: new Date().toISOString(),
       attemptId: `att-${Date.now()}`,
     });
@@ -429,7 +439,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     repository.logAction({
       toolName: "save_learning_evidence",
       displayName: "Guardó evidencia de aprendizaje",
-      description: `Registró mejora de Mariana López de ${initialScore}% a ${results.score}% (+${delta}% delta).`,
+      description: `${student.name}: resultado ${results.score}%. ${baselineAvailable ? `Cambio ${delta} puntos desde ${initialScore}%.` : "Primera medición, sin delta comparable."}`,
       input: { studentId: student.id, practiceId: practice.id, score: results.score },
       output: { status: "saved", delta },
       status: "success",

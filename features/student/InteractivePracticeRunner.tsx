@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import { useTutor } from "@/lib/context/tutor-context";
-import { Practice } from "@/types";
+import { Practice, SupportEvent } from "@/types";
+import { SupportCoach } from "@/components/SupportCoach";
+import { repository } from "@/lib/data/repository";
 import { FractionBarVisualizer } from "@/components/FractionBarVisualizer";
 import { TutorRobotAvatar, TutorEmotion } from "@/components/TutorRobotAvatar";
 import { SpeechAudioButton } from "@/components/SpeechAudioButton";
@@ -66,6 +68,14 @@ export function InteractivePracticeRunner({
   const [, setLastAgentActivity] = useState<string[]>([]);
   const [showManualHint, setShowManualHint] = useState(false);
   const [supportCounts, setSupportCounts] = useState({ hints: 0, reexplanations: 0 });
+  const [supportEvents, setSupportEvents] = useState<SupportEvent[]>([]);
+  const [supportDialogue, setSupportDialogue] = useState<string | null>(null);
+  const [baselineScore] = useState(() => repository.getStudentById(practice.studentId)?.topicPerformances[practice.topicId] ?? 0);
+  const recordSupport = (event: SupportEvent) => {
+    speech.stop();
+    setSupportEvents(prev => [...prev, event]);
+    setSupportCounts(prev => ({ hints: prev.hints + (event.kind === "verbal_hint" || event.kind === "visual_hint" ? 1 : 0), reexplanations: prev.reexplanations + (event.kind === "alternative_representation" || event.kind === "guided_steps" ? 1 : 0) }));
+  };
 
   // Answers tracker
   const [historyAnswers, setHistoryAnswers] = useState<
@@ -73,19 +83,17 @@ export function InteractivePracticeRunner({
   >([]);
 
   // Final calculated score state
-  const [finalCalculatedScore, setFinalCalculatedScore] = useState<number>(80);
-  const [finalCorrectCount, setFinalCorrectCount] = useState<number>(4);
-  const [masteredSkills, setMasteredSkills] = useState<string[]>([
-    "Fracciones equivalentes",
-    "Comparación visual",
-    "Amplificación por factor 2",
-  ]);
-  const [pendingSkills, setPendingSkills] = useState<string[]>([
-    "Simplificación de fracciones",
-    "Factores comunes mayores a 10",
-  ]);
+  const [finalCalculatedScore, setFinalCalculatedScore] = useState<number>(0);
+  const [finalCorrectCount, setFinalCorrectCount] = useState<number>(0);
+  const [masteredSkills, setMasteredSkills] = useState<string[]>([]);
+  const [pendingSkills, setPendingSkills] = useState<string[]>([]);
 
   const currentExercise = practice.exercises[exerciseIndex];
+  const selectOption = (option: string) => {
+    speech.stop();
+    setSelectedOption(option);
+    setSupportDialogue(`Elegiste «${option}». ¿Qué observas en el reto que sostiene tu elección? Comprueba cuando estés listo.`);
+  };
 
   // Stop speech synthesis when exercise or phase changes
   const stopSpeech = speech.stop;
@@ -97,7 +105,7 @@ export function InteractivePracticeRunner({
   const renderPedagogicalProgression = () => {
     return (
       <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2 mb-6 shadow-2xs">
-        <div className="flex items-center justify-between text-xs font-bold text-slate-500 overflow-x-auto gap-1 sm:gap-2">
+        <div className="flex flex-wrap items-center text-xs font-bold text-slate-600 gap-1 sm:gap-2">
           {/* Step 1: Explicación */}
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
@@ -181,6 +189,7 @@ export function InteractivePracticeRunner({
     setIsEvaluated(true);
     setEvaluationResult(res);
     if (!res.isCorrect) {
+      setSupportEvents(prev => [...prev, { exerciseId: currentExercise.id, kind: res.supportLevel === "hint" ? "verbal_hint" : res.supportLevel === "alternative_explanation" ? "alternative_representation" : "guided_steps", source: "automatic", timestamp: new Date().toISOString() }]);
       setSupportCounts((prev) => ({
         hints: prev.hints + (res.supportLevel === "hint" ? 1 : 0),
         reexplanations: prev.reexplanations + (res.supportLevel !== "hint" ? 1 : 0),
@@ -194,7 +203,7 @@ export function InteractivePracticeRunner({
     if (res.isCorrect) {
       try {
         confetti({ disableForReducedMotion: true,
-          particleCount: 40,
+          particleCount: 12,
           spread: 50,
           origin: { y: 0.7 },
         });
@@ -236,6 +245,7 @@ export function InteractivePracticeRunner({
 
   const handleNextAttempt = () => {
     speech.stop();
+    setSupportDialogue(null);
     setAttemptCount(attemptCount + 1);
     setIsEvaluated(false);
     setSelectedOption(null);
@@ -244,6 +254,7 @@ export function InteractivePracticeRunner({
 
   const handleNextExercise = () => {
     speech.stop();
+    setSupportDialogue(null);
     setIsEvaluated(false);
     setEvaluationResult(null);
     setSelectedOption(null);
@@ -267,7 +278,7 @@ export function InteractivePracticeRunner({
 
     try {
       confetti({ disableForReducedMotion: true,
-        particleCount: 100,
+        particleCount: 25,
         spread: 80,
         origin: { y: 0.6 },
       });
@@ -296,6 +307,7 @@ export function InteractivePracticeRunner({
       totalAttempts: answersList.reduce((sum, answer) => sum + answer.attemptsUsed, 0),
       hintsUsed: supportCounts.hints,
       reexplanationsUsed: supportCounts.reexplanations,
+      supportEvents,
     });
   };
 
@@ -374,9 +386,15 @@ export function InteractivePracticeRunner({
   // =========================================================================
   // 1. FASE DE EXPLICACIÓN: DESCUBRIMIENTO GUIADO (LAYOUT 2 COLUMNAS)
   // =========================================================================
+  if (supportDialogue && !isEvaluated) {
+    questionEmotion = "hint";
+    questionDialogue = supportDialogue;
+    questionSpeech = supportDialogue;
+  }
+
   if (phase === "explanation") {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="subject-shell max-w-6xl mx-auto space-y-6" data-subject="matematicas">
         {renderPedagogicalProgression()}
 
         {/* CONTENEDOR 2 COLUMNAS: IZQUIERDA ACTIVIDAD, DERECHA TUTOR ROBOT */}
@@ -384,6 +402,7 @@ export function InteractivePracticeRunner({
           {/* COLUMNA IZQUIERDA (7 cols): ZONA INTERACTIVA MANIPULABLE */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
             <InteractiveFractionDiscovery
+              onSupport={recordSupport}
               onComplete={() => setPhase("questions")}
               onTutorUpdate={handleTutorUpdate}
             />
@@ -451,15 +470,15 @@ export function InteractivePracticeRunner({
   // =========================================================================
   if (phase === "questions") {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="subject-shell max-w-6xl mx-auto space-y-6" data-subject="matematicas">
         {renderPedagogicalProgression()}
 
         {/* CONTENEDOR 2 COLUMNAS: IZQUIERDA PREGUNTA Y OPCIONES, DERECHA ROBOT */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* COLUMNA IZQUIERDA (7 cols): PREGUNTA, BARRAS Y TARJETAS GRANDES */}
-          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6 text-left">
+          <div className="lg:col-span-7 xl:col-span-8 theme-card rounded-3xl border shadow-sm p-5 sm:p-8 space-y-6 text-left">
             {/* Encabezado del Ejercicio */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+            <div className="theme-banner flex flex-wrap items-center justify-between gap-3 pb-4">
               <div>
                 <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
                   Fracciones equivalentes
@@ -511,7 +530,7 @@ export function InteractivePracticeRunner({
                   <FractionCardInteractive
                     options={currentExercise.options}
                     selectedOption={selectedOption}
-                    onSelect={(opt) => setSelectedOption(opt)}
+                    onSelect={selectOption}
                     isEvaluated={isEvaluated}
                     correctAnswer={currentExercise.correctAnswer}
                     evaluationResult={evaluationResult}
@@ -523,7 +542,7 @@ export function InteractivePracticeRunner({
                 <ChocolateBarInteractive
                   options={currentExercise.options}
                   selectedOption={selectedOption}
-                  onSelect={(opt) => setSelectedOption(opt)}
+                  onSelect={selectOption}
                   isEvaluated={isEvaluated}
                   correctAnswer={currentExercise.correctAnswer}
                   evaluationResult={evaluationResult}
@@ -534,7 +553,7 @@ export function InteractivePracticeRunner({
                 <RelationalComparisonInteractive
                   options={currentExercise.options}
                   selectedOption={selectedOption}
-                  onSelect={(opt) => setSelectedOption(opt)}
+                  onSelect={selectOption}
                   isEvaluated={isEvaluated}
                   correctAnswer={currentExercise.correctAnswer}
                   evaluationResult={evaluationResult}
@@ -545,7 +564,7 @@ export function InteractivePracticeRunner({
                 <CrossProductInteractive
                   options={currentExercise.options}
                   selectedOption={selectedOption}
-                  onSelect={(opt) => setSelectedOption(opt)}
+                  onSelect={selectOption}
                   isEvaluated={isEvaluated}
                   correctAnswer={currentExercise.correctAnswer}
                   evaluationResult={evaluationResult}
@@ -556,7 +575,7 @@ export function InteractivePracticeRunner({
                 <SimplificationInteractive
                   options={currentExercise.options}
                   selectedOption={selectedOption}
-                  onSelect={(opt) => setSelectedOption(opt)}
+                  onSelect={selectOption}
                   isEvaluated={isEvaluated}
                   correctAnswer={currentExercise.correctAnswer}
                   evaluationResult={evaluationResult}
@@ -587,6 +606,7 @@ export function InteractivePracticeRunner({
             </div>
 
             {/* FEEDBACK AMIGABLE INMEDIATO (SIN TACHAS AGRESIVAS) */}
+            {(!isEvaluated || !evaluationResult?.isCorrect) && <SupportCoach key={currentExercise.id} exercise={currentExercise} onSupport={recordSupport} onDialogue={text => {speech.stop();setSupportDialogue(text);}} />}
             {isEvaluated && (
               <div
                 className={`p-5 rounded-2xl border-2 text-sm space-y-2.5 transition-all ${
@@ -643,22 +663,6 @@ export function InteractivePracticeRunner({
                   ← Repasar dibujo guiado
                 </button>
 
-                {!isEvaluated && !showManualHint && (
-                  <>
-                    <span className="text-slate-300">•</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowManualHint(true);
-                        setSupportCounts((prev) => ({ ...prev, hints: prev.hints + 1 }));
-                      }}
-                      className="font-bold text-amber-700 hover:text-amber-900 underline underline-offset-2 flex items-center gap-1"
-                    >
-                      <Lightbulb className="w-3.5 h-3.5" />
-                      <span>Dame una pista</span>
-                    </button>
-                  </>
-                )}
               </div>
 
               {/* Botones de acción */}
@@ -756,7 +760,7 @@ export function InteractivePracticeRunner({
   // =========================================================================
   // 3. FASE DE RESULTADOS: CELEBRACIÓN CON ROBOT GRANDE (ETAPA 6: EVIDENCIA)
   // =========================================================================
-  const initialScore = 52;
+  const initialScore = baselineScore;
   const delta = finalCalculatedScore - initialScore;
 
   const totalAttemptsUsed = historyAnswers.reduce((sum, a) => sum + (a.attemptsUsed || 1), 0);
@@ -767,7 +771,7 @@ export function InteractivePracticeRunner({
   }. Hoy aprendiste fracciones equivalentes, comparación visual y amplificación. ¡Estoy muy orgulloso de ti! Seguiremos practicando juntos.`;
 
   return (
-    <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-md p-8 sm:p-12 max-w-3xl mx-auto space-y-8 text-center">
+    <div data-subject="matematicas" className="subject-shell theme-card rounded-3xl border-2 shadow-md p-5 sm:p-12 max-w-3xl mx-auto space-y-8 text-center">
       {renderPedagogicalProgression()}
 
       {/* Robot Oficial Grande Celebrando con Aura Dorada */}
@@ -831,7 +835,7 @@ export function InteractivePracticeRunner({
         </div>
         <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Intentos</span>
-          <span className="text-xs font-black text-slate-800">{totalAttemptsUsed || 5} intentos</span>
+          <span className="text-xs font-black text-slate-800">{totalAttemptsUsed} intentos</span>
         </div>
         <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Pistas usadas</span>

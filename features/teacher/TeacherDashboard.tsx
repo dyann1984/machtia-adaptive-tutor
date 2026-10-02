@@ -29,10 +29,11 @@ export function TeacherDashboard() {
 
   const mariana = students.find((s) => s.id === "mariana-lopez");
   const marianaScore = mariana?.topicPerformances["fracciones-equivalentes"] ?? 52;
-  const isMarianaImproved = marianaScore > 65;
+  const latestEvidence = evidences.find(e => e.studentId === mariana?.id && e.subjectId === "matematicas" && e.topicName.toLowerCase().includes("equivalentes"));
+  const isMarianaImproved = !!latestEvidence && latestEvidence.improvementDelta > 0;
 
   // Real counts derived from state
-  const activePracticesCount = practices.filter((p) => p.status === "pending").length;
+  const activePracticesCount = practices.filter((p) => p.status === "pending" || p.status === "assigned" || p.status === "in_progress").length;
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto">
@@ -88,7 +89,7 @@ export function TeacherDashboard() {
           <div className="text-3xl font-black text-amber-600 font-mono">
             {studentsNeedingSupport.length}
           </div>
-          <p className="text-xs text-amber-800 font-medium">Mariana (52%) y Luis (58%)</p>
+          <p className="text-xs text-amber-800 font-medium">{studentsNeedingSupport.map(s=>`${s.name.split(" ")[0]} (${s.topicPerformances["fracciones-equivalentes"]}%)`).join(" · ") || "Sin alumnos bajo el umbral de apoyo"}</p>
         </div>
 
         {/* KPI 3: Prácticas activas */}
@@ -124,7 +125,7 @@ export function TeacherDashboard() {
 
       {/* DETECCIÓN PRIORITARIA: Mariana López como elemento protagonista */}
       <div className="bg-white rounded-3xl border border-slate-200 p-8 shadow-xs space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div className="flex flex-wrap gap-3 items-center justify-between border-b border-slate-100 pb-4">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
             <h2 className="text-lg font-bold text-slate-900">
@@ -144,7 +145,7 @@ export function TeacherDashboard() {
                 ML
               </div>
               <div>
-                <div className="flex items-center gap-2.5">
+                <div className="flex flex-wrap items-center gap-2.5">
                   <h3 className="text-xl font-bold text-slate-900">
                     Mariana López
                   </h3>
@@ -155,11 +156,11 @@ export function TeacherDashboard() {
                 <div className="flex items-center gap-2 mt-1">
                   {isMarianaImproved ? (
                     <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">
-                      80% • ¡Mejora detectada (+28 pts)!
+                      {marianaScore}% • ¡Mejora detectada (+{latestEvidence?.improvementDelta} pts)!
                     </span>
                   ) : (
                     <span className="text-xs font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full border border-amber-300">
-                      52% • Necesita refuerzo urgente
+                      {marianaScore}% • {marianaScore < 65 ? "Necesita refuerzo" : "Resultado actual"}
                     </span>
                   )}
                 </div>
@@ -183,7 +184,7 @@ export function TeacherDashboard() {
                 onClick={() => setActiveTeacherTab("progress")}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-6 py-3.5 rounded-xl transition shadow-xs flex items-center justify-center gap-2"
               >
-                <span>Ver evidencia de avance (80%)</span>
+                <span>Ver evidencia de avance ({marianaScore}%)</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (

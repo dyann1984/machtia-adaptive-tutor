@@ -5,6 +5,7 @@ import { useTutor } from "@/lib/context/tutor-context";
 import { TutorRobotAvatar } from "@/components/TutorRobotAvatar";
 import { SpeechAudioButton } from "@/components/SpeechAudioButton";
 import { useSpeech } from "@/lib/hooks/use-speech";
+import { subjectName } from "@/lib/learning/catalog";
 import {
   Sparkles,
   BookOpen,
@@ -30,7 +31,7 @@ export function StudentHome({
   const pendingPractice = studentPractices.find((p) => p.status !== "completed");
   const completedPractice = studentPractices.find((p) => p.status === "completed");
 
-  const latestEvidence = evidences.filter((e) => e.studentId === student.id).slice(-1)[0];
+  const latestEvidence = evidences.find((e) => e.studentId === student.id);
   const displayScore = latestEvidence ? latestEvidence.finalScore : (student.topicPerformances["fracciones-equivalentes"] ?? 80);
   const displayDelta = latestEvidence ? latestEvidence.improvementDelta : (displayScore - 52);
 
@@ -83,7 +84,7 @@ export function StudentHome({
 
       {/* TARJETA CENTRAL PROTAGONISTA: Fracciones equivalentes */}
       {pendingPractice ? (
-        <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-8 sm:p-10 space-y-6 text-left">
+        <div data-subject={pendingPractice.subjectId} className="subject-shell theme-card rounded-3xl border shadow-sm p-5 sm:p-10 space-y-6 text-left">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold shadow-xs">
@@ -94,7 +95,7 @@ export function StudentHome({
                   Práctica Asignada
                 </span>
                 <h2 className="text-2xl font-black text-slate-900 mt-1">
-                  Fracciones equivalentes
+                  {pendingPractice.topicName}
                 </h2>
               </div>
             </div>
@@ -109,12 +110,12 @@ export function StudentHome({
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-center space-y-1">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Reactivos</span>
-              <span className="text-lg font-extrabold text-blue-700">5 ejercicios</span>
+              <span className="text-lg font-extrabold text-blue-700">{pendingPractice.exercises.length} ejercicios</span>
             </div>
 
             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 text-center space-y-1">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Tiempo estimado</span>
-              <span className="text-lg font-extrabold text-slate-800">10–15 min</span>
+              <span className="text-lg font-extrabold text-slate-800">Aprox. {pendingPractice.estimatedMinutes || Math.ceil(pendingPractice.exercises.length * 1.5 + 2)} min</span>
             </div>
 
             <div className="bg-amber-50/70 p-4 rounded-2xl border border-amber-200/80 text-center space-y-1">
@@ -127,6 +128,7 @@ export function StudentHome({
           </div>
 
           {/* Botón Grande: Comenzar conmigo */}
+          <p className="text-sm text-slate-700"><strong>{subjectName(pendingPractice.subjectId)} · Objetivo:</strong> {pendingPractice.learningObjective || pendingPractice.description}</p>
           <div className="pt-2 space-y-3">
             <button
               onClick={() => {
@@ -159,10 +161,10 @@ export function StudentHome({
               ¡Completado con éxito!
             </span>
             <h2 className="text-2xl font-black text-slate-900">
-              Has terminado tu práctica de Fracciones equivalentes
+              Has terminado tu práctica de {completedPractice.topicName}
             </h2>
             <p className="text-sm text-slate-600 max-w-md mx-auto">
-              Obtuviste {displayScore}% (+{displayDelta} puntos de mejora). Tu evidencia ya fue registrada para el profesor Carlos.
+              Obtuviste {displayScore}%. {latestEvidence?.baselineAvailable === false ? "Es tu primera medición de este tema." : `Cambio: ${displayDelta >= 0 ? "+" : ""}${displayDelta} puntos.`} Tu evidencia ya fue registrada para el profesor Carlos.
             </p>
           </div>
 

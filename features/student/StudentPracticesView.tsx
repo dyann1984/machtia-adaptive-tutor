@@ -3,6 +3,8 @@
 import React from "react";
 import { useTutor } from "@/lib/context/tutor-context";
 import { InteractivePracticeRunner } from "./InteractivePracticeRunner";
+import { SubjectPracticeRunner } from "./SubjectPracticeRunner";
+import { subjectName } from "@/lib/learning/catalog";
 import {
   BookOpen,
   CheckCircle2,
@@ -26,10 +28,11 @@ export function StudentPracticesView() {
 
   // If a practice is currently selected for solving
   const activePractice = currentPracticingId
-    ? practices.find((p) => p.id === currentPracticingId)
+    ? studentPractices.find((p) => p.id === currentPracticingId)
     : null;
 
   if (activePractice) {
+    if (activePractice.teacherCreated) return <SubjectPracticeRunner key={activePractice.id} practice={activePractice} onFinish={() => setCurrentPracticingId(null)} />;
     return (
       <InteractivePracticeRunner
         practice={activePractice}
@@ -43,7 +46,7 @@ export function StudentPracticesView() {
       <div className="pb-4 border-b border-slate-200/80">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            Mis Prácticas de Matemáticas
+            Mis Prácticas
           </h1>
           <span className="text-xs font-bold bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full border border-blue-200">
             {student.name}
@@ -75,12 +78,13 @@ export function StudentPracticesView() {
             return (
               <div
                 key={practice.id}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-8 space-y-5 hover:border-slate-300 transition"
+                data-subject={practice.subjectId}
+                className="subject-shell theme-card rounded-3xl border shadow-xs p-5 sm:p-8 space-y-5 transition"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <span className="text-xs uppercase font-bold text-blue-700 tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
-                      {practice.topicName}
+                      {subjectName(practice.subjectId)} · {practice.topicName}
                     </span>
                     <h2 className="text-xl font-bold text-slate-900 mt-2">{practice.title}</h2>
                     <p className="text-xs text-slate-500 leading-relaxed">{practice.description}</p>
@@ -94,7 +98,7 @@ export function StudentPracticesView() {
                   ) : (
                     <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 flex items-center gap-1.5 shrink-0">
                       <Clock className="w-4 h-4 text-amber-600" />
-                      Pendiente
+                      {practice.status === "in_progress" ? "En curso" : "Pendiente"}
                     </span>
                   )}
                 </div>
@@ -104,12 +108,12 @@ export function StudentPracticesView() {
                     Estructura:
                   </span>
                   <p className="text-slate-700 text-sm leading-relaxed">
-                    Explicación previa visual con barras + 5 reactivos adaptativos con pistas dinámicas.
+                    {practice.learningObjective || "Descubrir fracciones equivalentes con representaciones visuales y apoyo progresivo."}
                   </p>
                 </div>
 
-                <div className="pt-2 flex items-center justify-between border-t border-slate-100">
-                  <span className="text-xs text-slate-500 font-medium">5 ejercicios</span>
+                <div className="pt-2 flex flex-wrap gap-3 items-center justify-between border-t border-slate-100">
+                  <span className="text-xs text-slate-600 font-medium">{practice.exercises.length} ejercicios · aprox. {practice.estimatedMinutes || Math.ceil(practice.exercises.length * 1.5 + 2)} min · {practice.status === "in_progress" ? "En curso" : isCompleted ? "Completada" : "Pendiente"}</span>
                   <button
                     onClick={() => setCurrentPracticingId(practice.id)}
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition flex items-center gap-2 shadow-xs"

@@ -4,9 +4,12 @@ import React, { useState, useEffect, useRef } from "react";
 import { Sparkles, Check, ArrowRight, RotateCcw, Lightbulb, CheckCircle2, HelpCircle, BookOpen, Star } from "lucide-react";
 import confetti from "canvas-confetti";
 import { TutorEmotion } from "@/components/TutorRobotAvatar";
+import { SupportCoach } from "./SupportCoach";
+import type { Exercise, SupportEvent } from "@/types";
 
 interface InteractiveFractionDiscoveryProps {
   onComplete: () => void;
+  onSupport?: (event: SupportEvent) => void;
   onTutorUpdate?: (data: {
     speechText: string;
     dialogText: string;
@@ -17,6 +20,7 @@ interface InteractiveFractionDiscoveryProps {
 export function InteractiveFractionDiscovery({
   onComplete,
   onTutorUpdate,
+  onSupport,
 }: InteractiveFractionDiscoveryProps) {
   // Discovery Steps: 1: Observa | 2: Pinta 1/2 | 3: Descubre 2/4 | 4: Compara
   const [subStep, setSubStep] = useState<1 | 2 | 3 | 4>(1);
@@ -62,9 +66,9 @@ export function InteractiveFractionDiscovery({
         // step1Answer === "B"
         onTutorUpdateRef.current({
           dialogText:
-            "¡Exacto! 🎉\n\nEsta tiene cuatro partes y la otra solamente dos.\n\nAunque están divididas de manera diferente, las dos barras representan el mismo entero.\n\nAhora vamos a ver qué sucede cuando pintamos la misma cantidad.",
+            "¡Exacto! 🎉\n\nLa barra B tiene cuatro partes y A tiene dos.\n\nAunque están divididas de manera diferente, las dos barras representan el mismo entero.\n\n¿Podremos pintar en B exactamente la misma cantidad que en A?",
           speechText:
-            "¡Exacto! Esta tiene cuatro partes y la otra solamente dos. Aunque están divididas de manera diferente, las dos barras representan el mismo entero. Ahora vamos a ver qué sucede cuando pintamos la misma cantidad.",
+            "¡Exacto! La barra B tiene cuatro partes y A tiene dos. Aunque están divididas de manera diferente, las dos barras representan el mismo entero. ¿Podremos pintar en B exactamente la misma cantidad que en A?",
           emotion: "success",
         });
       }
@@ -155,7 +159,7 @@ export function InteractiveFractionDiscovery({
     if (ans === "B") {
       try {
         confetti({ disableForReducedMotion: true,
-          particleCount: 25,
+          particleCount: 8,
           spread: 45,
           origin: { y: 0.6 },
         });
@@ -171,7 +175,7 @@ export function InteractiveFractionDiscovery({
       setSelectedPartsA([idx]);
       try {
         confetti({ disableForReducedMotion: true,
-          particleCount: 20,
+          particleCount: 8,
           spread: 40,
           origin: { y: 0.65 },
         });
@@ -189,7 +193,7 @@ export function InteractiveFractionDiscovery({
       if (next.length === 2) {
         try {
           confetti({ disableForReducedMotion: true,
-            particleCount: 35,
+            particleCount: 8,
             spread: 50,
             origin: { y: 0.65 },
           });
@@ -204,7 +208,7 @@ export function InteractiveFractionDiscovery({
       setConceptFeedback("¡Excelente! Representan la misma cantidad aunque estén escritas de forma diferente.");
       try {
         confetti({ disableForReducedMotion: true,
-          particleCount: 45,
+          particleCount: 8,
           spread: 60,
           origin: { y: 0.6 },
         });
@@ -220,7 +224,7 @@ export function InteractiveFractionDiscovery({
     setSubStep(4);
     try {
       confetti({ disableForReducedMotion: true,
-        particleCount: 30,
+        particleCount: 8,
         spread: 50,
         origin: { y: 0.7 },
       });
@@ -237,8 +241,17 @@ export function InteractiveFractionDiscovery({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="theme-card border rounded-3xl p-4 sm:p-5 space-y-6">
       {/* CABECERA DE LA MICRO-LECCIÓN INTERACTIVA */}
+      <SupportCoach key={`discovery-${subStep}`} exercise={{
+        id: `discovery-${subStep}`, questionNumber: subStep,
+        prompt: subStep === 1 ? "Compara las divisiones de las barras" : "Representa 1/2 con partes de un entero del mismo tamaño",
+        options: [], correctAnswer: "", explanation: "", conceptTag: "Descubrimiento de equivalencia", difficulty: "easy",
+        hint: subStep === 1 ? "Fíjate en las líneas que dividen cada barra. Cuenta sin cambiar tu elección todavía." : subStep === 2 ? "La mitad deja la misma cantidad pintada y sin pintar." : subStep === 3 ? "Compara cuánto espacio has pintado, no solo cuántas partes." : "Relaciona lo que ves en ambas zonas pintadas con la idea de cantidad.",
+        context: "Observa las divisiones de ambas barras. Cada barra representa un entero del mismo tamaño.",
+        alternativeExplanation: "Imagina una pizza y un chocolate del mismo tamaño total. Pueden tener cortes distintos; compara la cantidad que separas.",
+        guidedExample: "Primero compara los enteros. Después cuenta las partes. Por último pinta una parte y observa cuánto falta. Tú decides qué tocar.",
+      } as Exercise} onSupport={event=>onSupport?.(event)} onDialogue={text=>onTutorUpdateRef.current?.({dialogText:text,speechText:text,emotion:"hint"})} />
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <div className="inline-flex items-center gap-1.5 bg-blue-100/90 text-blue-900 text-xs font-black px-3 py-0.5 rounded-full mb-1">

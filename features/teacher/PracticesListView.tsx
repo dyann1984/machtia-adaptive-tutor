@@ -1,6 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
+import { PracticeComposer } from "./PracticeComposer";
+import { subjectName } from "@/lib/learning/catalog";
 import { useTutor } from "@/lib/context/tutor-context";
 import {
   BookOpen,
@@ -11,7 +13,10 @@ import {
 } from "lucide-react";
 
 export function PracticesListView() {
+  const [showComposer, setShowComposer] = useState(false);
   const { practices, handleQuickAction, setRole, setActiveStudentTab, setSelectedStudentId } = useTutor();
+
+  if (showComposer) return <PracticeComposer onClose={() => setShowComposer(false)} />;
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto py-2">
@@ -30,6 +35,8 @@ export function PracticesListView() {
           </p>
         </div>
       </div>
+
+      <button className="subject-shell theme-primary" onClick={() => setShowComposer(true)}>Crear práctica</button>
 
       {practices.length === 0 ? (
         <div className="bg-white rounded-3xl border border-slate-200/90 p-12 text-center space-y-5 shadow-xs">
@@ -57,12 +64,13 @@ export function PracticesListView() {
             return (
               <div
                 key={practice.id}
-                className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-8 space-y-5 hover:border-slate-300 transition"
+                data-subject={practice.subjectId}
+                className="subject-shell theme-card rounded-3xl border shadow-xs p-5 sm:p-8 space-y-5 transition"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="space-y-1">
                     <span className="text-xs uppercase font-bold text-blue-700 tracking-wider bg-blue-50 px-2.5 py-0.5 rounded-md border border-blue-200">
-                      {practice.topicName}
+                      {subjectName(practice.subjectId)} · {practice.topicName}
                     </span>
                     <h2 className="text-xl font-bold text-slate-900 mt-2">{practice.title}</h2>
                     <p className="text-xs text-slate-500">
@@ -87,11 +95,11 @@ export function PracticesListView() {
                   <span className="text-slate-500 font-bold block uppercase tracking-wider text-[10px]">
                     Objetivo de Refuerzo Adaptativo:
                   </span>
-                  <p className="text-slate-700 text-sm leading-relaxed">{practice.targetGapDescription}</p>
+                  <p className="text-slate-700 text-sm leading-relaxed">{practice.learningObjective || practice.targetGapDescription || practice.description}</p>
                 </div>
 
                 <div className="flex items-center justify-between text-xs text-slate-500 pt-2 border-t border-slate-100">
-                  <span className="font-medium">5 ejercicios interactivos</span>
+                  <span className="font-medium">{practice.exercises.length} ejercicios · aprox. {practice.estimatedMinutes || Math.ceil(practice.exercises.length * 1.5 + 2)} min</span>
                   <button
                     onClick={() => {
                       setSelectedStudentId(practice.studentId);
