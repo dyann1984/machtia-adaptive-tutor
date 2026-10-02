@@ -24,6 +24,8 @@ export default function Home() {
     setActiveTeacherTab,
     activeStudentTab,
     setActiveStudentTab,
+    selectedStudentId: _selectedStudentId,
+    setSelectedStudentId,
     setCurrentPracticingId,
     showLanding,
     setShowLanding,
@@ -37,6 +39,7 @@ export default function Home() {
           resetDemo();
           setRole("teacher");
           setActiveTeacherTab("dashboard");
+          setSelectedStudentId("mariana-lopez");
           setShowLanding(false);
         }}
       />

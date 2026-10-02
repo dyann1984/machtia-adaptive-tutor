@@ -18,7 +18,9 @@ import {
   AlertTriangle,
   ChevronDown,
   LayoutDashboard,
+  Radio,
 } from "lucide-react";
+import { AlexaPlusSimulatorModal } from "./AlexaPlusSimulatorModal";
 
 export function Navbar() {
   const {
@@ -36,6 +38,7 @@ export function Navbar() {
   } = useTutor();
 
   const [showSecondaryMenu, setShowSecondaryMenu] = useState(false);
+  const [showAlexaSimulator, setShowAlexaSimulator] = useState(false);
 
   const studentsNeedingSupportCount = students.filter(
     (s) => (s.topicPerformances["fracciones-equivalentes"] ?? 100) < 65
@@ -44,7 +47,7 @@ export function Navbar() {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 gap-4">
+        <div className="flex flex-wrap items-center justify-between min-h-20 py-3 gap-3">
           {/* IZQUIERDA: Logo MACHTIA + Adaptive Tutor + Badges discretos */}
           <div className="flex items-center gap-4 shrink-0">
             <button
@@ -59,7 +62,7 @@ export function Navbar() {
                   <span className="text-2xl font-black tracking-tight text-blue-900 font-sans leading-none group-hover:text-blue-700 transition">
                     MACHT<span className="text-amber-500">IA</span>
                   </span>
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/80">
+                  <span className="hidden sm:inline text-[11px] font-bold uppercase tracking-wider text-blue-800 bg-blue-50 px-2 py-0.5 rounded-md border border-blue-200/80">
                     Adaptive Tutor
                   </span>
                 </div>
@@ -87,15 +90,19 @@ export function Navbar() {
                 <span>{mcpStatus.connected ? "MCP Conectado" : "Modo Demo"}</span>
               </span>
 
-              <span className="text-[11px] text-slate-400 font-medium bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/60">
+              <button
+                onClick={() => setShowAlexaSimulator(true)}
+                className="text-[11px] text-slate-500 hover:text-slate-800 font-medium bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md border border-slate-200/60 transition cursor-pointer"
+                title="Alexa+ Ready • Clic para abrir el Simulador Interactivo Alexa+"
+              >
                 Alexa+ Ready
-              </span>
+              </button>
             </div>
           </div>
 
           {/* CENTRO: Navegación de pestañas clara y espaciosa */}
           {!showLanding && (
-            <nav className="hidden lg:flex items-center gap-1.5">
+            <nav className="hidden lg:flex flex-wrap order-last w-full justify-center items-center gap-1.5">
               {role === "teacher" ? (
                 <>
                   <button
@@ -244,7 +251,7 @@ export function Navbar() {
           )}
 
           {/* DERECHA: Selector Profesor / Alumno + Avatar + Menú secundario */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {/* Segmented Role Switcher elegante */}
             <div className="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200/80 shadow-xs">
               <button
@@ -281,7 +288,7 @@ export function Navbar() {
             </div>
 
             {/* Profile Avatar Card */}
-            <div className="flex items-center gap-2.5 pl-1">
+            <div className="hidden sm:flex items-center gap-2.5 pl-1">
               <div
                 className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shadow-xs text-white ${
                   role === "teacher" ? "bg-blue-600" : "bg-amber-500"
@@ -327,6 +334,17 @@ export function Navbar() {
                       <span>{showLanding ? "Ir a la aplicación" : "Ver Landing de presentación"}</span>
                     </button>
 
+                    <button
+                      onClick={() => {
+                        setShowAlexaSimulator(true);
+                        setShowSecondaryMenu(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-xs font-bold text-cyan-800 hover:bg-cyan-50 rounded-xl flex items-center gap-2 transition"
+                    >
+                      <Radio className="w-3.5 h-3.5 text-cyan-600" />
+                      <span>Simulador Alexa+ (MCP)</span>
+                    </button>
+
                     <div className="border-t border-slate-100 my-1"></div>
 
                     <button
@@ -347,6 +365,12 @@ export function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Modal Simulador Interactivo Alexa+ */}
+      <AlexaPlusSimulatorModal
+        isOpen={showAlexaSimulator}
+        onClose={() => setShowAlexaSimulator(false)}
+      />
     </header>
   );
 }

@@ -13,6 +13,16 @@ import {
   get_student_progress,
   report_progress_to_teacher,
 } from "../../lib/tools/tutor-tools";
+import {
+  get_student_context,
+  get_assigned_practice,
+  start_practice,
+  submit_answer,
+  get_hint,
+  get_adaptive_explanation,
+  complete_practice,
+  get_practice_result,
+} from "./alexa-service";
 import { MCP_TOOLS_SCHEMAS, validateToolArguments, McpToolSchema } from "./schemas";
 
 export interface McpCallResult {
@@ -116,6 +126,47 @@ export async function executeMcpTool(
         break;
       }
 
+      // --- 8 HERRAMIENTAS CONVERSACIONALES AMAZON ALEXA+ ---
+      case "get_student_context": {
+        result = await get_student_context(args as any);
+        break;
+      }
+
+      case "get_assigned_practice": {
+        result = await get_assigned_practice(args as any);
+        break;
+      }
+
+      case "start_practice": {
+        result = await start_practice(args as any);
+        break;
+      }
+
+      case "submit_answer": {
+        result = await submit_answer(args as any);
+        break;
+      }
+
+      case "get_hint": {
+        result = await get_hint(args as any);
+        break;
+      }
+
+      case "get_adaptive_explanation": {
+        result = await get_adaptive_explanation(args as any);
+        break;
+      }
+
+      case "complete_practice": {
+        result = await complete_practice(args as any);
+        break;
+      }
+
+      case "get_practice_result": {
+        result = await get_practice_result(args as any);
+        break;
+      }
+
       default: {
         return {
           content: [
@@ -149,7 +200,9 @@ export async function executeMcpTool(
         },
       ],
       structuredContent: {
-        error: "EXECUTION_FAILED",
+        error: err?.code || "EXECUTION_FAILED",
+        code: err?.code || "EXECUTION_FAILED",
+        statusCode: err?.statusCode || (err?.code?.includes("FORBIDDEN") || err?.code?.includes("MISMATCH") ? 403 : 400),
         message: err?.message || String(err),
       },
       isError: true,

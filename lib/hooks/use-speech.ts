@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
 export interface UseSpeechReturn {
   speak: (text: string) => void;
@@ -8,6 +8,97 @@ export interface UseSpeechReturn {
   isSpeaking: boolean;
   isSupported: boolean;
   activeText: string | null;
+  activeRawText: string | null;
+  selectedVoiceName: string | null;
+}
+
+/**
+ * Phonetically and pedagogically normalizes raw text for natural Mexican Spanish TTS.
+ * Converts fraction notations, mathematical operators, and educational symbols
+ * into clear spoken words while removing emojis and markdown formatting.
+ */
+export function normalizeOralMathText(rawText: string): string {
+  if (!rawText) return "";
+
+  return rawText
+    // Remove markdown formatting
+    .replace(/[*_#`~>]/g, "")
+    // Remove common emojis so TTS does not read symbol descriptions
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "")
+    // Spoken fractions in primary mathematics
+    .replace(/\b1\/2\b/g, "un medio")
+    .replace(/\b2\/4\b/g, "dos cuartos")
+    .replace(/\b1\/3\b/g, "un tercio")
+    .replace(/\b2\/6\b/g, "dos sextos")
+    .replace(/\b3\/6\b/g, "tres sextos")
+    .replace(/\b4\/6\b/g, "cuatro sextos")
+    .replace(/\b1\/4\b/g, "un cuarto")
+    .replace(/\b2\/5\b/g, "dos quintos")
+    .replace(/\b4\/10\b/g, "cuatro décimos")
+    .replace(/\b3\/4\b/g, "tres cuartos")
+    .replace(/\b6\/8\b/g, "seis octavos")
+    .replace(/\b6\/9\b/g, "seis novenos")
+    .replace(/\b2\/3\b/g, "dos tercios")
+    .replace(/\b3\/3\b/g, "tres tercios")
+    .replace(/\b4\/8\b/g, "cuatro octavos")
+    .replace(/\b2\/8\b/g, "dos octavos")
+    .replace(/\b1\/6\b/g, "un sexto")
+    // Mathematical operators and expressions
+    .replace(/(\d+)\s*[×x*]\s*(\d+)/g, "$1 por $2")
+    .replace(/(\d+)\s*[÷/]\s*(\d+)/g, "$1 entre $2")
+    .replace(/(\d+)\s*=\s*(\d+)/g, "$1 es igual a $2")
+    .replace(/\b500\s*\+\s*2\b/g, "quinientos más dos")
+    .replace(/\+/g, " más ")
+    .replace(/%/g, " por ciento")
+    .replace(/\b3°\s*B\b/gi, "tercero B")
+    .replace(/&ldquo;|&rdquo;|&quot;|"/g, "")
+    // Normalize spaces
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Priority-based Spanish voice finder:
+ * 1. es-MX female voice (preferred friendly, calm, educational tone)
+ * 2. Any es-MX voice
+ * 3. Any Spanish female voice across any dialect (es-*)
+ * 4. Any Spanish voice (es-*)
+ * 5. First available voice fallback
+ */
+export function findPreferredSpanishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  if (!voices || voices.length === 0) return undefined;
+
+  const femaleKeywords = /sabina|paulina|monica|mónica|hilda|sofia|sofía|lucia|lucía|elena|paloma|conchita|mia|mía|laura|helena|female|mujer/i;
+
+  // 1. es-MX female
+  const esMxFemale = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    const isEsMx = lang === "es-mx";
+    return isEsMx && femaleKeywords.test(v.name);
+  });
+  if (esMxFemale) return esMxFemale;
+
+  // 2. Any es-MX voice
+  const esMxAny = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    return lang === "es-mx";
+  });
+  if (esMxAny) return esMxAny;
+
+  // 3. Any Spanish female voice (es-*)
+  const esFemaleAny = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    const isEs = lang.startsWith("es");
+    return isEs && femaleKeywords.test(v.name);
+  });
+  if (esFemaleAny) return esFemaleAny;
+
+  // 4. Any Spanish voice
+  const esAny = voices.find((v) => v.lang.toLowerCase().startsWith("es"));
+  if (esAny) return esAny;
+
+  // 5. Fallback default
+  return voices[0];
 }
 
 /**
@@ -28,9 +119,14 @@ export function useSpeech(): UseSpeechReturn {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
   const [activeText, setActiveText] = useState<string | null>(null);
+  const [activeRawText, setActiveRawText] = useState<string | null>(null);
+  const [selectedVoiceName, setSelectedVoiceName] = useState<string | null>(null);
+
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const playTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
 
+  // Initialize speech support and listen to async voice loading
   useEffect(() => {
     if (
       typeof window !== "undefined" &&
@@ -38,6 +134,27 @@ export function useSpeech(): UseSpeechReturn {
       "SpeechSynthesisUtterance" in window
     ) {
       setIsSupported(true);
+
+      const updateVoices = () => {
+        const vList = window.speechSynthesis.getVoices();
+        voicesRef.current = vList;
+        const best = findPreferredSpanishVoice(vList);
+        if (best) {
+          setSelectedVoiceName(best.name);
+        }
+      };
+
+      updateVoices();
+
+      if ("onvoiceschanged" in window.speechSynthesis) {
+        window.speechSynthesis.addEventListener("voiceschanged", updateVoices);
+      }
+
+      return () => {
+        if ("onvoiceschanged" in window.speechSynthesis) {
+          window.speechSynthesis.removeEventListener("voiceschanged", updateVoices);
+        }
+      };
     }
   }, []);
 
@@ -62,6 +179,7 @@ export function useSpeech(): UseSpeechReturn {
     }
     setIsSpeaking(false);
     setActiveText(null);
+    setActiveRawText(null);
   }, []);
 
   const speak = useCallback(
@@ -70,32 +188,23 @@ export function useSpeech(): UseSpeechReturn {
       if (
         typeof window === "undefined" ||
         !("speechSynthesis" in window) ||
-        !("SpeechSynthesisUtterance" in window)
+        !("SpeechSynthesisUtterance" in window) ||
+        !rawText.trim()
       ) {
         return;
       }
 
-      // Stop and cancel any existing audio or queued playbacks immediately
+      // Stop any ongoing speech immediately before queueing new utterance
       stop();
 
       try {
-        // Clean special characters and phonetically normalize mathematical fractions
-        const cleanText = rawText
-          .replace(/[*_#`~>]/g, "")
-          .replace(/\b1\/2\b/g, "un medio")
-          .replace(/\b2\/4\b/g, "dos cuartos")
-          .replace(/\b1\/3\b/g, "un tercio")
-          .replace(/\b2\/6\b/g, "dos sextos")
-          .replace(/\b1\/4\b/g, "un cuarto")
-          .replace(/\b3\/6\b/g, "tres sextos")
-          .replace(/\b4\/6\b/g, "cuatro sextos")
-          .replace(/\b2\/5\b/g, "dos quintos")
-          .replace(/\b4\/10\b/g, "cuatro décimos")
-          .replace(/\b3\/4\b/g, "tres cuartos")
-          .replace(/\b6\/8\b/g, "seis octavos")
-          .replace(/\b3\/3\b/g, "tres tercios")
-          .replace(/\s+/g, " ")
-          .trim();
+        // Resume synthesis if browser suspended it (Chromium autoplay policy)
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
+
+        const cleanText = normalizeOralMathText(rawText);
+        if (!cleanText) return;
 
         // Small timeout ensures speechSynthesis buffer is totally clear (prevents overlapping voices on rapid clicks)
         playTimeoutRef.current = setTimeout(() => {
@@ -105,34 +214,35 @@ export function useSpeech(): UseSpeechReturn {
             utterance.rate = 0.92; // Calm, clear tempo for primary school learners
             utterance.pitch = 1.05; // Warm, friendly tone
 
-            // Select natural Spanish voice if available in the browser
-            const voices = window.speechSynthesis.getVoices();
-            const spanishVoice =
-              voices.find(
-                (v) =>
-                  v.lang.toLowerCase().startsWith("es-mx") ||
-                  v.lang.toLowerCase().startsWith("es_mx")
-              ) ||
-              voices.find((v) => v.lang.toLowerCase().startsWith("es")) ||
-              voices[0];
+            // Fetch latest voices
+            const voices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
+            const preferredVoice = findPreferredSpanishVoice(voices);
 
-            if (spanishVoice) {
-              utterance.voice = spanishVoice;
+            if (preferredVoice) {
+              utterance.voice = preferredVoice;
+              setSelectedVoiceName(preferredVoice.name);
             }
 
             utterance.onstart = () => {
               setIsSpeaking(true);
               setActiveText(cleanText);
+              setActiveRawText(rawText);
             };
 
             utterance.onend = () => {
               setIsSpeaking(false);
               setActiveText(null);
+              setActiveRawText(null);
             };
 
-            utterance.onerror = () => {
+            utterance.onerror = (e) => {
+              // Ignore synthetic cancellations (error === 'canceled' or 'interrupted')
+              if (e.error !== "canceled" && e.error !== "interrupted") {
+                console.warn("SpeechSynthesis error:", e.error);
+              }
               setIsSpeaking(false);
               setActiveText(null);
+              setActiveRawText(null);
             };
 
             utteranceRef.current = utterance;
@@ -141,12 +251,14 @@ export function useSpeech(): UseSpeechReturn {
             console.warn("SpeechSynthesis playback skipped:", innerErr);
             setIsSpeaking(false);
             setActiveText(null);
+            setActiveRawText(null);
           }
-        }, 50);
+        }, 40);
       } catch (err) {
         console.warn("SpeechSynthesis error:", err);
         setIsSpeaking(false);
         setActiveText(null);
+        setActiveRawText(null);
       }
     },
     [stop]
@@ -172,5 +284,16 @@ export function useSpeech(): UseSpeechReturn {
     };
   }, [stop]);
 
-  return { speak, stop, isSpeaking, isSupported, activeText };
+  return useMemo(
+    () => ({
+      speak,
+      stop,
+      isSpeaking,
+      isSupported,
+      activeText,
+      activeRawText,
+      selectedVoiceName,
+    }),
+    [speak, stop, isSpeaking, isSupported, activeText, activeRawText, selectedVoiceName]
+  );
 }

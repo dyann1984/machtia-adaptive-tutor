@@ -14,11 +14,13 @@ export function FractionBarVisualizer({
   fractionB,
   labelA,
   labelB,
+  showEquivalence = true,
 }: {
   fractionA: { numerator: number; denominator: number };
   fractionB: { numerator: number; denominator: number };
   labelA?: string;
   labelB?: string;
+  showEquivalence?: boolean;
 }) {
   const renderBar = (num: number, den: number, label?: string, fillColor = "bg-blue-600") => {
     const segments = Array.from({ length: den }, (_, i) => i);
@@ -61,7 +63,7 @@ export function FractionBarVisualizer({
           <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
           Representación gráfica interactiva
         </span>
-        {isEquiv ? (
+        {isEquiv && showEquivalence ? (
           <span className="text-xs font-bold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full border border-emerald-300">
             ¡Mismo valor exacto ({Math.round((fractionA.numerator / fractionA.denominator) * 100)}%)!
           </span>

@@ -22,13 +22,17 @@ export function StudentHome({
 }: {
   onStartPractice: (practiceId: string) => void;
 }) {
-  const { practices, selectedStudentId, students, setActiveStudentTab } = useTutor();
+  const { practices, selectedStudentId, students, evidences, setActiveStudentTab } = useTutor();
   const speech = useSpeech();
 
   const student = students.find((s) => s.id === selectedStudentId) || students[0];
   const studentPractices = practices.filter((p) => p.studentId === student.id);
   const pendingPractice = studentPractices.find((p) => p.status !== "completed");
   const completedPractice = studentPractices.find((p) => p.status === "completed");
+
+  const latestEvidence = evidences.filter((e) => e.studentId === student.id).slice(-1)[0];
+  const displayScore = latestEvidence ? latestEvidence.finalScore : (student.topicPerformances["fracciones-equivalentes"] ?? 80);
+  const displayDelta = latestEvidence ? latestEvidence.improvementDelta : (displayScore - 52);
 
   const studentFirstName = student.name.split(" ")[0];
 
@@ -158,7 +162,7 @@ export function StudentHome({
               Has terminado tu práctica de Fracciones equivalentes
             </h2>
             <p className="text-sm text-slate-600 max-w-md mx-auto">
-              Obtuviste 80% (+28 puntos de mejora). Tu evidencia ya fue registrada para el profesor Carlos.
+              Obtuviste {displayScore}% (+{displayDelta} puntos de mejora). Tu evidencia ya fue registrada para el profesor Carlos.
             </p>
           </div>
 

@@ -181,6 +181,300 @@ export const MCP_TOOLS_SCHEMAS: Record<string, McpToolSchema> = {
       additionalProperties: false,
     },
   },
+
+  get_student_context: {
+    name: "get_student_context",
+    description: "Obtiene el perfil escolar, grupo, brechas pedagógicas activas y estado de prácticas del alumno autenticado.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        studentId: {
+          type: "string",
+          description: "ID único del alumno a consultar.",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar para validación de aislamiento.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del usuario que realiza la petición.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante para control de acceso RBAC.",
+        },
+      },
+      required: ["studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  get_assigned_practice: {
+    name: "get_assigned_practice",
+    description: "Recupera las prácticas pedagógicas asignadas legítimamente al alumno por su docente.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        studentId: {
+          type: "string",
+          description: "ID único del alumno.",
+        },
+        status: {
+          type: "string",
+          enum: ["pending", "in_progress", "completed", "assigned"],
+          description: "Filtro opcional por estado de la práctica.",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  start_practice: {
+    name: "start_practice",
+    description: "Inicia la sesión de práctica pedagógica, cambia su estado a 'in_progress' y entrega el primer reactivo con prompt oral para Alexa+.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        practiceId: {
+          type: "string",
+          description: "ID de la práctica a iniciar.",
+        },
+        studentId: {
+          type: "string",
+          description: "ID del alumno que realiza la práctica.",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["practiceId", "studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  submit_answer: {
+    name: "submit_answer",
+    description: "Evalúa en tiempo real la respuesta oral o escrita del alumno utilizando normalizador lingüístico y andamiaje progresivo.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        practiceId: {
+          type: "string",
+          description: "ID de la práctica activa.",
+        },
+        exerciseId: {
+          type: "string",
+          description: "ID del reactivo evaluado.",
+        },
+        studentAnswer: {
+          type: "string",
+          description: "Respuesta del alumno (ej. 'dos cuartos', '2/4', 'opción A').",
+        },
+        attemptNumber: {
+          type: "number",
+          description: "Número de intento (1, 2 o 3).",
+        },
+        studentId: {
+          type: "string",
+          description: "ID del alumno que responde.",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["practiceId", "exerciseId", "studentAnswer", "attemptNumber", "studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  get_hint: {
+    name: "get_hint",
+    description: "Proporciona una pista formativa de Nivel 1 orientadora sin revelar prematuramente la solución.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exerciseId: {
+          type: "string",
+          description: "ID del ejercicio para el cual se solicita pista.",
+        },
+        studentId: {
+          type: "string",
+          description: "ID del alumno solicitante.",
+        },
+        practiceId: {
+          type: "string",
+          description: "ID de la práctica asociada (opcional).",
+        },
+        attemptNumber: {
+          type: "number",
+          description: "Número de intento en curso (opcional).",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["exerciseId", "studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  get_adaptive_explanation: {
+    name: "get_adaptive_explanation",
+    description: "Genera una explicación adaptativa con analogía cotidiana (Nivel 2) o andamiaje paso a paso (Nivel 3).",
+    inputSchema: {
+      type: "object",
+      properties: {
+        exerciseId: {
+          type: "string",
+          description: "ID del reactivo a explicar.",
+        },
+        studentId: {
+          type: "string",
+          description: "ID del alumno destinatario.",
+        },
+        practiceId: {
+          type: "string",
+          description: "ID de la práctica asociada (opcional).",
+        },
+        level: {
+          type: "string",
+          enum: ["analogy", "step_by_step"],
+          description: "Nivel de andamiaje: 'analogy' (Nivel 2) o 'step_by_step' (Nivel 3).",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["exerciseId", "studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  complete_practice: {
+    name: "complete_practice",
+    description: "Finaliza la práctica, calcula la calificación real obtenida, actualiza el perfil del estudiante y genera LearningEvidence auditable.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        practiceId: {
+          type: "string",
+          description: "ID de la práctica completada.",
+        },
+        studentId: {
+          type: "string",
+          description: "ID del alumno que concluyó la práctica.",
+        },
+        answers: {
+          type: "array",
+          description: "Historial opcional de reactivos resueltos por el alumno.",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["practiceId", "studentId"],
+      additionalProperties: false,
+    },
+  },
+
+  get_practice_result: {
+    name: "get_practice_result",
+    description: "Permite a Alexa+ o al docente consultar los resultados definitivos, delta de mejora (+28 puntos) y evidencia persistida.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        practiceId: {
+          type: "string",
+          description: "ID de la práctica a consultar.",
+        },
+        studentId: {
+          type: "string",
+          description: "ID del alumno evaluado.",
+        },
+        tenantId: {
+          type: "string",
+          description: "ID del tenant escolar.",
+        },
+        requesterId: {
+          type: "string",
+          description: "ID del solicitante.",
+        },
+        requesterRole: {
+          type: "string",
+          enum: ["student", "teacher", "system"],
+          description: "Rol del solicitante.",
+        },
+      },
+      required: ["practiceId", "studentId"],
+      additionalProperties: false,
+    },
+  },
 };
 
 /**
@@ -222,6 +516,8 @@ export function validateToolArguments(
         errors.push(`El parámetro '${key}' debe ser de tipo string, recibido: ${typeof value}.`);
       } else if (propSchema.type === "number" && typeof value !== "number") {
         errors.push(`El parámetro '${key}' debe ser de tipo number, recibido: ${typeof value}.`);
+      } else if (propSchema.type === "array" && !Array.isArray(value)) {
+        errors.push(`El parámetro '${key}' debe ser de tipo array, recibido: ${typeof value}.`);
       }
 
       if (propSchema.enum && !propSchema.enum.includes(value)) {

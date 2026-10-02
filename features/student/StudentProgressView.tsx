@@ -60,7 +60,7 @@ export function StudentProgressView() {
             <span className="text-xs text-emerald-800 font-bold uppercase tracking-wider block">Ahora</span>
             <div className="text-3xl font-black text-emerald-600 font-mono">{fracScore}%</div>
             <span className="text-xs text-emerald-700 font-bold block">
-              {isImproved ? "+28% ¡Mejora detectada!" : "En práctica"}
+              {isImproved ? `+${fracScore - 52}% ¡Mejora detectada!` : "En práctica"}
             </span>
           </div>
         </div>

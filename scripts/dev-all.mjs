@@ -17,7 +17,7 @@ console.log("   • Web UI:     http://localhost:3000");
 console.log("=========================================================\n");
 
 // 1. Spawn MCP Server
-const mcpProcess = spawn(npmCmd, ["run", "mcp"], {
+const mcpProcess = spawn(npmCmd, ["run", "mcp:start"], {
   stdio: ["inherit", "pipe", "pipe"],
   shell: true,
   env: { ...process.env, MCP_PORT: "3100" },

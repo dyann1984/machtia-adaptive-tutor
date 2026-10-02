@@ -354,9 +354,9 @@ export async function evaluate_answer(
       // NIVEL 3: APOYO GUIADO PASO A PASO
       supportLevel = "guided_example";
       allowSecondAttempt = false;
-      allowRetry = false;
-      guidedExample = exercise.guidedExample || exercise.explanation;
-      feedback = `Observa la solución guiada paso a paso: ${guidedExample}`;
+      allowRetry = true;
+      guidedExample = "Dibuja dos enteros del mismo tamaño. Divide cada uno según su denominador y marca las partes del numerador. Compara el espacio marcado. ¿Qué observas? Prueba tu respuesta de nuevo.";
+      feedback = `Vamos paso a paso: ${guidedExample}`;
       observableAction = "✓ Nivel 3 de apoyo guiado paso a paso con representación visual activado";
     }
   }

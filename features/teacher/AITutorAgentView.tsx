@@ -15,7 +15,9 @@ import {
   RefreshCw,
   Terminal,
   User,
+  Radio,
 } from "lucide-react";
+import { AlexaPlusSimulatorModal } from "@/components/AlexaPlusSimulatorModal";
 
 export function AITutorAgentView() {
   const {
@@ -32,6 +34,7 @@ export function AITutorAgentView() {
   const [inputQuery, setInputQuery] = useState("");
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [isCheckingMcp, setIsCheckingMcp] = useState(false);
+  const [showAlexaSimulator, setShowAlexaSimulator] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -78,6 +81,14 @@ export function AITutorAgentView() {
             className="text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 transition"
           >
             Crear práctica para Mariana
+          </button>
+          <button
+            onClick={() => setShowAlexaSimulator(true)}
+            className="text-xs font-bold px-3 py-1.5 rounded-xl bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-300 transition flex items-center gap-1.5 shadow-2xs"
+            title="Abrir Simulador de Dispositivo Amazon Alexa+ (Echo Show)"
+          >
+            <Radio className="w-3.5 h-3.5 text-cyan-600 animate-pulse" />
+            <span>Simulador Alexa+ (Echo Show)</span>
           </button>
         </div>
       </div>
@@ -409,6 +420,11 @@ export function AITutorAgentView() {
           </div>
         </div>
       </div>
+
+      <AlexaPlusSimulatorModal
+        isOpen={showAlexaSimulator}
+        onClose={() => setShowAlexaSimulator(false)}
+      />
     </div>
   );
 }

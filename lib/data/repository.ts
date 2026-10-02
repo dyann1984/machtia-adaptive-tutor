@@ -15,6 +15,7 @@ import {
   INITIAL_SUBJECT,
   INITIAL_STUDENTS,
   INITIAL_EVIDENCES,
+  SAMPLE_EXERCISES_POOL,
 } from "./mock-data";
 
 class TutorRepository {
@@ -28,10 +29,11 @@ class TutorRepository {
   private actionLogs: TutorAction[] = [];
 
   constructor() {
-    this.loadFromStorage();
+    // In SSR and initial client hydration, start from clean deterministic in-memory seed.
+    // Client-side restoration happens safely post-mount in refreshState().
   }
 
-  private loadFromStorage() {
+  public loadFromStorage() {
     if (typeof window !== "undefined") {
       try {
         const savedStudents = localStorage.getItem("machtia_students");
@@ -86,8 +88,58 @@ class TutorRepository {
     }
   }
 
-  public resetToInitialState() {
-    this.resetDemoData();
+  /**
+   * Restaura el escenario reproducible oficial para la grabación del demo:
+   * ANTES:
+   * - Mariana López: 52% en fracciones-equivalentes
+   * - Práctica asignada y pendiente: 'prac-mariana-fracciones'
+   * - Sin evidencias de fracciones equivalentes
+   * DESPUÉS (tras la práctica):
+   * - Práctica completada
+   * - Mariana: 80% (+28 puntos delta)
+   * - LearningEvidence generada y visible en el panel docente
+   */
+  public resetOfficialDemoScenario(): void {
+    this.teacher = { ...INITIAL_TEACHER };
+    this.group = { ...INITIAL_GROUP };
+    this.subject = { ...INITIAL_SUBJECT };
+    this.students = JSON.parse(JSON.stringify(INITIAL_STUDENTS));
+
+    const mariana = this.students.find((s) => s.id === "mariana-lopez");
+    if (mariana) {
+      mariana.topicPerformances["fracciones-equivalentes"] = 52;
+      mariana.overallAverage = 8.1;
+      mariana.assignedPracticeIds = ["prac-mariana-fracciones"];
+    }
+
+    const officialPractice: Practice = {
+      id: "prac-mariana-fracciones",
+      title: "Práctica Adaptativa: Fracciones Equivalentes",
+      description: "Práctica interactiva calibrada para superar la confusión en denominadores mediante barras visuales y productos cruzados.",
+      subjectId: "matematicas",
+      topicId: "fracciones-equivalentes",
+      topicName: "Fracciones equivalentes",
+      studentId: "mariana-lopez",
+      studentName: "Mariana López",
+      exercises: JSON.parse(JSON.stringify(SAMPLE_EXERCISES_POOL)),
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    };
+
+    this.practices = [officialPractice];
+    this.attempts = [];
+    this.evidences = JSON.parse(JSON.stringify(INITIAL_EVIDENCES));
+    this.actionLogs = [];
+
+    this.persist();
+  }
+
+  public resetToInitialState(withPendingPractice: boolean = false) {
+    if (withPendingPractice) {
+      this.resetOfficialDemoScenario();
+    } else {
+      this.resetDemoData();
+    }
   }
 
   public getTeacher(): Teacher {

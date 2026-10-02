@@ -13,6 +13,17 @@ import {
   get_student_progress,
   report_progress_to_teacher,
 } from "@/lib/tools/tutor-tools";
+import {
+  get_student_context,
+  get_assigned_practice,
+  start_practice,
+  submit_answer,
+  get_hint,
+  get_adaptive_explanation,
+  complete_practice,
+  get_practice_result,
+} from "@/mcp/server/alexa-service";
+import { PracticeGenerationResult } from "@/types";
 
 export interface McpConnectionStatus {
   connected: boolean;
@@ -38,13 +49,29 @@ export class McpClient {
   private isConnected: boolean = false;
   private lastCheckTime: number = 0;
   private cachedProtocolVersion: string = "2025-11-25";
+  private forceRealMcp: boolean;
 
-  constructor(serverUrl?: string) {
+  constructor(serverUrl?: string, forceRealMcp?: boolean) {
     this.serverUrl =
       serverUrl ||
       process.env.NEXT_PUBLIC_MCP_URL ||
       process.env.MCP_URL ||
       "http://localhost:3100/mcp";
+
+    this.forceRealMcp =
+      forceRealMcp !== undefined
+        ? forceRealMcp
+        : process.env.NEXT_PUBLIC_JUDGE_DEMO === "true" ||
+          process.env.JUDGE_DEMO === "true" ||
+          process.env.NEXT_PUBLIC_FORCE_REAL_MCP === "true";
+  }
+
+  public setForceRealMcp(force: boolean): void {
+    this.forceRealMcp = force;
+  }
+
+  public isForceRealMcp(): boolean {
+    return this.forceRealMcp;
   }
 
   public getServerUrl(): string {
@@ -177,7 +204,7 @@ export class McpClient {
       // Ignore and fallback
     }
 
-    // Fallback list of 7 primary tools
+    // Fallback list of 15 registered tools (7 teacher + 8 Alexa+ conversational)
     return [
       { name: "analyze_student_performance" },
       { name: "find_students_needing_support" },
@@ -186,6 +213,14 @@ export class McpClient {
       { name: "assign_practice_to_student" },
       { name: "get_student_progress" },
       { name: "report_progress_to_teacher" },
+      { name: "get_student_context" },
+      { name: "get_assigned_practice" },
+      { name: "start_practice" },
+      { name: "submit_answer" },
+      { name: "get_hint" },
+      { name: "get_adaptive_explanation" },
+      { name: "complete_practice" },
+      { name: "get_practice_result" },
     ];
   }
 
@@ -240,15 +275,41 @@ export class McpClient {
             toolName: name,
             durationMs,
             isError: Boolean(json.result.isError),
+            error: json.result.isError
+              ? (json.result.structuredContent?.message || json.result.content?.[0]?.text || "Tool execution error")
+              : undefined,
           };
         }
+      } else {
+        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
       }
     } catch (err: any) {
-      // Log connection error in development without interrupting user experience
-      // Will proceed to local fallback below
+      if (this.forceRealMcp) {
+        const durationMs = Date.now() - startTime;
+        return {
+          result: null as any,
+          source: "mcp",
+          toolName: name,
+          durationMs,
+          isError: true,
+          error: `[MCP Unavailable] El servidor MCP en ${this.serverUrl} no está disponible (${err?.message || "Conexión rechazada"}). En Modo Demo Oficial el fallback local está estrictamente deshabilitado para garantizar que toda respuesta provenga del servidor real.`,
+        };
+      }
+      // Will proceed to local fallback below only in development mode
     }
 
-    // 2. Controlled Local Fallback (reusing tutor-tools without duplication)
+    if (this.forceRealMcp) {
+      return {
+        result: null as any,
+        source: "mcp",
+        toolName: name,
+        durationMs: Date.now() - startTime,
+        isError: true,
+        error: `[MCP Unavailable] Servidor MCP no disponible en ${this.serverUrl}.`,
+      };
+    }
+
+    // 2. Controlled Local Fallback (reusing tutor-tools without duplication, only when NOT in demo mode)
     try {
       const localResult = await this.executeLocalFallback(name, args);
       const durationMs = Date.now() - startTime;
@@ -304,6 +365,23 @@ export class McpClient {
         return get_student_progress(args.studentId, args.subjectId || "matematicas");
       case "report_progress_to_teacher":
         return report_progress_to_teacher(args.studentId, args.subjectId || "matematicas");
+      // Alexa+ 8 conversational tools
+      case "get_student_context":
+        return get_student_context(args as any);
+      case "get_assigned_practice":
+        return get_assigned_practice(args as any);
+      case "start_practice":
+        return start_practice(args as any);
+      case "submit_answer":
+        return submit_answer(args as any);
+      case "get_hint":
+        return get_hint(args as any);
+      case "get_adaptive_explanation":
+        return get_adaptive_explanation(args as any);
+      case "complete_practice":
+        return complete_practice(args as any);
+      case "get_practice_result":
+        return get_practice_result(args as any);
       default:
         throw new Error(`Herramienta '${name}' no encontrada en el catálogo local.`);
     }
@@ -327,8 +405,8 @@ export class McpClient {
     topicId: string,
     initialDifficulty: "easy" | "medium" | "hard" = "easy",
     exerciseCount: number = 5
-  ) {
-    return this.callTool("generate_adaptive_practice", {
+  ): Promise<McpClientToolCallResponse<PracticeGenerationResult | null>> {
+    return this.callTool<PracticeGenerationResult | null>("generate_adaptive_practice", {
       studentId,
       topicId,
       initialDifficulty,
@@ -346,6 +424,83 @@ export class McpClient {
 
   async reportProgressToTeacher(studentId: string, subjectId: string = "matematicas") {
     return this.callTool("report_progress_to_teacher", { studentId, subjectId });
+  }
+
+  // Alexa+ 8 conversational convenience wrappers
+  async getStudentContext(
+    studentId: string,
+    options?: { tenantId?: string; requesterId?: string; requesterRole?: "student" | "teacher" | "system" }
+  ) {
+    return this.callTool("get_student_context", { studentId, ...options });
+  }
+
+  async getAssignedPractice(
+    studentId: string,
+    options?: { status?: string; tenantId?: string; requesterId?: string; requesterRole?: "student" | "teacher" | "system" }
+  ) {
+    return this.callTool("get_assigned_practice", { studentId, ...options });
+  }
+
+  async startPractice(
+    practiceId: string,
+    studentId: string,
+    options?: { tenantId?: string; requesterId?: string }
+  ) {
+    return this.callTool("start_practice", { practiceId, studentId, ...options });
+  }
+
+  async submitAnswer(
+    practiceId: string,
+    exerciseId: string,
+    studentAnswer: string,
+    attemptNumber: number,
+    studentId: string,
+    options?: { tenantId?: string; requesterId?: string }
+  ) {
+    return this.callTool("submit_answer", {
+      practiceId,
+      exerciseId,
+      studentAnswer,
+      attemptNumber,
+      studentId,
+      ...options,
+    });
+  }
+
+  async getHint(
+    exerciseId: string,
+    studentId: string,
+    options?: { practiceId?: string; attemptNumber?: number; tenantId?: string; requesterId?: string }
+  ) {
+    return this.callTool("get_hint", { exerciseId, studentId, ...options });
+  }
+
+  async getAdaptiveExplanation(
+    exerciseId: string,
+    studentId: string,
+    options?: { practiceId?: string; level?: "analogy" | "step_by_step"; tenantId?: string; requesterId?: string }
+  ) {
+    return this.callTool("get_adaptive_explanation", { exerciseId, studentId, ...options });
+  }
+
+  async completePractice(
+    practiceId: string,
+    studentId: string,
+    options?: {
+      answers?: Array<{ exerciseId: string; isCorrect: boolean; studentAnswer?: string; attemptsCount?: number }>;
+      tenantId?: string;
+      requesterId?: string;
+    }
+  ) {
+    return this.callTool("complete_practice", { practiceId, studentId, ...options });
+  }
+
+  async getPracticeResult(
+    practiceId: string,
+    studentId: string,
+    options?: { tenantId?: string; requesterId?: string; requesterRole?: "student" | "teacher" | "system" }
+  ) {
+    return this.callTool("get_practice_result", { practiceId, studentId, ...options });
   }
 }
 

@@ -91,6 +91,19 @@ export interface Practice {
   completedAt?: string;
 }
 
+export interface PracticeGenerationResult {
+  practiceId: string;
+  practiceTitle: string;
+  studentName: string;
+  exerciseCount: number;
+  exercises: Exercise[];
+  subject: string;
+  targetTopic: string;
+  status: "pending" | "in_progress" | "completed" | "assigned";
+  targetGapDescription: string;
+  summary: string;
+}
+
 export interface EvaluationFeedback {
   exerciseId: string;
   studentAnswer: string;
@@ -131,6 +144,9 @@ export interface PracticeAttempt {
 }
 
 export interface LearningEvidence {
+  totalAttempts?: number;
+  hintsUsed?: number;
+  reexplanationsUsed?: number;
   id: string;
   studentId: string;
   studentName: string;

@@ -59,7 +59,7 @@ export function EvidencesView() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="bg-slate-50 px-4 py-2 rounded-xl border border-slate-200 text-xs flex items-center gap-2">
                   <span className="text-slate-500">Antes:</span>
                   <span className="font-extrabold text-amber-700">{ev.initialScore}%</span>
@@ -70,7 +70,7 @@ export function EvidencesView() {
 
                 <span className="text-xs font-bold bg-emerald-50 text-emerald-800 px-3.5 py-2 rounded-xl border border-emerald-200 flex items-center gap-1.5">
                   <TrendingUp className="w-4 h-4 text-emerald-600" />
-                  <span>+{ev.improvementDelta} pts • {ev.status}</span>
+                  <span>{ev.improvementDelta >= 0 ? "+" : ""}{ev.improvementDelta} pts • {ev.status}</span>
                 </span>
               </div>
             </div>

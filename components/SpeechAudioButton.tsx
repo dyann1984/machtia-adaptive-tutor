@@ -1,8 +1,8 @@
 "use client";
 
 import React from "react";
-import { Volume2, VolumeX, RotateCcw, Sparkles } from "lucide-react";
-import { UseSpeechReturn, useSpeech } from "@/lib/hooks/use-speech";
+import { Volume2, VolumeX, RotateCcw } from "lucide-react";
+import { UseSpeechReturn, useSpeech, normalizeOralMathText } from "@/lib/hooks/use-speech";
 
 interface SpeechAudioButtonProps {
   textToSpeak: string;
@@ -23,9 +23,18 @@ export function SpeechAudioButton({
 }: SpeechAudioButtonProps) {
   const internalSpeech = useSpeech();
   const speech = externalSpeech || internalSpeech;
-  const { speak, stop, isSpeaking, activeText } = speech;
+  const { speak, stop, isSpeaking, activeText, activeRawText } = speech;
 
-  const isCurrentSpeaking = isSpeaking && activeText?.includes(textToSpeak.slice(0, 15));
+  // Accurately determine if THIS button's content is the one currently speaking
+  const normalizedTarget = normalizeOralMathText(textToSpeak);
+  const isCurrentSpeaking =
+    isSpeaking &&
+    Boolean(textToSpeak) &&
+    (activeRawText === textToSpeak ||
+      (activeText !== null && activeText === normalizedTarget) ||
+      (activeText !== null &&
+        activeText.length > 8 &&
+        normalizedTarget.startsWith(activeText.slice(0, 20))));
 
   const handleToggle = () => {
     if (isCurrentSpeaking) {
@@ -39,7 +48,7 @@ export function SpeechAudioButton({
     stop();
     setTimeout(() => {
       speak(textToSpeak);
-    }, 120);
+    }, 100);
   };
 
   if (variant === "compact") {
@@ -48,11 +57,12 @@ export function SpeechAudioButton({
         <button
           type="button"
           onClick={handleToggle}
-          title={isCurrentSpeaking ? "Detener audio" : label}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+          title={isCurrentSpeaking ? "Detener audio del Tutor" : label}
+          aria-label={isCurrentSpeaking ? "Detener audio del Tutor" : label}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs select-none focus:outline-hidden focus:ring-2 focus:ring-blue-400 ${
             isCurrentSpeaking
-              ? "bg-amber-500 text-slate-950 animate-pulse border border-amber-600"
-              : "bg-blue-100/80 hover:bg-blue-200 text-blue-900 border border-blue-200"
+              ? "bg-amber-500 text-slate-950 animate-pulse border border-amber-600 ring-2 ring-amber-300"
+              : "bg-blue-100/90 hover:bg-blue-200 text-blue-900 border border-blue-200"
           }`}
         >
           {isCurrentSpeaking ? (
@@ -77,16 +87,17 @@ export function SpeechAudioButton({
         <button
           type="button"
           onClick={handleToggle}
-          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition shadow-xs ${
+          aria-label={isCurrentSpeaking ? "Detener voz del Tutor" : label}
+          className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition shadow-xs select-none focus:outline-hidden focus:ring-2 focus:ring-amber-400 ${
             isCurrentSpeaking
               ? "bg-amber-600 text-white animate-pulse border border-amber-700 ring-2 ring-amber-300"
-              : "bg-amber-400 hover:bg-amber-300 text-slate-950 border border-amber-500"
+              : "bg-amber-400 hover:bg-amber-300 text-slate-950 border border-amber-500 hover:scale-[1.01]"
           }`}
         >
           {isCurrentSpeaking ? (
             <>
               <VolumeX className="w-4 h-4 shrink-0" />
-              <span>Detener audio</span>
+              <span>■ Detener audio</span>
             </>
           ) : (
             <>
@@ -100,7 +111,8 @@ export function SpeechAudioButton({
           type="button"
           onClick={handleRepeat}
           title="Escuchar de nuevo desde el inicio"
-          className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 transition"
+          aria-label="Repetir explicación en voz alta"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 transition select-none focus:outline-hidden focus:ring-2 focus:ring-amber-300"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           <span>{repeatLabel}</span>
@@ -114,16 +126,17 @@ export function SpeechAudioButton({
       <button
         type="button"
         onClick={handleToggle}
-        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition shadow-xs ${
+        aria-label={isCurrentSpeaking ? "Detener voz del Tutor" : label}
+        className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition shadow-xs select-none focus:outline-hidden focus:ring-2 focus:ring-blue-400 ${
           isCurrentSpeaking
             ? "bg-blue-700 text-white animate-pulse border border-blue-800 ring-2 ring-blue-300"
-            : "bg-blue-600 hover:bg-blue-700 text-white border border-blue-700"
+            : "bg-blue-600 hover:bg-blue-700 text-white border border-blue-700 hover:scale-[1.01]"
         }`}
       >
         {isCurrentSpeaking ? (
           <>
             <VolumeX className="w-4 h-4 shrink-0" />
-            <span>Detener voz</span>
+            <span>■ Detener voz</span>
           </>
         ) : (
           <>
@@ -137,7 +150,8 @@ export function SpeechAudioButton({
         type="button"
         onClick={handleRepeat}
         title="Repetir explicación"
-        className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition"
+        aria-label="Repetir explicación en voz alta"
+        className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition select-none focus:outline-hidden focus:ring-2 focus:ring-slate-300"
       >
         <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
         <span>{repeatLabel}</span>

@@ -4,8 +4,14 @@ import React, { useState, useEffect } from "react";
 import { useTutor } from "@/lib/context/tutor-context";
 import { Practice } from "@/types";
 import { FractionBarVisualizer } from "@/components/FractionBarVisualizer";
-import { TutorRobotAvatar } from "@/components/TutorRobotAvatar";
+import { TutorRobotAvatar, TutorEmotion } from "@/components/TutorRobotAvatar";
 import { SpeechAudioButton } from "@/components/SpeechAudioButton";
+import { InteractiveFractionDiscovery } from "@/components/InteractiveFractionDiscovery";
+import { FractionCardInteractive } from "@/components/exercises/FractionCardInteractive";
+import { ChocolateBarInteractive } from "@/components/exercises/ChocolateBarInteractive";
+import { RelationalComparisonInteractive } from "@/components/exercises/RelationalComparisonInteractive";
+import { CrossProductInteractive } from "@/components/exercises/CrossProductInteractive";
+import { SimplificationInteractive } from "@/components/exercises/SimplificationInteractive";
 import { useSpeech } from "@/lib/hooks/use-speech";
 import { adapt_difficulty } from "@/lib/tools/tutor-tools";
 import confetti from "canvas-confetti";
@@ -16,6 +22,7 @@ import {
   ArrowRight,
   RotateCcw,
   Volume2,
+  Lightbulb,
 } from "lucide-react";
 
 export function InteractivePracticeRunner({
@@ -30,7 +37,24 @@ export function InteractivePracticeRunner({
 
   // Phase: 'explanation' | 'questions' | 'results'
   const [phase, setPhase] = useState<"explanation" | "questions" | "results">("explanation");
-  const [currentStep, setCurrentStep] = useState(1);
+
+  // Discovery tutor state
+  const [discoveryTutorData, setDiscoveryTutorData] = useState<{
+    speechText: string;
+    dialogText: string;
+    emotion: TutorEmotion;
+  }>({
+    speechText:
+      "¡Hola Mariana! Mira conmigo estas dos barras del mismo tamaño. La de arriba está cortada en dos partes, y la de abajo en cuatro partes. Vamos a descubrir qué tienen en común.",
+    dialogText:
+      "¡Hola Mariana! 👋 Mira conmigo estas dos barras. Una está cortada en 2 partes y la otra en 4 partes. ¡Vamos a explorarlas juntas!",
+    emotion: "normal",
+  });
+
+  const handleTutorUpdate = React.useCallback((data: any) => {
+    speech.stop();
+    setDiscoveryTutorData(data);
+  }, [speech]);
 
   // Exercise runner state
   const [exerciseIndex, setExerciseIndex] = useState(0);
@@ -41,6 +65,7 @@ export function InteractivePracticeRunner({
   const [currentDifficulty, setCurrentDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [, setLastAgentActivity] = useState<string[]>([]);
   const [showManualHint, setShowManualHint] = useState(false);
+  const [supportCounts, setSupportCounts] = useState({ hints: 0, reexplanations: 0 });
 
   // Answers tracker
   const [historyAnswers, setHistoryAnswers] = useState<
@@ -50,24 +75,34 @@ export function InteractivePracticeRunner({
   // Final calculated score state
   const [finalCalculatedScore, setFinalCalculatedScore] = useState<number>(80);
   const [finalCorrectCount, setFinalCorrectCount] = useState<number>(4);
+  const [masteredSkills, setMasteredSkills] = useState<string[]>([
+    "Fracciones equivalentes",
+    "Comparación visual",
+    "Amplificación por factor 2",
+  ]);
+  const [pendingSkills, setPendingSkills] = useState<string[]>([
+    "Simplificación de fracciones",
+    "Factores comunes mayores a 10",
+  ]);
 
   const currentExercise = practice.exercises[exerciseIndex];
 
-  // Stop speech synthesis when exercise, explanation step, or phase changes
+  // Stop speech synthesis when exercise or phase changes
+  const stopSpeech = speech.stop;
   useEffect(() => {
-    speech.stop();
-  }, [exerciseIndex, currentStep, phase, speech]);
+    stopSpeech();
+  }, [exerciseIndex, phase, stopSpeech]);
 
   // Pedagogical Progression Bar: 1. Explicación -> 2. Práctica -> 3. Pista -> 4. Re-explicación -> 5. Evidencia
   const renderPedagogicalProgression = () => {
     return (
-      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2 mb-6">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 overflow-x-auto gap-1 sm:gap-2">
+      <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-2 mb-6 shadow-2xs">
+        <div className="flex items-center justify-between text-xs font-bold text-slate-500 overflow-x-auto gap-1 sm:gap-2">
           {/* Step 1: Explicación */}
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               phase === "explanation"
-                ? "bg-blue-600 text-white shadow-xs font-bold"
+                ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-600 bg-white border border-slate-200/80"
             }`}
           >
@@ -81,7 +116,7 @@ export function InteractivePracticeRunner({
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               phase === "questions" && (!isEvaluated || evaluationResult?.isCorrect)
-                ? "bg-blue-600 text-white shadow-xs font-bold"
+                ? "bg-blue-600 text-white shadow-xs"
                 : "text-slate-600 bg-white border border-slate-200/80"
             }`}
           >
@@ -95,7 +130,7 @@ export function InteractivePracticeRunner({
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               phase === "questions" && isEvaluated && !evaluationResult?.isCorrect && attemptCount === 1
-                ? "bg-amber-500 text-slate-950 shadow-xs font-bold"
+                ? "bg-amber-500 text-slate-950 shadow-xs"
                 : "text-slate-400 bg-slate-100"
             }`}
           >
@@ -109,7 +144,7 @@ export function InteractivePracticeRunner({
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               phase === "questions" && isEvaluated && !evaluationResult?.isCorrect && attemptCount >= 2
-                ? "bg-indigo-600 text-white shadow-xs font-bold"
+                ? "bg-indigo-600 text-white shadow-xs"
                 : "text-slate-400 bg-slate-100"
             }`}
           >
@@ -123,7 +158,7 @@ export function InteractivePracticeRunner({
           <div
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition ${
               phase === "results"
-                ? "bg-emerald-600 text-white shadow-xs font-bold"
+                ? "bg-emerald-600 text-white shadow-xs"
                 : "text-slate-400 bg-slate-100"
             }`}
           >
@@ -131,64 +166,13 @@ export function InteractivePracticeRunner({
             <span>Evidencia</span>
           </div>
         </div>
+        <div className="mt-2 pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] text-slate-400 px-1">
+          <span>Estados del proceso adaptativo</span>
+          <span className="hidden sm:inline">El Tutor adapta estos pasos según tus respuestas</span>
+        </div>
       </div>
     );
   };
-
-  // Explicaciones pedagógicas cortas y orales adaptadas para niños de primaria
-  const explanationSteps = [
-    {
-      step: 1,
-      title: "¿Por qué valen lo mismo 1/2 y 2/4?",
-      speechText:
-        "¡Hola Mariana! Vamos juntas paso a paso. Dos fracciones son equivalentes cuando valen lo mismo. Mira estas barras: un medio y dos cuartos ocupan exactamente el mismo espacio. ¡Por eso significan exactamente lo mismo!",
-      dialogLines: [
-        "¡Hola Mariana! Vamos juntas paso a paso.",
-        "Dos fracciones son equivalentes cuando valen lo mismo.",
-        "Mira: un medio y dos cuartos ocupan el mismo espacio en las barras.",
-        "¡Por eso significan exactamente lo mismo!",
-      ],
-      fractionA: { numerator: 1, denominator: 2 },
-      fractionB: { numerator: 2, denominator: 4 },
-      labelA: "1 de 2 partes (1/2)",
-      labelB: "2 de 4 partes (2/4)",
-      tip: "💡 Observa con atención: las dos barras tienen el mismo largo coloreado.",
-    },
-    {
-      step: 2,
-      title: "El secreto del número de abajo",
-      speechText:
-        "¡Cuidado con esta trampa común! El número de abajo te dice en cuántas partes cortamos la barra. Cuantas más partes cortas, más pequeñita es cada rebanada. Por eso un cuarto es más chiquito que un medio. ¡Necesitas dos cuartos para igualarlo!",
-      dialogLines: [
-        "¡Cuidado con esta trampa común!",
-        "El número de abajo te dice en cuántas partes cortamos la barra.",
-        "Cuantas más partes cortas, ¡más pequeñita es cada rebanada!",
-        "Por eso un cuarto es más chiquito que un medio. Necesitas 2 cuartos para igualarlo.",
-      ],
-      fractionA: { numerator: 1, denominator: 2 },
-      fractionB: { numerator: 1, denominator: 4 },
-      labelA: "1/2 (partes grandes)",
-      labelB: "1/4 (partes más pequeñas)",
-      tip: "💡 Más partes no significa más grande: significa pedacitos más pequeños.",
-    },
-    {
-      step: 3,
-      title: "La regla mágica de la multiplicación",
-      speechText:
-        "¡Aquí está la regla mágica! Si multiplicas el número de arriba y el número de abajo por el mismo número, la fracción sigue valiendo exactamente lo mismo. Mira: uno por dos es dos, y tres por dos es seis. ¡Un tercio y dos sextos son gemelas!",
-      dialogLines: [
-        "¡Aquí está la regla mágica de la multiplicación!",
-        "Si multiplicas el número de arriba y el de abajo por el mismo número...",
-        "¡La fracción sigue valiendo exactamente lo mismo!",
-        "Uno por dos es dos, y tres por dos es seis. ¡Un tercio y dos sextos son gemelas!",
-      ],
-      fractionA: { numerator: 1, denominator: 3 },
-      fractionB: { numerator: 2, denominator: 6 },
-      labelA: "1/3 (multiplicado × 2)",
-      labelB: "2/6 (resultado equivalente)",
-      tip: "💡 Multiplicar arriba y abajo por 2 es como partir cada trozo a la mitad.",
-    },
-  ];
 
   const handleCheckAnswer = async () => {
     if (!selectedOption) return;
@@ -196,13 +180,26 @@ export function InteractivePracticeRunner({
     const res = await submitAnswer(currentExercise.id, selectedOption, attemptCount);
     setIsEvaluated(true);
     setEvaluationResult(res);
+    if (!res.isCorrect) {
+      setSupportCounts((prev) => ({
+        hints: prev.hints + (res.supportLevel === "hint" ? 1 : 0),
+        reexplanations: prev.reexplanations + (res.supportLevel !== "hint" ? 1 : 0),
+      }));
+    }
 
     // Adapt difficulty dynamically based on answer
     const newDiff = await adapt_difficulty(currentDifficulty, res.isCorrect);
     setCurrentDifficulty(newDiff);
 
-    // Log observable agent actions
     if (res.isCorrect) {
+      try {
+        confetti({ disableForReducedMotion: true,
+          particleCount: 40,
+          spread: 50,
+          origin: { y: 0.7 },
+        });
+      } catch (e) {}
+
       setLastAgentActivity([
         "✓ Evaluó respuesta con evaluate_answer(): Correcta",
         `✓ Dificultad adaptada con adapt_difficulty(): ${newDiff.toUpperCase()}`,
@@ -257,42 +254,38 @@ export function InteractivePracticeRunner({
     if (exerciseIndex + 1 < practice.exercises.length) {
       setExerciseIndex(exerciseIndex + 1);
     } else {
-      finishAllExercises();
+      finishAllExercises(historyAnswers);
     }
   };
 
-  const finishAllExercises = async () => {
+  const finishAllExercises = async (overrideHistory?: typeof historyAnswers) => {
     speech.stop();
     setPhase("results");
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
 
-    // Launch celebratory confetti
     try {
-      confetti({
-        particleCount: 90,
-        spread: 70,
+      confetti({ disableForReducedMotion: true,
+        particleCount: 100,
+        spread: 80,
         origin: { y: 0.6 },
       });
     } catch (e) {}
 
-    // AUTHENTIC CALCULATION: Score is computed strictly from real student performance!
-    const correctCount = historyAnswers.filter((a) => a.isCorrect).length;
+    const answersList = overrideHistory && overrideHistory.length > 0 ? overrideHistory : historyAnswers;
+    const correctCount = answersList.filter((a) => a.isCorrect).length;
     const totalExercises = practice.exercises.length;
     const calculatedScore = totalExercises > 0 ? Math.round((correctCount / totalExercises) * 100) : 0;
 
     setFinalCalculatedScore(calculatedScore);
     setFinalCorrectCount(correctCount);
 
-    const mastered = calculatedScore >= 60 ? [
-      "Identificación de fracciones equivalentes",
-      "Equivalencia visual de 1/2 y 2/4",
-      "Amplificación por factor 2",
-      "Comprobación por productos cruzados",
-    ] : ["Comprensión visual básica de fracciones"];
+    const mastered = practice.exercises.filter((exercise) => answersList.some((answer) => answer.exerciseId === exercise.id && answer.isCorrect)).map((exercise) => exercise.conceptTag);
+    const pending = practice.exercises.filter((exercise) => !answersList.some((answer) => answer.exerciseId === exercise.id && answer.isCorrect)).map((exercise) => exercise.conceptTag);
 
-    const pending = ["Simplificación de fracciones con factores mayores a 10"];
+    setMasteredSkills(mastered);
+    setPendingSkills(pending);
 
     await completePractice(practice.id, {
       score: calculatedScore,
@@ -300,6 +293,9 @@ export function InteractivePracticeRunner({
       totalExercises,
       mastered,
       pending,
+      totalAttempts: answersList.reduce((sum, answer) => sum + answer.attemptsUsed, 0),
+      hintsUsed: supportCounts.hints,
+      reexplanationsUsed: supportCounts.reexplanations,
     });
   };
 
@@ -310,413 +306,483 @@ export function InteractivePracticeRunner({
     onFinish();
   };
 
-  // 1. PHASE: EXPLANATION STEP-BY-STEP (MODO EXPLICACIÓN GUIADA CON EL ROBOT Y AUDIO)
-  if (phase === "explanation") {
-    const currentExpl = explanationSteps[currentStep - 1];
+  // Pedagogical guidance tailored to each interactive exercise with encouraging transitions
+  const EXERCISE_TUTOR_GUIDES = [
+    {
+      dialogue: "Compara el largo de las barras. ¿Cuál de las opciones llena exactamente el mismo espacio que 1/2?",
+      speech: "Compara el largo de las barras. ¿Cuál de las opciones llena exactamente el mismo espacio que un medio?",
+    },
+    {
+      dialogue: "¡Muy bien! Ya descubriste cómo comparar con barras. Ahora probemos con una barra de chocolate: ¿cuántos sextos equivalen al tercio de Mariana?",
+      speech: "Ya descubriste cómo comparar con barras. Ahora probemos con una barra de chocolate: toca los trozos para descubrir cuántas partes de seis equivalen a un tercio.",
+    },
+    {
+      dialogue: "Bien. Ahora subimos un poquito el reto sin dibujos: ¿por qué número multiplicamos arriba y abajo para que 2/5 sea equivalente a 4/10?",
+      speech: "Bien. Ahora subimos un poquito el reto sin dibujos: recuerda la regla de oro, observa qué factor multiplica tanto al numerador como al denominador.",
+    },
+    {
+      dialogue: "¡Excelente avance! Ahora usemos una técnica poderosa: la regla de productos cruzados. ¿3 por 8 da lo mismo que 4 por 6?",
+      speech: "Excelente avance. Ahora usemos la técnica de multiplicación cruzada: tres por ocho y cuatro por seis. Si ambos productos son iguales, demuestran la equivalencia.",
+    },
+    {
+      dialogue: "¡Último reto de la misión! En lugar de multiplicar, vamos a simplificar: ¿qué obtenemos si dividimos 6 y 9 entre 3?",
+      speech: "Último reto de la misión. En lugar de multiplicar, vamos a simplificar: dividamos entre tres arriba y abajo para encontrar la fracción más simple.",
+    },
+  ];
 
+  // Determine current robot emotional state and spoken prompt for questions phase
+  let questionEmotion: TutorEmotion = "explaining";
+  const defaultGuide = EXERCISE_TUTOR_GUIDES[exerciseIndex] || {
+    dialogue: "¡Tú puedes, Mariana! Lee la pregunta con calma o toca 'Escuchar' y te la leo en voz alta.",
+    speech: `Pregunta número ${exerciseIndex + 1}: ${currentExercise.prompt}`,
+  };
+
+  let questionDialogue = defaultGuide.dialogue;
+  let questionSpeech = `Pregunta ${exerciseIndex + 1}: ${currentExercise.prompt}. ${defaultGuide.speech}`;
+
+  const POSITIVE_PRAISES = [
+    "¡Muy bien! Notaste la relación entre las partes.",
+    "¡Exacto! Buen razonamiento.",
+    "¡Lo lograste! Excelente observación visual.",
+    "¡Correcto! Observaste el paso importante.",
+    "¡Excelente! Aplicaste la regla con precisión.",
+  ];
+
+  if (isEvaluated) {
+    if (evaluationResult?.isCorrect) {
+      questionEmotion = "success";
+      const praise = POSITIVE_PRAISES[exerciseIndex % POSITIVE_PRAISES.length];
+      questionDialogue = `${praise} 🎉 Elegiste la respuesta correcta.`;
+      questionSpeech = `${praise} ${evaluationResult?.feedback || "Has respondido correctamente."}`;
+    } else {
+      if (attemptCount === 1) {
+        questionEmotion = "hint";
+        questionDialogue = "Casi lo tienes. No pasa nada, Mariana. Observa el recurso interactivo y escucha esta pista:";
+        questionSpeech = `Casi lo tienes. No pasa nada, Mariana. Escucha esta pista: ${evaluationResult?.hint || currentExercise.hint}`;
+      } else {
+        questionEmotion = "explaining";
+        questionDialogue = "¡Casi lo logras! Yo te ayudo con otro enfoque para entenderlo:";
+        questionSpeech = `¡Casi lo logras! Yo te ayudo con otra explicación: ${evaluationResult?.guidedExample || evaluationResult?.alternativeExplanation || currentExercise.alternativeExplanation}`;
+      }
+    }
+  } else if (showManualHint) {
+    questionEmotion = "hint";
+    questionDialogue = "Aquí tienes una pista de tu Tutor para orientarte con la respuesta:";
+    questionSpeech = `Pista orientadora: ${currentExercise.hint}`;
+  }
+
+  // =========================================================================
+  // 1. FASE DE EXPLICACIÓN: DESCUBRIMIENTO GUIADO (LAYOUT 2 COLUMNAS)
+  // =========================================================================
+  if (phase === "explanation") {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-10 max-w-3xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {renderPedagogicalProgression()}
 
-        {/* Encabezado del paso */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
-              Tutor IA • Explicación guiada
-            </span>
-          </div>
-          <span className="text-xs font-bold text-blue-800 bg-blue-50 px-3 py-1 rounded-full border border-blue-200">
-            Paso {currentStep} de 3
-          </span>
-        </div>
-
-        {/* GLOBO DE DIÁLOGO DEL ROBOT CON AUDIO INTEGRADO */}
-        <div className="bg-gradient-to-r from-blue-50/90 via-white to-amber-50/50 rounded-2xl border border-blue-200 p-5 sm:p-6 shadow-xs">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
-            <TutorRobotAvatar
-              size="lg"
-              showGlow
-              priority
-              isSpeaking={speech.isSpeaking}
+        {/* CONTENEDOR 2 COLUMNAS: IZQUIERDA ACTIVIDAD, DERECHA TUTOR ROBOT */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* COLUMNA IZQUIERDA (7 cols): ZONA INTERACTIVA MANIPULABLE */}
+          <div className="lg:col-span-7 xl:col-span-8 space-y-6">
+            <InteractiveFractionDiscovery
+              onComplete={() => setPhase("questions")}
+              onTutorUpdate={handleTutorUpdate}
             />
+          </div>
 
-            <div className="space-y-3 flex-1 text-left w-full">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-amber-700">
-                  Concepto #{currentStep}: {currentExpl.title}
-                </span>
+          {/* COLUMNA DERECHA (5 cols): ROBOT OFICIAL ACOMPAÑANTE */}
+          <div className="lg:col-span-5 xl:col-span-4 bg-gradient-to-b from-blue-50/90 via-white to-amber-50/50 rounded-3xl border-2 border-blue-200/90 p-6 sm:p-8 space-y-6 shadow-sm sticky top-6 text-center">
+            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-900 font-extrabold text-xs px-3.5 py-1 rounded-full border border-blue-200">
+              <Sparkles className="w-3.5 h-3.5 text-blue-700" />
+              <span>Tu Maestro Tutor IA</span>
+            </div>
 
-                {/* Botón de Escuchar explicación con Web Speech API */}
+            {/* Robot Oficial Grande */}
+            <div className="flex justify-center py-2">
+              <TutorRobotAvatar
+                size="2xl"
+                showGlow
+                priority
+                isSpeaking={speech.isSpeaking}
+                emotion={discoveryTutorData.emotion}
+              />
+            </div>
+
+            {/* Globo de Diálogo Activo */}
+            <div className="relative bg-white border-2 border-blue-200/80 rounded-2xl p-5 shadow-xs text-left space-y-3">
+              <div className="text-sm sm:text-base font-medium text-slate-800 leading-relaxed space-y-2.5">
+                {discoveryTutorData.dialogText.split("\n\n").map((para, idx) => (
+                  <p key={idx} className={idx === 0 ? "font-bold text-slate-900 text-base sm:text-lg" : ""}>
+                    {para}
+                  </p>
+                ))}
+              </div>
+
+              {/* Estado audible del robot */}
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 pt-2 border-t border-slate-100">
+                {speech.isSpeaking ? (
+                  <span className="text-amber-800 font-extrabold flex items-center gap-1.5 animate-pulse">
+                    <Volume2 className="w-4 h-4 text-amber-600" />
+                    <span>Estoy hablando contigo...</span>
+                  </span>
+                ) : (
+                  <span>Toca escuchar para que te lo lea en voz alta:</span>
+                )}
+              </div>
+
+              {/* Botón de Escuchar Explicación */}
+              <div className="pt-1 flex justify-start">
                 <SpeechAudioButton
-                  textToSpeak={currentExpl.speechText}
-                  label="Escuchar explicación"
+                  textToSpeak={discoveryTutorData.speechText}
+                  label="Escuchar al Tutor"
                   repeatLabel="Repetir"
                   variant="amber"
                   speech={speech}
                 />
               </div>
-
-              {/* Frases cortas y claras (sin párrafos densos) */}
-              <div className="space-y-2 bg-white/80 p-4 rounded-xl border border-blue-100/80">
-                {currentExpl.dialogLines.map((line, idx) => (
-                  <p
-                    key={idx}
-                    className={`text-sm sm:text-base leading-relaxed ${
-                      idx === 0
-                        ? "font-bold text-slate-900"
-                        : idx === currentExpl.dialogLines.length - 1
-                        ? "font-extrabold text-blue-900"
-                        : "text-slate-700"
-                    }`}
-                  >
-                    {line}
-                  </p>
-                ))}
-              </div>
             </div>
           </div>
-        </div>
-
-        {/* APOYO VISUAL DOMINANTE: Barras de fracciones */}
-        <div className="space-y-3">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-500 block text-left">
-            Mira la representación en las barras:
-          </span>
-          <FractionBarVisualizer
-            fractionA={currentExpl.fractionA}
-            fractionB={currentExpl.fractionB}
-            labelA={currentExpl.labelA}
-            labelB={currentExpl.labelB}
-          />
-        </div>
-
-        {/* Tip rápido del Tutor */}
-        <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200 text-xs sm:text-sm text-amber-950 flex items-center gap-2.5 font-medium text-left">
-          <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
-          <span>{currentExpl.tip}</span>
-        </div>
-
-        {/* Botones de navegación */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <button
-            onClick={() => {
-              speech.stop();
-              setCurrentStep(Math.max(1, currentStep - 1));
-            }}
-            disabled={currentStep === 1}
-            className="text-xs font-bold px-4 py-2.5 rounded-xl text-slate-600 hover:text-slate-900 disabled:opacity-30 transition"
-          >
-            ← Anterior
-          </button>
-
-          {currentStep < 3 ? (
-            <button
-              onClick={() => {
-                speech.stop();
-                setCurrentStep(currentStep + 1);
-              }}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition flex items-center gap-2 shadow-xs"
-            >
-              <span>Siguiente explicación</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                speech.stop();
-                setPhase("questions");
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition flex items-center gap-2 shadow-xs"
-            >
-              <span>¡Entendido! Comenzar ejercicios</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
     );
   }
 
-  // 2. PHASE: QUESTIONS RUNNER (ACOMPAÑAMIENTO CON VOZ Y PISTAS ORALES DEL ROBOT)
+  // =========================================================================
+  // 2. FASE DE PREGUNTAS: PRÁCTICA ADAPTATIVA (LAYOUT 2 COLUMNAS)
+  // =========================================================================
   if (phase === "questions") {
-    const questionSpeech = `Pregunta número ${exerciseIndex + 1}: ${currentExercise.prompt}`;
-
     return (
-      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-10 max-w-3xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         {renderPedagogicalProgression()}
 
-        {/* ENCABEZADO CON PASO Y DIFICULTAD */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-          <div>
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
-              Fracciones equivalentes
-            </span>
-            <h2 className="text-xl font-black text-slate-900 mt-0.5">
-              Ejercicio {exerciseIndex + 1} de {practice.exercises.length}
-            </h2>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span
-              className={`text-xs font-bold px-2.5 py-1 rounded-md border ${
-                currentDifficulty === "easy"
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
-                  : currentDifficulty === "medium"
-                  ? "bg-amber-50 text-amber-800 border-amber-200"
-                  : "bg-purple-50 text-purple-800 border-purple-200"
-              }`}
-            >
-              Dificultad: {currentDifficulty === "easy" ? "Fácil" : currentDifficulty === "medium" ? "Media" : "Desafío"}
-            </span>
-
-            <span className="text-xs text-slate-500 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200/60 font-medium">
-              Intento {attemptCount}/3
-            </span>
-          </div>
-        </div>
-
-        {/* TARJETA DEL ROBOT ACOMPAÑANTE EN CADA PREGUNTA */}
-        <div className="bg-blue-50/70 border border-blue-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-left">
-          <div className="flex items-center gap-3">
-            <TutorRobotAvatar
-              size="sm"
-              showGlow
-              isSpeaking={speech.isSpeaking}
-            />
-            <div>
-              <span className="font-extrabold text-blue-950 text-xs block">
-                Tu Tutor IA dice:
-              </span>
-              <p className="text-xs sm:text-sm text-slate-700">
-                &ldquo;¡Tú puedes, Mariana! Lee o escucha la pregunta con calma.&rdquo;
-              </p>
-            </div>
-          </div>
-
-          <SpeechAudioButton
-            textToSpeak={questionSpeech}
-            label="Escuchar pregunta"
-            repeatLabel="Repetir"
-            variant="compact"
-            speech={speech}
-          />
-        </div>
-
-        {/* PLANTEAMIENTO DE LA PREGUNTA */}
-        <div className="space-y-4 text-left">
-          <h3 className="text-base sm:text-lg font-extrabold text-slate-900 leading-snug">
-            {currentExercise.prompt}
-          </h3>
-
-          {/* Visualizador de fracciones */}
-          {currentExercise.visualData && (
-            <FractionBarVisualizer
-              fractionA={currentExercise.visualData.fractionA}
-              fractionB={currentExercise.visualData.fractionB}
-              labelA={currentExercise.visualData.labelA}
-              labelB={currentExercise.visualData.labelB}
-            />
-          )}
-
-          {/* Opciones de respuesta */}
-          <div className="space-y-2.5 pt-1">
-            {currentExercise.options.map((option, idx) => {
-              const isSelected = selectedOption === option;
-              let optionStyle = "bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100/80";
-
-              if (isEvaluated) {
-                if (option === currentExercise.correctAnswer) {
-                  optionStyle = "bg-emerald-50 border-emerald-500 text-emerald-950 font-bold ring-2 ring-emerald-400";
-                } else if (isSelected && !evaluationResult?.isCorrect) {
-                  optionStyle = "bg-rose-50 border-rose-300 text-rose-900 line-through";
-                }
-              } else if (isSelected) {
-                optionStyle = "bg-blue-50 border-blue-600 text-blue-950 font-bold ring-2 ring-blue-500";
-              }
-
-              return (
-                <button
-                  key={idx}
-                  onClick={() => !isEvaluated && setSelectedOption(option)}
-                  disabled={isEvaluated}
-                  className={`w-full text-left p-4 rounded-2xl border text-sm transition flex items-center justify-between ${optionStyle}`}
-                >
-                  <div className="flex items-center gap-3.5">
-                    <span className="w-7 h-7 rounded-xl bg-white border border-slate-300 text-slate-700 flex items-center justify-center font-bold text-xs shrink-0 shadow-xs">
-                      {String.fromCharCode(65 + idx)}
-                    </span>
-                    <span className="font-semibold text-sm">{option}</span>
-                  </div>
-                  {isEvaluated && option === currentExercise.correctAnswer && (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* FEEDBACK AMIGABLE CUANDO EL ALUMNO FALLA O ACIERTA (CON AUDIO) */}
-        {isEvaluated && (
-          <div
-            className={`p-5 rounded-2xl border text-sm space-y-3 text-left ${
-              evaluationResult?.isCorrect
-                ? "bg-emerald-50 border-emerald-300 text-emerald-950"
-                : "bg-amber-50 border-amber-300 text-amber-950"
-            }`}
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div className="flex items-center gap-2 font-bold text-sm">
-                <TutorRobotAvatar
-                  size="xs"
-                  isSpeaking={speech.isSpeaking}
-                />
-                <span>
-                  {evaluationResult?.isCorrect
-                    ? "¡Muy bien, Mariana! 🎉 ¡Excelente trabajo!"
-                    : attemptCount === 1
-                    ? "Casi lo tienes. No pasa nada, Mariana."
-                    : "¡Casi lo logras! Yo te ayudo con otra explicación."}
+        {/* CONTENEDOR 2 COLUMNAS: IZQUIERDA PREGUNTA Y OPCIONES, DERECHA ROBOT */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* COLUMNA IZQUIERDA (7 cols): PREGUNTA, BARRAS Y TARJETAS GRANDES */}
+          <div className="lg:col-span-7 xl:col-span-8 bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-8 space-y-6 text-left">
+            {/* Encabezado del Ejercicio */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              <div>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                  Fracciones equivalentes
                 </span>
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 mt-0.5">
+                  Ejercicio {exerciseIndex + 1} de {practice.exercises.length}
+                </h2>
               </div>
 
-              {/* Botón para escuchar la pista o feedback en voz alta */}
-              <SpeechAudioButton
-                textToSpeak={
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-xs font-extrabold px-3 py-1 rounded-lg border ${
+                    currentDifficulty === "easy"
+                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                      : currentDifficulty === "medium"
+                      ? "bg-amber-50 text-amber-800 border-amber-200"
+                      : "bg-purple-50 text-purple-800 border-purple-200"
+                  }`}
+                >
+                  {currentDifficulty === "easy" ? "Fácil" : currentDifficulty === "medium" ? "Media" : "Desafío"}
+                </span>
+
+                <span className="text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200 font-bold">
+                  Intento {attemptCount}
+                </span>
+              </div>
+            </div>
+
+            {/* Planteamiento de la pregunta en tipografía grande */}
+            <div className="space-y-4">
+              <h3 className="text-lg sm:text-xl font-black text-slate-900 leading-snug">
+                {currentExercise.prompt}
+              </h3>
+
+              {/* RENDERIZADO DIDÁCTICO SEGÚN EL TIPO DE REACTIVO */}
+              {exerciseIndex === 0 && (
+                <>
+                  {currentExercise.visualData && (
+                    <div className="pt-1">
+                      <FractionBarVisualizer
+                        showEquivalence={Boolean(evaluationResult?.isCorrect)}
+                        fractionA={currentExercise.visualData.fractionA}
+                        fractionB={currentExercise.visualData.fractionB}
+                        labelA={currentExercise.visualData.labelA}
+                        labelB={currentExercise.visualData.labelB}
+                      />
+                    </div>
+                  )}
+                  <FractionCardInteractive
+                    options={currentExercise.options}
+                    selectedOption={selectedOption}
+                    onSelect={(opt) => setSelectedOption(opt)}
+                    isEvaluated={isEvaluated}
+                    correctAnswer={currentExercise.correctAnswer}
+                    evaluationResult={evaluationResult}
+                  />
+                </>
+              )}
+
+              {exerciseIndex === 1 && (
+                <ChocolateBarInteractive
+                  options={currentExercise.options}
+                  selectedOption={selectedOption}
+                  onSelect={(opt) => setSelectedOption(opt)}
+                  isEvaluated={isEvaluated}
+                  correctAnswer={currentExercise.correctAnswer}
+                  evaluationResult={evaluationResult}
+                />
+              )}
+
+              {exerciseIndex === 2 && (
+                <RelationalComparisonInteractive
+                  options={currentExercise.options}
+                  selectedOption={selectedOption}
+                  onSelect={(opt) => setSelectedOption(opt)}
+                  isEvaluated={isEvaluated}
+                  correctAnswer={currentExercise.correctAnswer}
+                  evaluationResult={evaluationResult}
+                />
+              )}
+
+              {exerciseIndex === 3 && (
+                <CrossProductInteractive
+                  options={currentExercise.options}
+                  selectedOption={selectedOption}
+                  onSelect={(opt) => setSelectedOption(opt)}
+                  isEvaluated={isEvaluated}
+                  correctAnswer={currentExercise.correctAnswer}
+                  evaluationResult={evaluationResult}
+                />
+              )}
+
+              {exerciseIndex === 4 && (
+                <SimplificationInteractive
+                  options={currentExercise.options}
+                  selectedOption={selectedOption}
+                  onSelect={(opt) => setSelectedOption(opt)}
+                  isEvaluated={isEvaluated}
+                  correctAnswer={currentExercise.correctAnswer}
+                  evaluationResult={evaluationResult}
+                />
+              )}
+
+              {exerciseIndex > 4 && (
+                <div className="space-y-3 pt-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {currentExercise.options.map((option, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => !isEvaluated && setSelectedOption(option)}
+                        disabled={isEvaluated}
+                        className={`w-full text-left p-4 rounded-2xl border-2 transition-all duration-200 flex items-center justify-between select-none ${
+                          selectedOption === option
+                            ? "bg-blue-50 border-blue-600 text-blue-950 font-black ring-4 ring-blue-300"
+                            : "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-800"
+                        }`}
+                      >
+                        <span className="font-extrabold text-base">{option}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* FEEDBACK AMIGABLE INMEDIATO (SIN TACHAS AGRESIVAS) */}
+            {isEvaluated && (
+              <div
+                className={`p-5 rounded-2xl border-2 text-sm space-y-2.5 transition-all ${
                   evaluationResult?.isCorrect
-                    ? `¡Muy bien Mariana! ${evaluationResult?.feedback}`
-                    : attemptCount === 1
-                    ? `Casi lo tienes. Escucha esta pista: ${evaluationResult?.hint || currentExercise.hint}`
-                    : `Casi lo logras. Yo te ayudo: ${evaluationResult?.alternativeExplanation || currentExercise.alternativeExplanation}`
-                }
-                label={evaluationResult?.isCorrect ? "Escuchar" : "Escuchar pista"}
-                repeatLabel="Repetir"
-                variant="amber"
-                speech={speech}
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-950 shadow-xs"
+                    : "bg-amber-50 border-amber-300 text-amber-950 shadow-xs"
+                }`}
+              >
+                <div className="flex items-center gap-2 font-black text-base">
+                  <TutorRobotAvatar size="xs" emotion={evaluationResult?.isCorrect ? "success" : "hint"} />
+                  <span>
+                    {evaluationResult?.isCorrect
+                      ? "¡Muy bien! 🎉 ¡Lo descubriste!"
+                      : attemptCount === 1
+                      ? "Casi lo tienes. Mira la pista que preparé:"
+                      : "¡Casi lo logras! Yo te ayudo con otro enfoque:"}
+                  </span>
+                </div>
+
+                <p className="text-sm font-medium leading-relaxed bg-white/80 p-3.5 rounded-xl border border-slate-200/60">
+                  {!evaluationResult?.isCorrect
+                    ? attemptCount === 1
+                      ? evaluationResult?.hint || "Observa qué ocurre cuando multiplicamos numerador y denominador por el mismo número."
+                      : evaluationResult?.guidedExample || evaluationResult?.alternativeExplanation || "Piensa en partes iguales de una pizza: al duplicar las rebanadas, cada una es la mitad de grande."
+                    : evaluationResult?.feedback}
+                </p>
+              </div>
+            )}
+
+            {/* Pista manual orientadora */}
+            {showManualHint && !isEvaluated && (
+              <div className="p-4 bg-amber-50/90 rounded-2xl border-2 border-amber-200 text-xs sm:text-sm text-amber-950 space-y-1.5">
+                <div className="flex items-center gap-2 font-black text-amber-900">
+                  <Lightbulb className="w-4 h-4 text-amber-600" />
+                  <span>Pista orientadora de tu Tutor:</span>
+                </div>
+                <p className="bg-white/80 p-3 rounded-xl border border-amber-200 font-medium">
+                  {currentExercise.hint}
+                </p>
+              </div>
+            )}
+
+            {/* PANEL INFERIOR Y ACCIONES */}
+            <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <button
+                  type="button"
+                  onClick={() => {
+                    speech.stop();
+                    setPhase("explanation");
+                  }}
+                  className="font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2"
+                >
+                  ← Repasar dibujo guiado
+                </button>
+
+                {!isEvaluated && !showManualHint && (
+                  <>
+                    <span className="text-slate-300">•</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowManualHint(true);
+                        setSupportCounts((prev) => ({ ...prev, hints: prev.hints + 1 }));
+                      }}
+                      className="font-bold text-amber-700 hover:text-amber-900 underline underline-offset-2 flex items-center gap-1"
+                    >
+                      <Lightbulb className="w-3.5 h-3.5" />
+                      <span>Dame una pista</span>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex items-center gap-3">
+                {!isEvaluated ? (
+                  <button
+                    onClick={handleCheckAnswer}
+                    disabled={!selectedOption}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black text-sm px-7 py-3.5 rounded-2xl transition shadow-xs"
+                  >
+                    Comprobar respuesta
+                  </button>
+                ) : !evaluationResult?.isCorrect && evaluationResult?.allowRetry ? (
+                  <button
+                    onClick={handleNextAttempt}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-sm px-6 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-xs"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    <span>
+                      {attemptCount === 1
+                        ? "Intentar de nuevo con la pista"
+                        : "Intentar de nuevo con nueva explicación"}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleNextExercise}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-7 py-3.5 rounded-2xl transition flex items-center gap-2 shadow-xs"
+                  >
+                    <span>
+                      {exerciseIndex + 1 < practice.exercises.length
+                        ? "Siguiente ejercicio"
+                        : "Finalizar y ver progreso"}
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-amber-300" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* COLUMNA DERECHA (5 cols): ROBOT TUTOR ACOMPAÑANTE */}
+          <div className="lg:col-span-5 xl:col-span-4 bg-gradient-to-b from-blue-50/90 via-white to-amber-50/50 rounded-3xl border-2 border-blue-200/90 p-6 sm:p-8 space-y-6 shadow-sm sticky top-6 text-center">
+            <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-900 font-extrabold text-xs px-3.5 py-1 rounded-full border border-blue-200">
+              <Sparkles className="w-3.5 h-3.5 text-blue-700" />
+              <span>Tu Maestro Tutor IA</span>
+            </div>
+
+            {/* Robot Oficial Grande con expresión emocional */}
+            <div className="flex justify-center py-2">
+              <TutorRobotAvatar
+                size="2xl"
+                showGlow
+                priority
+                isSpeaking={speech.isSpeaking}
+                emotion={questionEmotion}
               />
             </div>
 
-            <p className="leading-relaxed text-sm bg-white/70 p-3.5 rounded-xl border border-amber-200/60">
-              {!evaluationResult?.isCorrect
-                ? attemptCount === 1
-                  ? evaluationResult?.hint || "Observa qué ocurre cuando multiplicamos numerador y denominador por el mismo número."
-                  : evaluationResult?.alternativeExplanation || "Piensa en partes iguales de una pizza: al duplicar las rebanadas, cada una es la mitad de grande."
-                : evaluationResult?.feedback}
-            </p>
-          </div>
-        )}
+            {/* Globo de Diálogo del Robot */}
+            <div className="relative bg-white border-2 border-blue-200/80 rounded-2xl p-5 shadow-xs text-left space-y-3">
+              <p className="text-base sm:text-lg font-bold text-slate-900 leading-snug">
+                &ldquo;{questionDialogue}&rdquo;
+              </p>
 
-        {/* Pista manual solicitada con opción de audio */}
-        {showManualHint && !isEvaluated && (
-          <div className="p-4 bg-blue-50 rounded-2xl border border-blue-200 text-xs sm:text-sm text-blue-900 space-y-2 text-left">
-            <div className="flex items-center justify-between">
-              <span className="font-bold flex items-center gap-1.5 text-blue-800">
-                <Sparkles className="w-3.5 h-3.5" />
-                Pista orientadora de tu Tutor:
-              </span>
-              <SpeechAudioButton
-                textToSpeak={`Pista de tu Tutor: ${currentExercise.hint}`}
-                label="Escuchar pista"
-                variant="compact"
-                speech={speech}
-              />
+              {/* Estado audible del robot */}
+              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 pt-2 border-t border-slate-100">
+                {speech.isSpeaking ? (
+                  <span className="text-amber-800 font-extrabold flex items-center gap-1.5 animate-pulse">
+                    <Volume2 className="w-4 h-4 text-amber-600" />
+                    <span>Estoy hablando contigo...</span>
+                  </span>
+                ) : (
+                  <span>Toca escuchar para que te lo lea en voz alta:</span>
+                )}
+              </div>
+
+              {/* Botón de Escuchar Pregunta / Pista */}
+              <div className="pt-1 flex justify-start">
+                <SpeechAudioButton
+                  textToSpeak={questionSpeech}
+                  label={isEvaluated && !evaluationResult?.isCorrect ? "Escuchar pista" : "Escuchar al Tutor"}
+                  repeatLabel="Repetir"
+                  variant="amber"
+                  speech={speech}
+                />
+              </div>
             </div>
-            <p className="text-slate-700 leading-relaxed bg-white/70 p-2.5 rounded-xl">
-              {currentExercise.hint}
-            </p>
-          </div>
-        )}
-
-        {/* PANEL INFERIOR Y ACCIONES */}
-        <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          {/* Apoyo rápido */}
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <TutorRobotAvatar size="xs" />
-            <span>¿Tienes dudas?</span>
-            {!isEvaluated && !showManualHint && (
-              <button
-                type="button"
-                onClick={() => setShowManualHint(true)}
-                className="text-xs text-blue-600 hover:text-blue-800 font-bold underline underline-offset-2 flex items-center gap-1"
-              >
-                <span>Dame una pista</span>
-              </button>
-            )}
-          </div>
-
-          {/* Botones de acción */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {
-                speech.stop();
-                setPhase("explanation");
-              }}
-              className="text-xs text-slate-500 hover:text-slate-800 font-medium"
-            >
-              ← Repasar explicación
-            </button>
-
-            {!isEvaluated ? (
-              <button
-                onClick={handleCheckAnswer}
-                disabled={!selectedOption}
-                className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition shadow-xs"
-              >
-                Comprobar respuesta
-              </button>
-            ) : !evaluationResult?.isCorrect && evaluationResult?.allowRetry ? (
-              <button
-                onClick={handleNextAttempt}
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs sm:text-sm px-5 py-3 rounded-xl transition flex items-center gap-2 shadow-xs"
-              >
-                <RotateCcw className="w-3.5 h-3.5" />
-                <span>
-                  {attemptCount === 1
-                    ? "Intentar de nuevo con la pista"
-                    : "Intentar de nuevo con nueva explicación"}
-                </span>
-              </button>
-            ) : (
-              <button
-                onClick={handleNextExercise}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm px-6 py-3 rounded-xl transition flex items-center gap-2 shadow-xs"
-              >
-                <span>
-                  {exerciseIndex + 1 < practice.exercises.length
-                    ? "Siguiente ejercicio"
-                    : "Finalizar y ver progreso"}
-                </span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            )}
           </div>
         </div>
       </div>
     );
   }
 
-  // 3. PHASE: RESULTADO ALUMNO VISUAL Y ELEGANTE (CON ROBOT CELEBRANDO Y AUDIO)
+  // =========================================================================
+  // 3. FASE DE RESULTADOS: CELEBRACIÓN CON ROBOT GRANDE (ETAPA 6: EVIDENCIA)
+  // =========================================================================
   const initialScore = 52;
   const delta = finalCalculatedScore - initialScore;
 
-  const celebrationSpeech = `¡Lo lograste Mariana! Muchas felicidades. Obtuviste una calificación de ${finalCalculatedScore} por ciento, subiendo ${delta} puntos desde tu inicio. Aprendiste a comparar fracciones equivalentes de forma visual. ¡Estoy muy orgulloso de ti! Seguiremos practicando juntos.`;
+  const totalAttemptsUsed = historyAnswers.reduce((sum, a) => sum + (a.attemptsUsed || 1), 0);
+  const totalHintsUsed = supportCounts.hints;
+
+  const celebrationSpeech = `¡Excelente trabajo, Mariana! Has completado tu práctica con ${finalCalculatedScore} por ciento${
+    delta > 0 ? `, mejorando ${delta} puntos desde tu diagnóstico inicial` : ""
+  }. Hoy aprendiste fracciones equivalentes, comparación visual y amplificación. ¡Estoy muy orgulloso de ti! Seguiremos practicando juntos.`;
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200/90 shadow-sm p-6 sm:p-12 max-w-2xl mx-auto space-y-7 text-center">
+    <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-md p-8 sm:p-12 max-w-3xl mx-auto space-y-8 text-center">
       {renderPedagogicalProgression()}
 
-      {/* Avatar del robot celebrando con halo y audio */}
-      <div className="flex flex-col items-center justify-center gap-3 pt-2">
+      {/* Robot Oficial Grande Celebrando con Aura Dorada */}
+      <div className="flex flex-col items-center justify-center gap-4 pt-2">
         <TutorRobotAvatar
-          size="xl"
+          size="2xl"
           showGlow
           priority
           isSpeaking={speech.isSpeaking}
+          emotion="celebrating"
         />
 
         <SpeechAudioButton
           textToSpeak={celebrationSpeech}
-          label="Escuchar mensaje del Tutor"
+          label="Escuchar a mi Tutor"
           repeatLabel="Repetir"
           variant="amber"
           speech={speech}
@@ -724,82 +790,96 @@ export function InteractivePracticeRunner({
       </div>
 
       <div className="space-y-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+        <span className="text-xs font-black uppercase tracking-wider text-emerald-800 bg-emerald-100 px-4 py-1.5 rounded-full border border-emerald-300">
           ¡Práctica completada con éxito!
         </span>
-        <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-          ¡Lo lograste, Mariana! 🎉
+        <h2 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
+          ¡Excelente trabajo, Mariana! 🎉
         </h2>
-        <p className="text-sm text-slate-600 max-w-md mx-auto">
-          Aprendiste a comparar fracciones equivalentes. ¡Estoy muy orgulloso de ti! Seguiremos practicando juntos.
+        <p className="text-base text-slate-600 max-w-lg mx-auto font-medium">
+          Hoy descubriste cómo funcionan las fracciones equivalentes paso a paso con tu Tutor IA.
         </p>
       </div>
 
-      {/* Puntuación destacada limpia */}
-      <div className="bg-slate-50 rounded-3xl border border-slate-200/80 p-6 space-y-2">
-        <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+      {/* Puntuación Auténtica Calculada */}
+      <div className="bg-gradient-to-r from-emerald-50 via-white to-blue-50 rounded-3xl border-2 border-emerald-200 p-6 space-y-2">
+        <span className="text-xs font-black uppercase tracking-wider text-slate-500">
           Calificación Obtenida
         </span>
-        <div className="text-5xl font-black text-emerald-600 font-mono">
+        <div className="text-5xl sm:text-6xl font-black text-emerald-600 font-mono">
           {finalCalculatedScore}%
         </div>
-        <p className="text-sm font-semibold text-slate-700">
-          {finalCorrectCount} de {practice.exercises.length} correctos
+        <p className="text-base font-extrabold text-slate-800">
+          {finalCorrectCount} de {practice.exercises.length} reactivos correctos
         </p>
-        <div className="text-xs font-bold text-emerald-700 bg-emerald-50 py-1 px-3 rounded-full inline-block border border-emerald-200 mt-1">
-          +{delta >= 0 ? delta : 0} puntos desde tu diagnóstico inicial (52% → {finalCalculatedScore}%)
+        <div className="text-xs sm:text-sm font-extrabold text-emerald-800 bg-emerald-100 py-1.5 px-4 rounded-full inline-block border border-emerald-300 mt-1">
+          {delta >= 0
+            ? `+${delta} puntos ganados desde tu diagnóstico (${initialScore}% → ${finalCalculatedScore}%)`
+            : `Puntaje obtenido: ${finalCalculatedScore}%`}
         </div>
       </div>
 
-      {/* Tarjetas Aprendiste / Seguiremos practicando */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left text-xs">
-        <div className="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200 space-y-2.5">
-          <span className="font-bold text-emerald-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            Aprendiste hoy:
+      {/* Resumen pedagógico de andamiaje e intentos */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Tema</span>
+          <span className="text-xs font-black text-slate-900">Fracciones</span>
+        </div>
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Aciertos</span>
+          <span className="text-xs font-black text-blue-700">{finalCorrectCount} / {practice.exercises.length}</span>
+        </div>
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Intentos</span>
+          <span className="text-xs font-black text-slate-800">{totalAttemptsUsed || 5} intentos</span>
+        </div>
+        <div className="bg-slate-50 p-3.5 rounded-2xl border border-slate-200">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Pistas usadas</span>
+          <span className="text-xs font-black text-amber-700">{totalHintsUsed} pistas</span>
+        </div>
+      </div>
+
+      {/* Tarjetas Visuales: Aprendiste Hoy vs Seguiremos Practicando */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+        <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-200 space-y-3">
+          <span className="font-black text-emerald-950 text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+            Hoy aprendiste:
           </span>
-          <ul className="space-y-1.5 text-slate-700 text-xs font-medium">
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold">✓</span>
-              <span>Identificar fracciones equivalentes</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold">✓</span>
-              <span>Comparar barras visuales</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-emerald-600 font-bold">✓</span>
-              <span>Amplificar fracciones por 2</span>
-            </li>
+          <ul className="space-y-2 text-slate-800 text-xs sm:text-sm font-bold">
+            {masteredSkills.map((skill, idx) => (
+              <li key={idx} className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs">✓</span>
+                <span>{skill}</span>
+              </li>
+            ))}
           </ul>
         </div>
 
-        <div className="bg-amber-50/60 p-5 rounded-2xl border border-amber-200 space-y-2.5">
-          <span className="font-bold text-amber-900 text-xs uppercase tracking-wider flex items-center gap-1.5">
-            <HelpCircle className="w-4 h-4 text-amber-600" />
-            Seguiremos practicando:
+        <div className="bg-amber-50/70 p-5 rounded-2xl border-2 border-amber-200 space-y-3">
+          <span className="font-black text-amber-950 text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-amber-600" />
+            Esto lo practicaremos juntos después:
           </span>
-          <ul className="space-y-1.5 text-slate-700 text-xs font-medium">
-            <li className="flex items-center gap-2">
-              <span className="text-amber-600 font-bold">⏳</span>
-              <span>Simplificación con números mayores</span>
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-amber-600 font-bold">⏳</span>
-              <span>Divisores comunes</span>
-            </li>
+          <ul className="space-y-2 text-slate-800 text-xs sm:text-sm font-bold">
+            {pendingSkills.map((skill, idx) => (
+              <li key={idx} className="flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs">⏳</span>
+                <span>{skill}</span>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
 
-      {/* Botones de acción */}
+      {/* Botones de Navegación Final */}
       <div className="space-y-3 pt-2">
         <button
           onClick={handleReturnToTeacher}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm py-4 px-6 rounded-2xl transition shadow-xs flex items-center justify-center gap-2"
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black text-base py-4 px-6 rounded-2xl transition shadow-sm flex items-center justify-center gap-2"
         >
           <span>Guardar evidencia y regresar al Panel del Profesor</span>
-          <ArrowRight className="w-4 h-4" />
+          <ArrowRight className="w-5 h-5 text-amber-300" />
         </button>
 
         <button

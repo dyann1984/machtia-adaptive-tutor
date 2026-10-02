@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 
 export function TeacherProgressView() {
-  const { students, handleQuickAction } = useTutor();
+  const { students, evidences, handleQuickAction } = useTutor();
 
   const mariana = students.find((s) => s.id === "mariana-lopez");
   const marianaCurrent = mariana?.topicPerformances["fracciones-equivalentes"] ?? 52;
-  const initial = 52;
+  const evidence = [...evidences].reverse().find((item) => item.studentId === "mariana-lopez" && item.topicName === "Fracciones equivalentes");
+  const initial = evidence?.initialScore ?? 52;
   const delta = marianaCurrent - initial;
   const isImproved = delta > 0;
 
@@ -58,7 +59,7 @@ export function TeacherProgressView() {
               ML
             </div>
             <div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <h2 className="text-2xl font-black text-slate-900 tracking-tight">
                   Mariana López
                 </h2>
@@ -96,7 +97,7 @@ export function TeacherProgressView() {
           <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200/80 text-center space-y-2">
             <div className="text-slate-400 font-bold text-2xl">→</div>
             <div className="text-3xl font-black text-emerald-600 font-mono">
-              +{delta >= 0 ? delta : 0} pts
+              {delta >= 0 ? "+" : ""}{delta} pts
             </div>
             <span className="text-xs font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-0.5 rounded-full inline-block">
               Puntos porcentuales
@@ -125,24 +126,7 @@ export function TeacherProgressView() {
               <CheckCircle2 className="w-5 h-5 text-emerald-600" />
               <span>Conceptos consolidados</span>
             </div>
-            <ul className="space-y-2 text-sm text-slate-700 font-medium">
-              <li className="flex items-center gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
-                <span>Identificación de fracciones equivalentes</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
-                <span>Equivalencia visual de 1/2 y 2/4</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
-                <span>Amplificación por factor 2</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-emerald-600 font-bold">✓</span>
-                <span>Comprobación por productos cruzados</span>
-              </li>
-            </ul>
+            <ul className="space-y-2 text-sm text-slate-700 font-medium">{(evidence?.masteredConcepts ?? []).map((concept) => <li key={concept}>✓ {concept}</li>)}</ul>
           </div>
 
           {/* Conceptos por reforzar */}
@@ -151,16 +135,7 @@ export function TeacherProgressView() {
               <Clock className="w-5 h-5 text-amber-600" />
               <span>Conceptos por reforzar</span>
             </div>
-            <ul className="space-y-2 text-sm text-slate-700 font-medium">
-              <li className="flex items-center gap-2">
-                <span className="text-amber-600 font-bold">⏳</span>
-                <span>Simplificación de fracciones</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-amber-600 font-bold">⏳</span>
-                <span>Factores comunes mayores a 10</span>
-              </li>
-            </ul>
+            <ul className="space-y-2 text-sm text-slate-700 font-medium">{(evidence?.pendingConcepts ?? []).map((concept) => <li key={concept}>⏳ {concept}</li>)}</ul>
           </div>
         </div>
 
@@ -172,7 +147,7 @@ export function TeacherProgressView() {
               Observación del Tutor IA
             </span>
             <p className="text-sm text-slate-700 leading-relaxed">
-              Mariana logró superar la trampa conceptual del denominador gracias al andamiaje con barras visuales y las pistas graduales. Se recomienda mantener una práctica quincenal de simplificación.
+              {evidence?.tutorObservations ?? "Completa una práctica para registrar el recorrido y sus resultados."}
             </p>
           </div>
         </div>

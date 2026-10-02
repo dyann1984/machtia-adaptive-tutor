@@ -55,15 +55,15 @@ export function stopMcpServer(server?: http.Server): Promise<void> {
   });
 }
 
-// Auto-run if executed directly
-if (process.env.NODE_ENV !== "test" && typeof require !== "undefined" && require.main === module) {
-  const port = parseInt(process.env.PORT || process.env.MCP_PORT || String(DEFAULT_MCP_PORT), 10);
-  const host = process.env.MCP_HOST || "0.0.0.0";
-  startMcpServer(port, host).catch((err) => {
-    console.error("Failed to start MCP server:", err);
-    process.exit(1);
-  });
-} else if (process.argv[1] && (process.argv[1].includes("index.ts") || process.argv[1].includes("index.js"))) {
+// Auto-run only if executed directly as entrypoint
+const isImported = Boolean(
+  process.env.VITEST ||
+  process.env.NODE_ENV === "test" ||
+  process.env.npm_lifecycle_event?.startsWith("test") ||
+  process.argv[1]?.includes("verify-")
+);
+
+if (!isImported) {
   const port = parseInt(process.env.PORT || process.env.MCP_PORT || String(DEFAULT_MCP_PORT), 10);
   const host = process.env.MCP_HOST || "0.0.0.0";
   startMcpServer(port, host).catch((err) => {
