@@ -4,6 +4,9 @@ import type { Exercise, SupportEvent, SupportKind } from "@/types";
 import { supportDialogue, SUPPORT_LABELS } from "@/lib/learning/support";
 import { SpeechAudioButton } from "./SpeechAudioButton";
 import { useSpeech } from "@/lib/hooks/use-speech";
+import { mcpClient } from "@/lib/mcp/client";
+import { useTutor } from "@/lib/context/tutor-context";
+import { activePracticeForExercise } from "@/lib/learning/active-practice";
 
 export function AlternativeRepresentation({ exercise, representation }: { exercise: Exercise; representation: string }) {
   const fraction = exercise.prompt.match(/(\d+)\/(\d+)/);
@@ -27,20 +30,28 @@ export function SupportCoach({ exercise, onSupport, initialSupport = "independen
   onDialogue?: (text: string) => void;
 }) {
   const speech = useSpeech();
+  const { practices, selectedStudentId, currentPracticingId } = useTutor();
+  const [serverError, setServerError] = useState("");
   const [hintLevel, setHintLevel] = useState(initialSupport === "visual" ? 2 : initialSupport === "verbal" ? 1 : 0);
   const [kind, setKind] = useState<SupportKind | null>(initialSupport === "visual" ? "visual_hint" : initialSupport === "verbal" ? "verbal_hint" : null);
   const [representation, setRepresentation] = useState("pizza");
   const [guideStep, setGuideStep] = useState(0);
   const steps = ["Lee la pregunta y señala los datos que tienes.", "Representa esos datos y compara una opción cada vez.", "Explica por qué tu elección tiene sentido y compruébala."];
   const text = kind === "guided_steps" ? `Paso ${guideStep + 1}. ${steps[guideStep]}` : kind ? supportDialogue(exercise, kind) : "Puedes intentar por tu cuenta o pedir apoyo. Tú eliges la respuesta.";
-  function request(next: SupportKind) {
+  async function request(next: SupportKind) {
     speech.stop();
+    const practice = activePracticeForExercise(practices, selectedStudentId, currentPracticingId, exercise.id);
+    if (practice) {
+      try { await mcpClient.selectRole("student", practice.studentId); await mcpClient.demoApi("/api/support", { practiceId: practice.id, exerciseId: exercise.id, kind: next }); setServerError(""); }
+      catch (error) { setServerError(String(error)); return; }
+    }
     const nextRepresentation = next === "alternative_representation" ? (kind === next && representation === "pizza" ? "bloques" : "pizza") : representation;
     setRepresentation(nextRepresentation); setKind(next); setGuideStep(0);
     onSupport({ exerciseId: exercise.id, kind: next, representation: next === "alternative_representation" ? (exercise.prompt.match(/\d+\/\d+/) ? nextRepresentation : "mapa de ideas") : undefined, source: "requested", timestamp: new Date().toISOString() });
     onDialogue?.(next === "guided_steps" ? `Paso 1. ${steps[0]}` : supportDialogue(exercise, next));
   }
   return <section className="support-coach rounded-2xl border-2 border-amber-200 bg-amber-50/60 p-4 space-y-3" aria-label="Apoyos del Tutor">
+    {serverError && <p role="alert">{serverError}</p>}
     <div className="flex flex-wrap gap-2">
       <button className="support-button" onClick={() => { const next = hintLevel === 0 ? 1 : 2; setHintLevel(next); request(next === 1 ? "verbal_hint" : "visual_hint"); }}>💡 {hintLevel === 0 ? "Necesito una pista" : "Necesito otra pista"}</button>
       <button className="support-button" onClick={() => request("alternative_representation")}>🔄 Explícamelo de otra forma</button>

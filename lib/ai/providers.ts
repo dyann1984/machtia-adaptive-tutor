@@ -116,7 +116,7 @@ export class AmazonProvider implements AIProvider {
   }
 
   isAvailable(): boolean {
-    return Boolean(this.bedrockApiKey || (this.accessKeyId && this.secretAccessKey));
+    return false;
   }
 
   async decideToolCall(userQuery: string, context?: Record<string, any>) {
@@ -130,11 +130,11 @@ export class AmazonProvider implements AIProvider {
 
   async generateResponse(prompt: string, context?: Record<string, any>): Promise<AIProviderResponse> {
     if (!this.isAvailable()) {
-      return new MockAIProvider().generateResponse(prompt, context);
+      throw new Error("Este proveedor externo no está implementado. Usa el modo demo determinista.");
     }
     return {
       content: `[Amazon Bedrock (${this.modelId})]: ${prompt}`,
-      thought: `Inferencia ejecutada en región AWS ${this.region} mediante Bedrock Agent Runtime.`,
+      thought: `Adaptador Bedrock no implementado; no se ejecutó inferencia.`,
     };
   }
 }
@@ -156,7 +156,7 @@ export class NebiusAIProvider implements AIProvider {
   }
 
   isAvailable(): boolean {
-    return Boolean(this.apiKey);
+    return false;
   }
 
   async decideToolCall(userQuery: string, context?: Record<string, any>) {
@@ -172,7 +172,7 @@ export class NebiusAIProvider implements AIProvider {
     }
     return {
       content: `[Nebius AI Studio Response]: ${prompt}`,
-      thought: `Inferencia ejecutada en clúster NVIDIA H100 a través de Nebius AI.`,
+      thought: `Adaptador Nebius no implementado; no se ejecutó inferencia.`,
     };
   }
 }

@@ -18,6 +18,7 @@ import { StudentProgressView } from "@/features/student/StudentProgressView";
 
 export default function Home() {
   const {
+    dataError,
     role,
     setRole,
     activeTeacherTab,
@@ -31,6 +32,8 @@ export default function Home() {
     setShowLanding,
     resetDemo,
   } = useTutor();
+
+  if (dataError) return <section role="alert" className="theme-card p-6 max-w-3xl mx-auto space-y-4"><h1 className="text-xl font-bold">No se pudieron recuperar los datos de la sesión</h1><p>El servidor debe estar disponible para consultar prácticas y guardar evidencia. Una sesión demo expirada puede reiniciarse.</p><p className="text-sm">{dataError}</p><button className="theme-primary" onClick={resetDemo}>Reiniciar sesión demo</button></section>;
 
   if (showLanding) {
     return (

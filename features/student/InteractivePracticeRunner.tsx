@@ -64,6 +64,7 @@ export function InteractivePracticeRunner({
   const [attemptCount, setAttemptCount] = useState(1);
   const [isEvaluated, setIsEvaluated] = useState(false);
   const [evaluationResult, setEvaluationResult] = useState<any>(null);
+  const [serverError, setServerError] = useState("");
   const [currentDifficulty, setCurrentDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [, setLastAgentActivity] = useState<string[]>([]);
   const [showManualHint, setShowManualHint] = useState(false);
@@ -185,7 +186,9 @@ export function InteractivePracticeRunner({
   const handleCheckAnswer = async () => {
     if (!selectedOption) return;
     speech.stop();
-    const res = await submitAnswer(currentExercise.id, selectedOption, attemptCount);
+    let res;
+    try { res = await submitAnswer(currentExercise.id, selectedOption, attemptCount);setServerError(""); }
+    catch (error) { setServerError(String(error));return; }
     setIsEvaluated(true);
     setEvaluationResult(res);
     if (!res.isCorrect) {
@@ -197,7 +200,7 @@ export function InteractivePracticeRunner({
     }
 
     // Adapt difficulty dynamically based on answer
-    const newDiff = await adapt_difficulty(currentDifficulty, res.isCorrect);
+    const newDiff = res.nextDifficulty;
     setCurrentDifficulty(newDiff);
 
     if (res.isCorrect) {
@@ -211,7 +214,7 @@ export function InteractivePracticeRunner({
 
       setLastAgentActivity([
         "✓ Evaluó respuesta con evaluate_answer(): Correcta",
-        `✓ Dificultad adaptada con adapt_difficulty(): ${newDiff.toUpperCase()}`,
+        `✓ Nivel del ejercicio registrado por el servidor: ${newDiff.toUpperCase()}`,
       ]);
       setHistoryAnswers((prev) => [
         ...prev.filter((a) => a.exerciseId !== currentExercise.id),
@@ -254,6 +257,10 @@ export function InteractivePracticeRunner({
 
   const handleNextExercise = () => {
     speech.stop();
+    if (exerciseIndex + 1 >= practice.exercises.length) {
+      void finishAllExercises(historyAnswers).catch(error => setServerError(String(error)));
+      return;
+    }
     setSupportDialogue(null);
     setIsEvaluated(false);
     setEvaluationResult(null);
@@ -271,7 +278,7 @@ export function InteractivePracticeRunner({
 
   const finishAllExercises = async (overrideHistory?: typeof historyAnswers) => {
     speech.stop();
-    setPhase("results");
+
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "instant" });
     }
@@ -298,7 +305,7 @@ export function InteractivePracticeRunner({
     setMasteredSkills(mastered);
     setPendingSkills(pending);
 
-    await completePractice(practice.id, {
+    const evidence = await completePractice(practice.id, {
       score: calculatedScore,
       totalCorrect: correctCount,
       totalExercises,
@@ -309,6 +316,10 @@ export function InteractivePracticeRunner({
       reexplanationsUsed: supportCounts.reexplanations,
       supportEvents,
     });
+    setFinalCalculatedScore(evidence.finalScore);setFinalCorrectCount(evidence.totalCorrect ?? 0);
+    setMasteredSkills(evidence.masteredConcepts);setPendingSkills(evidence.pendingConcepts);
+    setSupportCounts({ hints: evidence.hintsUsed ?? 0, reexplanations: evidence.reexplanationsUsed ?? 0 });
+    setPhase("results");
   };
 
   const handleReturnToTeacher = () => {
@@ -605,7 +616,8 @@ export function InteractivePracticeRunner({
               )}
             </div>
 
-            {/* FEEDBACK AMIGABLE INMEDIATO (SIN TACHAS AGRESIVAS) */}
+              {serverError && <p role="alert" className="bg-amber-50 border border-amber-300 rounded-xl p-4">No se pudo completar la operación en el servidor: {serverError}. Vuelve a intentar.</p>}
+              {/* FEEDBACK AMIGABLE INMEDIATO (SIN TACHAS AGRESIVAS) */}
             {(!isEvaluated || !evaluationResult?.isCorrect) && <SupportCoach key={currentExercise.id} exercise={currentExercise} onSupport={recordSupport} onDialogue={text => {speech.stop();setSupportDialogue(text);}} />}
             {isEvaluated && (
               <div

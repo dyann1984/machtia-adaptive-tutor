@@ -158,7 +158,7 @@ export function LandingView({ onStartDemo }: { onStartDemo: () => void }) {
                 <div>
                   <h3 className="text-sm font-bold text-slate-900">Demuestra</h3>
                   <p className="text-xs text-slate-600 mt-0.5">
-                    Registra evidencia real Antes vs. Después (+28 puntos porcentuales de mejora).
+                    Registra evidencia Antes vs. Después a partir de los intentos de la sesión demo.
                   </p>
                 </div>
               </div>

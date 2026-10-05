@@ -199,7 +199,8 @@ export async function generate_adaptive_practice(
   // Clone sample exercises and personalize sequence
   const exercises: Exercise[] = JSON.parse(JSON.stringify(SAMPLE_EXERCISES_POOL.slice(0, count)));
 
-  const practiceId = `prac-${studentId}-${Date.now().toString().slice(-4)}`;
+  if (topicId !== "fracciones-equivalentes" || !Number.isInteger(count) || count < 1 || count > 5) throw new Error("El generador MCP usa el banco de fracciones de 1 a 5 ejercicios; para otros temas usa el compositor docente.");
+  const practiceId = `prac-${studentId}-${crypto.randomUUID()}`;
   const practiceTitle = `Práctica de apoyo: Fracciones equivalentes`;
   const practiceDescription = `Refuerzo adaptativo focalizado en superar errores de comparación de denominadores con barras visuales para ${student.name}.`;
 
@@ -520,26 +521,12 @@ export async function report_progress_to_teacher(studentId: string, subjectId: s
   const progress = await get_student_progress(studentId, subjectId);
   const student = repository.getStudentById(studentId);
 
-  const before = progress.snapshot?.scoreBefore ?? 52;
-  const after = progress.snapshot?.scoreAfter ?? before;
-  const delta = after - before;
+  const evidence = repository.getEvidencesByStudent(studentId).find(e => e.subjectId === subjectId && repository.getPracticeById(e.practiceId)?.status === "completed");
+  if (!evidence) return { studentId, studentName: student?.name, scoreBefore: null, scoreAfter: null, improvementDelta: null, status: "Sin evidencia todavía", reportText: "Todavía no hay una práctica completada con evidencia registrada.", masteredConcepts: [], pendingConcepts: [] };
+  return { studentId, studentName: student?.name, scoreBefore: evidence.baselineAvailable === false ? null : evidence.initialScore, scoreAfter: evidence.finalScore, improvementDelta: evidence.baselineAvailable === false ? null : evidence.improvementDelta,
+    status: evidence.status, masteredConcepts: evidence.masteredConcepts, pendingConcepts: evidence.pendingConcepts, evidenceId: evidence.id,
+    reportText: student?.name + ": " + (evidence.baselineAvailable === false ? "Primera medición " : evidence.initialScore + "% → ") + evidence.finalScore + "%. " + evidence.status + ". Conceptos comprobados: " + (evidence.masteredConcepts.join(", ") || "ninguno") + ". Pendientes: " + (evidence.pendingConcepts.join(", ") || "ninguno") };
 
-  const responseText =
-    delta > 0
-      ? `¡Sí, ${student?.name} mostró una mejora notable! Su desempeño en Fracciones Equivalentes aumentó de un ${before}% inicial a un ${after}% (+${delta}%). Ha dominado la identificación de fracciones equivalentes y la comparación visual. Pendiente por reforzar: Simplificación de fracciones.`
-      : `${student?.name} mantiene un desempeño de ${before}%. Aún no concluye la práctica asignada.`;
-
-  return {
-    studentId,
-    studentName: student?.name,
-    scoreBefore: before,
-    scoreAfter: after,
-    improvementDelta: delta,
-    status: delta > 0 ? "Mejora detectada" : "En proceso",
-    reportText: responseText,
-    masteredConcepts: delta > 0 ? ["Identificación de fracciones equivalentes", "Equivalencia visual de 1/2 y 2/4", "Amplificación por factor 2", "Comprobación por productos cruzados"] : [],
-    pendingConcepts: ["Simplificación de fracciones"],
-  };
 }
 
 /**

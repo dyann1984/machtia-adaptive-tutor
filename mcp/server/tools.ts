@@ -24,6 +24,8 @@ import {
   get_practice_result,
 } from "./alexa-service";
 import { MCP_TOOLS_SCHEMAS, validateToolArguments, McpToolSchema } from "./schemas";
+import { authorizeTool } from "./session";
+import { repository } from "@/lib/data/repository";
 
 export interface McpCallResult {
   content: Array<{
@@ -69,6 +71,8 @@ export async function executeMcpTool(
 
   // 2. Dispatch to domain functions
   try {
+    authorizeTool(toolName, args);
+    const startedAt = Date.now();
     let result: any;
 
     switch (toolName) {
@@ -181,6 +185,7 @@ export async function executeMcpTool(
       }
     }
 
+    repository.logAction({ toolName, displayName: toolName, description: "Herramienta ejecutada en servidor MCP", input: args, output: result, status: "success", source: "mcp", durationMs: Date.now() - startedAt, mcpProtocol: "2025-11-25" });
     return {
       content: [
         {

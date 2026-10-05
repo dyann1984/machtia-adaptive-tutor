@@ -1,4 +1,6 @@
 "use client";
+import { mcpClient } from "@/lib/mcp/client";
+
 import React, { useState, useEffect } from "react";
 import { useTutor } from "@/lib/context/tutor-context";
 import { SUBJECT_CATALOG, ACTIVITY_LABELS, createDraft, makeExercise, regenerateExercise, publishDraft, recommendPractice, validateDraft, type DraftConfig, type PracticeDraft } from "@/lib/learning/catalog";
@@ -64,7 +66,7 @@ export function PracticeComposer({ onClose }: { onClose: () => void }) {
           <div className="grid sm:grid-cols-2 gap-3"><label className="text-sm font-bold">Pista sin respuesta<textarea rows={3} className="editor-field mt-1" value={exercise.hint} onChange={e=>updateExercise(index,{hint:e.target.value})}/></label><label className="text-sm font-bold">Dificultad del ejercicio<select className="editor-field mt-1" value={exercise.difficulty} onChange={e=>updateExercise(index,{difficulty:e.target.value as Exercise["difficulty"]})}><option value="easy">Inicial</option><option value="medium">Intermedia</option><option value="hard">Desafío</option></select></label></div>
           <label className="block text-sm font-bold">Otra explicación<textarea className="editor-field mt-1" value={exercise.alternativeExplanation||""} onChange={e=>updateExercise(index,{alternativeExplanation:e.target.value})}/></label>
         </article>)}
-        <div className="theme-banner flex flex-wrap gap-3"><button className="support-button" disabled={draft.exercises.length>=10} onClick={()=>setDraft({...draft,exercises:[...draft.exercises,makeExercise(draft.config,draft.exercises.length)]})}>Agregar ejercicio</button><button className="support-button" onClick={saveDraft}>{saved?"Borrador guardado":"Guardar borrador"}</button><button className="theme-primary" onClick={()=>{const errors=validateDraft(draft);if(errors.length){setError(errors.join(" "));return;}try{const practices=publishDraft(draft);refreshState();setPublished(practices.map(p=>p.id));setError("");localStorage.removeItem("machtia_teacher_draft_v2");}catch(e){setError((e as Error).message);}}}>Asignar práctica</button></div>
+        <div className="theme-banner flex flex-wrap gap-3"><button className="support-button" disabled={draft.exercises.length>=10} onClick={()=>setDraft({...draft,exercises:[...draft.exercises,makeExercise(draft.config,draft.exercises.length)]})}>Agregar ejercicio</button><button className="support-button" onClick={saveDraft}>{saved?"Borrador guardado":"Guardar borrador"}</button><button className="theme-primary" onClick={async ()=>{const errors=validateDraft(draft);if(errors.length){setError(errors.join(" "));return;}try{const practices = await mcpClient.demoApi("/api/practices", draft) as import("@/types").Practice[];await refreshState();setPublished(practices.map(p=>p.id));setError("");localStorage.removeItem("machtia_teacher_draft_v2");}catch(e){setError((e as Error).message);}}}>Asignar práctica</button></div>
       </div>}
       {error&&<p role="alert" className="bg-amber-50 border border-amber-400 p-4 rounded-xl text-amber-950">{error}</p>}
     </>}

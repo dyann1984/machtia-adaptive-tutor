@@ -310,7 +310,7 @@ export function AITutorAgentView() {
 
         {/* DERECHA 35%: Actividad del Agente y MCP (Limpio, no técnico invasivo) */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Card 1: Actividad del agente */}
+          {/* Card 1: Capacidades de la demo */}
           <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <div className="flex items-center gap-2">
@@ -320,7 +320,7 @@ export function AITutorAgentView() {
                 </h3>
               </div>
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                Tiempo real
+                Determinista
               </span>
             </div>
 
@@ -328,19 +328,19 @@ export function AITutorAgentView() {
             <div className="space-y-3 text-sm text-slate-700">
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Analizó desempeño grupal en Matemáticas</span>
+                <span>Consulta desempeño demo en Matemáticas</span>
               </div>
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Detectó 2 estudiantes bajo el umbral de 65%</span>
+                <span>Identifica estudiantes bajo el umbral configurado</span>
               </div>
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Identificó brecha conceptual en denominadores</span>
+                <span>Consulta brechas del diagnóstico demo</span>
               </div>
               <div className="flex items-start gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>Calibró reactivos con barras visuales</span>
+                <span>Selecciona reactivos del banco didáctico</span>
               </div>
             </div>
           </div>

@@ -445,7 +445,7 @@ export const MCP_TOOLS_SCHEMAS: Record<string, McpToolSchema> = {
 
   get_practice_result: {
     name: "get_practice_result",
-    description: "Permite a Alexa+ o al docente consultar los resultados definitivos, delta de mejora (+28 puntos) y evidencia persistida.",
+    description: "Permite a Alexa+ o al docente consultar los resultados definitivos, delta calculado desde un diagnóstico disponible y evidencia persistida.",
     inputSchema: {
       type: "object",
       properties: {
@@ -494,6 +494,16 @@ export function validateToolArguments(
 
   const errors: string[] = [];
 
+  for (const [key, value] of Object.entries(args)) {
+    if (typeof value === "string" && value.length > 2000) errors.push(key + " exceeds maximum length");
+    if (typeof value === "number" && (!Number.isFinite(value) || ["attemptNumber", "exerciseCount"].includes(key) && (!Number.isInteger(value) || value < 1 || value > 20))) errors.push(key + " is outside allowed range");
+  }
+  if (args.answers !== undefined) {
+    if (!Array.isArray(args.answers) || args.answers.length > 20) errors.push("Invalid answers collection");
+    else for (const answer of args.answers) {
+      if (!answer || typeof answer !== "object" || typeof answer.exerciseId !== "string" || typeof answer.isCorrect !== "boolean" || answer.studentAnswer !== undefined && typeof answer.studentAnswer !== "string" || answer.attemptsCount !== undefined && (!Number.isInteger(answer.attemptsCount) || answer.attemptsCount < 1 || answer.attemptsCount > 3) || Object.keys(answer).some(key => !["exerciseId", "isCorrect", "studentAnswer", "attemptsCount"].includes(key))) errors.push("Malformed answer entry");
+    }
+  }
   // Check required fields
   for (const requiredProp of schema.inputSchema.required) {
     if (args[requiredProp] === undefined || args[requiredProp] === null || args[requiredProp] === "") {

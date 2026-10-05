@@ -1,32 +1,12 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { repository } from "@/lib/data/repository";
-import { mcpClient } from "@/lib/mcp/client";
-import { tutorAgent } from "@/lib/ai/tutor-agent";
-import { evaluate_answer } from "@/lib/tools/tutor-tools";
-import { complete_practice } from "@/mcp/server/alexa-service";
-
-afterEach(() => vi.restoreAllMocks());
-
-describe("Final audit regressions", () => {
-  it("does not invent successful answers when completing an empty Alexa session", async () => {
-    repository.resetOfficialDemoScenario();
-    const result = await complete_practice({ practiceId: "prac-mariana-fracciones", studentId: "mariana-lopez" });
-    expect(result.finalScore).toBe(0);
-    expect(result.masteredConcepts).toEqual([]);
-  });
-  it.each([null, undefined, {}, { practiceId: "invalid", exercises: [null] }, { practiceId: 123, exercises: [{}] }])("preserves the existing practice when MCP returns %j", async (result) => {
-    repository.resetOfficialDemoScenario();
-    vi.spyOn(mcpClient, "generateAdaptivePractice").mockResolvedValue({ result, source: "mcp", durationMs: 1 } as any);
-    vi.spyOn(mcpClient, "assignPracticeToStudent").mockResolvedValue({ result: null, source: "mcp", durationMs: 1 } as any);
-    const response = await tutorAgent.processTeacherQuery("Crear práctica de apoyo para Mariana López", { selectedStudentId: "mariana-lopez" });
-    expect(response.suggestedAction?.payload.practiceId).toBe("prac-mariana-fracciones");
-    expect(repository.getPracticeById("invalid")).toBeUndefined();
-  });
-
-  it("offers guidance and another attempt after three errors without giving the answer", async () => {
-    const response = await evaluate_answer("ex-frac-5", "1/3", 3);
-    expect(response.supportLevel).toBe("guided_example");
-    expect(response.allowRetry).toBe(true);
-    expect(response.guidedExample).not.toContain("2/3");
-  });
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { harness } from "./server-harness";
+let h: Awaited<ReturnType<typeof harness>>;
+beforeEach(async () => { h = await harness(); }); afterEach(async () => { await h.close(); });
+describe("Adversarial support regressions", () => {
+  it("counts attempts rather than supplied number", async () => { await h.role("student"); const args = { practiceId: "prac-mariana-fracciones", studentId: "mariana-lopez", exerciseId: "ex-frac-1", studentAnswer: "wrong", attemptNumber: 1 }; await h.call("submit_answer", args); expect((await h.call("submit_answer", args)).body.result.structuredContent.attemptNumber).toBe(2); });
+  it("withholds correct options in all support levels", async () => { const p = (await h.state()).practices[0]; await h.role("student"); for (const e of p.exercises) { const hint = await h.call("get_hint", { practiceId: p.id, studentId: p.studentId, exerciseId: e.id }); expect(hint.body.result.structuredContent.hint).not.toContain(e.correctAnswer); for (const level of ["analogy", "step_by_step"]) { const result = await h.call("get_adaptive_explanation", { practiceId: p.id, studentId: p.studentId, exerciseId: e.id, level }); expect(result.body.result.structuredContent.explanation).not.toContain(e.correctAnswer); } } });
+  it("denies cross-student evidence", async () => { await h.role("student", "luis-hernandez"); expect((await h.call("get_practice_result", { studentId: "mariana-lopez", practiceId: "prac-mariana-fracciones" })).body.result.isError).toBe(true); });
+  it("denies cross-student exercise support", async () => { await h.role("student", "luis-hernandez"); expect((await h.call("get_hint", { studentId: "luis-hernandez", practiceId: "prac-mariana-fracciones", exerciseId: "ex-frac-1" })).body.result.isError).toBe(true); });
+  it("requires current assigned exercise", async () => { const p = (await h.state()).practices[0]; await h.role("student"); expect((await h.call("submit_answer", { studentId: p.studentId, practiceId: p.id, exerciseId: p.exercises[1].id, studentAnswer: "wrong", attemptNumber: 1 })).body.result.isError).toBe(true); });
+  it("normalizes oral answers", async () => { await h.role("student"); const result = await h.call("submit_answer", { studentId: "mariana-lopez", practiceId: "prac-mariana-fracciones", exerciseId: "ex-frac-1", studentAnswer: "dos cuartos", attemptNumber: 1 }); expect(result.body.result.structuredContent.isCorrect).toBe(true); });
 });

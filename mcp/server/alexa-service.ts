@@ -5,9 +5,10 @@
  */
 
 import { repository } from "@/lib/data/repository";
-import { evaluate_answer, adapt_difficulty } from "@/lib/tools/tutor-tools";
+import { authorizeTool } from "./session";
+import { ledger, safeSupport } from "./learning-ledger";
 import { normalizeOralAnswer } from "@/lib/tools/oral-normalizer";
-import { Practice, Exercise, Student, LearningEvidence } from "@/types";
+import { Practice, LearningEvidence } from "@/types";
 
 export const DEFAULT_TENANT_ID = "escuela-benito-juarez";
 
@@ -25,38 +26,8 @@ export function enforceTenantAndRole(
   targetStudentId?: string,
   targetPractice?: Practice
 ) {
-  // 1. Multi-Tenant isolation check
-  const tenantId = context.tenantId || DEFAULT_TENANT_ID;
-  if (tenantId !== DEFAULT_TENANT_ID) {
-    const error: any = new Error(
-      `[MCP Security Error] Violación de aislamiento multi-tenant: El tenant '${tenantId}' no tiene autorización para acceder a los datos de '${DEFAULT_TENANT_ID}'.`
-    );
-    error.code = "TENANT_MISMATCH";
-    error.statusCode = 403;
-    throw error;
-  }
+  authorizeTool("get_student_context", { ...context, studentId: targetStudentId, practiceId: targetPractice?.id });
 
-  // 2. IDOR check: Student can only view and act on their own records
-  if (context.requesterRole === "student" && context.requesterId && targetStudentId) {
-    if (context.requesterId !== targetStudentId) {
-      const error: any = new Error(
-        `[MCP Security Error] Violación IDOR detectada: El alumno '${context.requesterId}' intentó acceder o modificar recursos del alumno '${targetStudentId}'.`
-      );
-      error.code = "IDOR_FORBIDDEN";
-      error.statusCode = 403;
-      throw error;
-    }
-  }
-
-  // 3. Practice ownership consistency
-  if (targetPractice && targetStudentId && targetPractice.studentId !== targetStudentId) {
-    const error: any = new Error(
-      `[MCP Security Error] Inconsistencia: La práctica '${targetPractice.id}' pertenece al alumno '${targetPractice.studentId}', no a '${targetStudentId}'.`
-    );
-    error.code = "PRACTICE_STUDENT_MISMATCH";
-    error.statusCode = 400;
-    throw error;
-  }
 }
 
 /**
@@ -158,6 +129,8 @@ export async function start_practice(args: {
 
   enforceTenantAndRole(args, args.studentId, practice);
 
+  if (practice.status === "completed") throw new Error("Practice already completed");
+  ledger(practice.id);
   // Update status to in_progress
   repository.updatePracticeStatus(practice.id, "in_progress");
 
@@ -182,7 +155,7 @@ export async function start_practice(args: {
         ? `Barra visual comparativa entre ${firstEx.visualData.fractionA.numerator}/${firstEx.visualData.fractionA.denominator} y ${firstEx.visualData.fractionB.numerator}/${firstEx.visualData.fractionB.denominator}`
         : "Representación conceptual",
     },
-    alexaSpeechPrompt: `Comenzamos tu práctica de ${practice.topicName}. Ejercicio 1: ${firstEx.prompt}. Tus opciones son: ${firstEx.options.join(", ")}. ¿Cuál es tu respuesta?`,
+    alexaSpeechPrompt: `Antes de comenzar: ${safeSupport(practice.topicName, 1)}. Practicaremos con apoyo progresivo. Ejercicio 1: ${firstEx.prompt}. Tus opciones son: ${firstEx.options.join(", ")}. ¿Cuál es tu respuesta?`,
   };
 }
 
@@ -215,39 +188,26 @@ export async function submit_answer(args: {
     throw err;
   }
 
-  // 1. Normalize oral transcript to canonical option string
+  if (practice.status === "completed") throw new Error("Practice already completed");
+  const record = ledger(practice.id);
+  const previous = record.answers.filter(a => a.exerciseId === exercise.id);
+  if (previous.some(a => a.isCorrect) || previous.length >= 3) throw new Error("Exercise already resolved");
+  const current = practice.exercises.find(e => !record.answers.some(a => a.exerciseId === e.id && a.isCorrect) && record.answers.filter(a => a.exerciseId === e.id).length < 3);
+  if (current?.id !== exercise.id) throw new Error("Answer the current exercise first");
+  repository.updatePracticeStatus(practice.id, "in_progress");
   const normalizedAnswer = normalizeOralAnswer(args.studentAnswer, exercise);
+  const isCorrect = normalizedAnswer.trim().toLocaleLowerCase() === exercise.correctAnswer.trim().toLocaleLowerCase();
+  const attemptNumber = previous.length + 1;
+  record.answers.push({ exerciseId: exercise.id, studentAnswer: normalizedAnswer, isCorrect, attemptsCount: attemptNumber, hintsUsed: !isCorrect });
+  if (!isCorrect) record.supports.push({ exerciseId: exercise.id, kind: attemptNumber === 1 ? "verbal_hint" : attemptNumber === 2 ? "alternative_representation" : "guided_steps", source: "automatic", timestamp: new Date().toISOString() });
+  const support = safeSupport(practice.topicName, attemptNumber);
+  return { practiceId: practice.id, exerciseId: exercise.id, rawInput: args.studentAnswer, recognizedAnswer: normalizedAnswer, isCorrect, attemptNumber,
+    supportLevel: isCorrect ? "none" : attemptNumber === 1 ? "hint" : attemptNumber === 2 ? "alternative" : "guided",
+    feedback: isCorrect ? "Correcto. Tu respuesta quedó registrada." : "Aún no coincide. Revisa la estrategia antes de elegir.",
+    hint: support, alternativeExplanation: support, guidedExample: support, allowRetry: !isCorrect && attemptNumber < 3,
+    currentDifficulty: exercise.difficulty, nextDifficulty: exercise.difficulty,
+    alexaSpeechFeedback: isCorrect ? "Correcto. Tu respuesta quedó registrada." : support };
 
-  // 2. Evaluate answer
-  const evalResult = await evaluate_answer(exercise.id, normalizedAnswer, args.attemptNumber);
-
-  // 3. Adapt difficulty
-  const nextDiff = await adapt_difficulty(exercise.difficulty, evalResult.isCorrect);
-
-  let speechFeedback = "";
-  if (evalResult.isCorrect) {
-    speechFeedback = `¡Muy bien, excelente! ${evalResult.feedback}`;
-  } else if (args.attemptNumber === 1) {
-    speechFeedback = `Casi lo tienes. Escucha esta pista: ${evalResult.hint}. Intenta de nuevo.`;
-  } else {
-    speechFeedback = `Casi lo logras. Te lo explico con otro ejemplo: ${evalResult.guidedExample || evalResult.alternativeExplanation}. Vamos a intentarlo otra vez.`;
-  }
-
-  return {
-    practiceId: practice.id,
-    exerciseId: exercise.id,
-    rawInput: args.studentAnswer,
-    recognizedAnswer: normalizedAnswer,
-    isCorrect: evalResult.isCorrect,
-    supportLevel: evalResult.supportLevel,
-    feedback: evalResult.feedback,
-    hint: evalResult.hint,
-    alternativeExplanation: evalResult.alternativeExplanation,
-    allowRetry: evalResult.allowRetry,
-    currentDifficulty: exercise.difficulty,
-    nextDifficulty: nextDiff,
-    alexaSpeechFeedback: speechFeedback,
-  };
 }
 
 /**
@@ -264,33 +224,11 @@ export async function get_hint(args: {
 }) {
   enforceTenantAndRole(args, args.studentId);
 
-  // Find exercise in pool or practice
-  let exercise: Exercise | undefined;
-  if (args.practiceId) {
-    const p = repository.getPracticeById(args.practiceId);
-    exercise = p?.exercises.find((e) => e.id === args.exerciseId);
-  }
-  if (!exercise) {
-    const allPractices = repository.getPractices();
-    for (const p of allPractices) {
-      exercise = p.exercises.find((e) => e.id === args.exerciseId);
-      if (exercise) break;
-    }
-  }
+  const practice = ownedExercise(args);
+  const hint = safeSupport(practice.topicName, 1);
+  ledger(practice.id).supports.push({ exerciseId: args.exerciseId, kind: "verbal_hint", source: "requested", timestamp: new Date().toISOString() });
+  return { exerciseId: args.exerciseId, supportLevel: "hint", hint, alexaSpeechHint: hint };
 
-  if (!exercise) {
-    const err: any = new Error(`Ejercicio '${args.exerciseId}' no encontrado.`);
-    err.code = "EXERCISE_NOT_FOUND";
-    throw err;
-  }
-
-  return {
-    exerciseId: exercise.id,
-    supportLevel: "hint",
-    hint: exercise.hint,
-    conceptTag: exercise.conceptTag,
-    alexaSpeechHint: `Aquí tienes una pista de tu Tutor: ${exercise.hint}. ¿Cuál crees que sea la respuesta?`,
-  };
 }
 
 /**
@@ -307,38 +245,12 @@ export async function get_adaptive_explanation(args: {
 }) {
   enforceTenantAndRole(args, args.studentId);
 
-  let exercise: Exercise | undefined;
-  if (args.practiceId) {
-    const p = repository.getPracticeById(args.practiceId);
-    exercise = p?.exercises.find((e) => e.id === args.exerciseId);
-  }
-  if (!exercise) {
-    const allPractices = repository.getPractices();
-    for (const p of allPractices) {
-      exercise = p.exercises.find((e) => e.id === args.exerciseId);
-      if (exercise) break;
-    }
-  }
-
-  if (!exercise) {
-    const err: any = new Error(`Ejercicio '${args.exerciseId}' no encontrado.`);
-    err.code = "EXERCISE_NOT_FOUND";
-    throw err;
-  }
-
+  const practice = ownedExercise(args);
   const selectedLevel = args.level || "analogy";
-  const explanationText =
-    selectedLevel === "step_by_step"
-      ? exercise.guidedExample || exercise.explanation
-      : exercise.alternativeExplanation || exercise.explanation;
+  const explanation = safeSupport(practice.topicName, selectedLevel === "analogy" ? 2 : 3);
+  ledger(practice.id).supports.push({ exerciseId: args.exerciseId, kind: selectedLevel === "analogy" ? "alternative_representation" : "guided_steps", source: "requested", timestamp: new Date().toISOString() });
+  return { exerciseId: args.exerciseId, supportLevel: selectedLevel, explanation, alexaSpeechExplanation: explanation };
 
-  return {
-    exerciseId: exercise.id,
-    supportLevel: selectedLevel,
-    explanation: explanationText,
-    conceptTag: exercise.conceptTag,
-    alexaSpeechExplanation: `Te lo explico paso a paso: ${explanationText}`,
-  };
 }
 
 /**
@@ -373,66 +285,33 @@ export async function complete_practice(args: {
     throw err;
   }
 
-  // Calculate score from the distinct exercises explicitly recorded in this session.
-  const totalExercises = practice.exercises.length || 5;
-  let correctCount = 0;
-  if (args.answers && args.answers.length > 0) {
-    correctCount = practice.exercises.filter((exercise) => args.answers?.some((answer) => answer.exerciseId === exercise.id && answer.isCorrect)).length;
-  }
-
-  const finalScore = Math.round((correctCount / totalExercises) * 100);
-  const initialScore = student.topicPerformances[practice.topicId] ?? 52;
-  const delta = finalScore - initialScore;
-
-  // Update practice status
-  repository.updatePracticeStatus(practice.id, "completed");
-
-  // Update student score in repository
-  repository.updateStudentScore(student.id, practice.topicId, finalScore);
-
-  const mastered = practice.exercises.filter((exercise) => args.answers?.some((answer) => answer.exerciseId === exercise.id && answer.isCorrect)).map((exercise) => exercise.conceptTag);
-  const pending = practice.exercises.filter((exercise) => !args.answers?.some((answer) => answer.exerciseId === exercise.id && answer.isCorrect)).map((exercise) => exercise.conceptTag);
-
-  // Save authentic evidence
-  const evidenceId = `evi-alexa-${Date.now()}`;
-  const evidence: LearningEvidence = {
-    id: evidenceId,
-    studentId: student.id,
-    studentName: student.name,
-    practiceId: practice.id,
-    subjectId: practice.subjectId,
-    topicName: practice.topicName,
-    initialScore,
-    finalScore,
-    improvementDelta: delta,
-    status: delta > 0 ? "Mejora detectada" : "Progreso moderado",
-    masteredConcepts: mastered,
-    pendingConcepts: pending,
-    tutorObservations: `Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: ${finalScore}%. Cambio de ${delta >= 0 ? "+" : ""}${delta} puntos.`,
-    timestamp: new Date().toISOString(),
-    attemptId: `att-${Date.now()}`,
-  };
-
+  const existing = repository.getEvidences().find(e => e.practiceId === practice.id);
+  if (practice.status === "completed" && existing) return resultFor(practice, existing);
+  const record = ledger(practice.id);
+  if (!practice.exercises.length || practice.exercises.some(e => !record.answers.some(a => a.exerciseId === e.id && a.isCorrect) && record.answers.filter(a => a.exerciseId === e.id).length < 3)) throw new Error("Practice incomplete: each exercise requires a correct answer or three recorded attempts");
+  const totalExercises = practice.exercises.length;
+  const mastered = [...new Set(practice.exercises.filter(e => record.answers.some(a => a.exerciseId === e.id && a.isCorrect)).map(e => e.conceptTag))];
+  const pending = [...new Set(practice.exercises.filter(e => !record.answers.some(a => a.exerciseId === e.id && a.isCorrect)).map(e => e.conceptTag))];
+  const correctCount = practice.exercises.filter(e => record.answers.some(a => a.exerciseId === e.id && a.isCorrect)).length;
+  const finalScore = Math.round(correctCount / totalExercises * 100);
+  const baselineAvailable = record.baseline !== undefined;
+  const initialScore = record.baseline ?? 0;
+  const delta = baselineAvailable ? finalScore - initialScore : 0;
+  const evidence: LearningEvidence = { id: "evi-" + crypto.randomUUID(), studentId: student.id, studentName: student.name, practiceId: practice.id, subjectId: practice.subjectId, topicName: practice.topicName,
+    initialScore, baselineAvailable, finalScore, improvementDelta: delta,
+    status: !baselineAvailable ? "Primera medición" : delta > 0 ? "Mejora detectada" : delta < 0 ? "Requiere refuerzo adicional" : "Resultado estable",
+    masteredConcepts: mastered, pendingConcepts: pending, timestamp: new Date().toISOString(), attemptId: "att-" + crypto.randomUUID(),
+    totalCorrect: correctCount, totalExercises, totalAttempts: record.answers.length, supportEvents: record.supports,
+    hintsUsed: record.supports.filter(s => s.kind === "verbal_hint" || s.kind === "visual_hint").length,
+    reexplanationsUsed: record.supports.filter(s => s.kind === "alternative_representation" || s.kind === "guided_steps").length,
+    tutorObservations: "Resultado calculado por el servidor a partir de intentos registrados en una sesión demo. No acredita una integración desplegada con Alexa+." };
+  repository.saveAttempt({ id: evidence.attemptId, practiceId: practice.id, studentId: student.id, answers: record.answers, score: finalScore, totalCorrect: correctCount, totalExercises,
+    startedAt: record.startedAt, completedAt: evidence.timestamp, feedback: evidence.tutorObservations, masteredConcepts: mastered, pendingConcepts: pending });
   repository.saveEvidence(evidence);
+  repository.updateStudentScore(student.id, practice.topicId, finalScore);
+  repository.updatePracticeStatus(practice.id, "completed");
+  return resultFor(practice, evidence);
 
-  const celebrationSpeech = `¡Felicidades ${student.name}! Has completado tu práctica con ${finalScore}% de aciertos, con un cambio de ${delta} puntos desde tu diagnóstico inicial. Conceptos comprobados: ${mastered.join(", ") || "ninguno registrado todavía"}. Tu profesor ya puede ver tu avance en el panel escolar.`;
-
-  return {
-    practiceId: practice.id,
-    studentId: student.id,
-    studentName: student.name,
-    status: "completed",
-    totalExercises,
-    correctCount,
-    finalScore,
-    initialScore,
-    improvementDelta: delta,
-    masteredConcepts: mastered,
-    pendingConcepts: pending,
-    evidenceId: evidence.id,
-    evidence,
-    alexaCelebrationSpeech: celebrationSpeech,
-  };
 }
 
 /**
@@ -455,25 +334,19 @@ export async function get_practice_result(args: {
 
   enforceTenantAndRole(args, args.studentId, practice);
 
-  const evidences = repository.getEvidencesByStudent(args.studentId);
-  const evidence = evidences.find((e) => e.practiceId === args.practiceId) || evidences[0];
-
-  const student = repository.getStudentById(args.studentId);
-
-  return {
-    practiceId: practice.id,
-    studentId: args.studentId,
-    studentName: student?.name || args.studentId,
-    topicName: practice.topicName,
-    status: practice.status,
-    initialScore: evidence?.initialScore ?? 52,
-    finalScore: evidence?.finalScore ?? 80,
-    improvementDelta: evidence?.improvementDelta ?? 28,
-    evidenceStatus: evidence?.status ?? "Mejora detectada",
-    masteredConcepts: evidence?.masteredConcepts || [],
-    pendingConcepts: evidence?.pendingConcepts || [],
-    tutorObservations: evidence?.tutorObservations || "Práctica completada con éxito.",
-    timestamp: evidence?.timestamp || new Date().toISOString(),
-    verifiedInTeacherDashboard: true,
-  };
+  const evidence = repository.getEvidencesByStudent(args.studentId).find(e => e.practiceId === args.practiceId);
+  if (!evidence) return { practiceId: practice.id, studentId: args.studentId, status: practice.status, finalScore: null, improvementDelta: null, evidenceStatus: "Sin evidencia todavía", verifiedInTeacherDashboard: false };
+  return resultFor(practice, evidence);
+}
+function ownedExercise(args: { practiceId?: string; exerciseId: string; studentId: string }) {
+  const practice = args.practiceId ? repository.getPracticeById(args.practiceId) : repository.getPracticesByStudent(args.studentId).find(p => p.exercises.some(e => e.id === args.exerciseId));
+  if (!practice || !practice.exercises.some(e => e.id === args.exerciseId)) throw new Error("Exercise not found in assigned practice");
+  enforceTenantAndRole({}, args.studentId, practice);
+  if (practice.status === "completed") throw new Error("Practice already completed");
+  return practice;
+}
+function resultFor(practice: Practice, evidence: LearningEvidence) {
+  return { ...evidence, status: practice.status,
+    correctCount: evidence.totalCorrect, evidenceId: evidence.id, evidence, verifiedInTeacherDashboard: true,
+    alexaCelebrationSpeech: "Práctica completada: " + evidence.finalScore + "%. Tu docente puede consultar esta evidencia." };
 }

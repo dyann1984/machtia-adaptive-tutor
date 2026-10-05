@@ -1,392 +1,52 @@
-/**
- * MACHTIA Adaptive Tutor - MCP Client
- * Protocol Version: 2025-11-25
- * Communicates with MACHTIA MCP Server via Streamable HTTP, with seamless resilient fallback.
- */
-
-import {
-  analyze_student_performance,
-  find_students_needing_support,
-  get_student_learning_gap,
-  generate_adaptive_practice,
-  assign_practice_to_student,
-  get_student_progress,
-  report_progress_to_teacher,
-} from "@/lib/tools/tutor-tools";
-import {
-  get_student_context,
-  get_assigned_practice,
-  start_practice,
-  submit_answer,
-  get_hint,
-  get_adaptive_explanation,
-  complete_practice,
-  get_practice_result,
-} from "@/mcp/server/alexa-service";
 import { PracticeGenerationResult } from "@/types";
-
-export interface McpConnectionStatus {
-  connected: boolean;
-  protocolVersion?: string;
-  serverName?: string;
-  latencyMs?: number;
-  error?: string;
-  transport?: string;
-  toolsCount?: number;
-}
-
-export interface McpClientToolCallResponse<T = any> {
-  result: T;
-  source: "mcp" | "local-fallback";
-  toolName: string;
-  durationMs: number;
-  isError: boolean;
-  error?: string;
-}
-
+export interface McpConnectionStatus { connected: boolean; protocolVersion?: string; serverName?: string; latencyMs?: number; error?: string; transport?: string; toolsCount?: number }
+export interface McpClientToolCallResponse<T = any> { result: T; source: "mcp" | "local-fallback"; toolName: string; durationMs: number; isError: boolean; error?: string }
 export class McpClient {
   private serverUrl: string;
-  private isConnected: boolean = false;
-  private lastCheckTime: number = 0;
-  private cachedProtocolVersion: string = "2025-11-25";
-  private forceRealMcp: boolean;
-
-  constructor(serverUrl?: string, forceRealMcp?: boolean) {
-    this.serverUrl =
-      serverUrl ||
-      process.env.NEXT_PUBLIC_MCP_URL ||
-      process.env.MCP_URL ||
-      "http://localhost:3100/mcp";
-
-    this.forceRealMcp =
-      forceRealMcp !== undefined
-        ? forceRealMcp
-        : process.env.NEXT_PUBLIC_JUDGE_DEMO === "true" ||
-          process.env.JUDGE_DEMO === "true" ||
-          process.env.NEXT_PUBLIC_FORCE_REAL_MCP === "true";
+  private actorToken = "";
+  private judgeToken = "";
+  private initialization?: Promise<void>;
+  constructor(serverUrl?: string, _forceRealMcp?: boolean) { this.serverUrl = serverUrl || process.env.NEXT_PUBLIC_MCP_URL || "/mcp"; }
+  setForceRealMcp(_force: boolean) {}
+  isForceRealMcp() { return true; }
+  getServerUrl() { return this.serverUrl; }
+  getHealthUrl() { return this.serverUrl.replace(/\/mcp\/?$/, "/health"); }
+  private endpoint(path: string) { return this.serverUrl.replace(/\/mcp\/?$/, path); }
+  async demoApi(path: string, body?: unknown) {
+    const res = await fetch(this.endpoint(path), { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + this.actorToken, "X-Demo-Control": this.judgeToken }, body: body === undefined ? undefined : JSON.stringify(body), cache: "no-store" });
+    const result = await res.json(); if (!res.ok) throw new Error(result.error || "Server unavailable"); return result;
   }
-
-  public setForceRealMcp(force: boolean): void {
-    this.forceRealMcp = force;
-  }
-
-  public isForceRealMcp(): boolean {
-    return this.forceRealMcp;
-  }
-
-  public getServerUrl(): string {
-    return this.serverUrl;
-  }
-
-  public getHealthUrl(): string {
-    try {
-      const url = new URL(this.serverUrl);
-      url.pathname = "/health";
-      return url.toString();
-    } catch {
-      return this.serverUrl.replace(/\/mcp\/?$/, "/health");
-    }
-  }
-
-  /**
-   * Directly queries the /health endpoint of the MCP server.
-   */
-  async checkHealth(): Promise<{ status: string; protocolVersion: string; transport: string; server: string; toolsCount: number } | null> {
-    try {
-      const healthUrl = this.getHealthUrl();
-      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 1500) : null;
-      const res = await fetch(healthUrl, {
-        method: "GET",
-        signal: controller ? controller.signal : undefined,
-      });
-      if (timeoutId) clearTimeout(timeoutId);
-      if (res.ok) {
-        return await res.json();
-      }
-    } catch {
-      // offline or unreachable
-    }
-    return null;
-  }
-
-  /**
-   * Checks real connectivity with the MCP Server over HTTP.
-   */
-  async checkConnection(): Promise<McpConnectionStatus> {
-    const startTime = Date.now();
-    try {
-      const health = await this.checkHealth();
-
-      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 1800) : null;
-
-      const res = await fetch(this.serverUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-mcp-protocol-version": "2025-11-25",
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: `check-${Date.now()}`,
-          method: "initialize",
-          params: {
-            protocolVersion: "2025-11-25",
-            clientInfo: {
-              name: "machtia-adaptive-tutor-web",
-              version: "1.0.0",
-            },
-          },
-        }),
-        signal: controller ? controller.signal : undefined,
-      });
-
-      if (timeoutId) clearTimeout(timeoutId);
-
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      const latencyMs = Date.now() - startTime;
-
-      if (data?.result?.serverInfo) {
-        this.isConnected = true;
-        this.lastCheckTime = Date.now();
-        this.cachedProtocolVersion = data.result.protocolVersion || health?.protocolVersion || "2025-11-25";
-
-        return {
-          connected: true,
-          protocolVersion: this.cachedProtocolVersion,
-          serverName: data.result.serverInfo.name,
-          latencyMs,
-          transport: health?.transport || "Streamable HTTP",
-          toolsCount: health?.toolsCount ?? 7,
-        };
-      }
-
-      throw new Error("Invalid MCP handshake response");
-    } catch (err: any) {
-      this.isConnected = false;
-      return {
-        connected: false,
-        error: err?.message || "MCP Server unreachable",
-        latencyMs: Date.now() - startTime,
-        transport: "Streamable HTTP (Offline fallback)",
-        toolsCount: undefined,
-      };
-    }
-  }
-
-  /**
-   * Retrieves registered tools directly from MCP server or fallback list.
-   */
-  async listTools(): Promise<any[]> {
-    try {
-      const res = await fetch(this.serverUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: `list-${Date.now()}`,
-          method: "tools/list",
-        }),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.result?.tools) {
-          return data.result.tools;
+  async initializeDemo(reset = false) {
+    if (this.initialization) { await this.initialization; if (!reset) return; }
+    if (!reset && !this.actorToken && typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(sessionStorage.getItem("machtia_demo_capability") || "null");
+        if (stored) {
+          this.actorToken=stored.actorToken;this.judgeToken=stored.judgeToken;
+          const res = await fetch(this.endpoint("/api/state"), { headers: { Authorization: "Bearer " + this.actorToken }, cache: "no-store" });
+          if (res.status === 401) { this.actorToken="";this.judgeToken="";sessionStorage.removeItem("machtia_demo_capability"); }
+          else if (!res.ok) throw new Error("No se pudo restaurar la sesión demo");
         }
-      }
-    } catch (e) {
-      // Ignore and fallback
+      } catch (error) { this.actorToken="";this.judgeToken=""; throw error; }
     }
-
-    // Fallback list of 15 registered tools (7 teacher + 8 Alexa+ conversational)
-    return [
-      { name: "analyze_student_performance" },
-      { name: "find_students_needing_support" },
-      { name: "get_student_learning_gap" },
-      { name: "generate_adaptive_practice" },
-      { name: "assign_practice_to_student" },
-      { name: "get_student_progress" },
-      { name: "report_progress_to_teacher" },
-      { name: "get_student_context" },
-      { name: "get_assigned_practice" },
-      { name: "start_practice" },
-      { name: "submit_answer" },
-      { name: "get_hint" },
-      { name: "get_adaptive_explanation" },
-      { name: "complete_practice" },
-      { name: "get_practice_result" },
-    ];
+    if (!reset && this.actorToken) return;
+    if (!reset && this.initialization) return this.initialization;
+    this.initialization = (async () => { const result = await this.demoApi("/api/demo", {}); this.actorToken = result.actorToken; this.judgeToken = result.judgeToken; if (typeof window !== "undefined") sessionStorage.setItem("machtia_demo_capability", JSON.stringify({ actorToken: this.actorToken, judgeToken: this.judgeToken })); })();
+    try { await this.initialization; } finally { this.initialization = undefined; }
   }
-
-  /**
-   * Invokes an MCP tool. If the MCP Server is reachable, executes via Streamable HTTP.
-   * If offline or errors, transparently falls back to local tools without crashing.
-   */
-  async callTool<T = any>(
-    name: string,
-    args: Record<string, any>
-  ): Promise<McpClientToolCallResponse<T>> {
-    const startTime = Date.now();
-
-    // 1. Attempt Real MCP Execution via Streamable HTTP
-    try {
-      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 3000) : null;
-
-      const res = await fetch(this.serverUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-mcp-protocol-version": "2025-11-25",
-        },
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: `call-${name}-${Date.now()}`,
-          method: "tools/call",
-          params: {
-            name,
-            arguments: args,
-          },
-        }),
-        signal: controller ? controller.signal : undefined,
-      });
-
-      if (timeoutId) clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.result) {
-          const durationMs = Date.now() - startTime;
-          const resultData =
-            json.result.structuredContent ||
-            (json.result.content?.[0]?.text
-              ? JSON.parse(json.result.content[0].text)
-              : json.result);
-
-          return {
-            result: resultData,
-            source: "mcp",
-            toolName: name,
-            durationMs,
-            isError: Boolean(json.result.isError),
-            error: json.result.isError
-              ? (json.result.structuredContent?.message || json.result.content?.[0]?.text || "Tool execution error")
-              : undefined,
-          };
-        }
-      } else {
-        throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-      }
-    } catch (err: any) {
-      if (this.forceRealMcp) {
-        const durationMs = Date.now() - startTime;
-        return {
-          result: null as any,
-          source: "mcp",
-          toolName: name,
-          durationMs,
-          isError: true,
-          error: `[MCP Unavailable] El servidor MCP en ${this.serverUrl} no está disponible (${err?.message || "Conexión rechazada"}). En Modo Demo Oficial el fallback local está estrictamente deshabilitado para garantizar que toda respuesta provenga del servidor real.`,
-        };
-      }
-      // Will proceed to local fallback below only in development mode
-    }
-
-    if (this.forceRealMcp) {
-      return {
-        result: null as any,
-        source: "mcp",
-        toolName: name,
-        durationMs: Date.now() - startTime,
-        isError: true,
-        error: `[MCP Unavailable] Servidor MCP no disponible en ${this.serverUrl}.`,
-      };
-    }
-
-    // 2. Controlled Local Fallback (reusing tutor-tools without duplication, only when NOT in demo mode)
-    try {
-      const localResult = await this.executeLocalFallback(name, args);
-      const durationMs = Date.now() - startTime;
-
-      return {
-        result: localResult,
-        source: "local-fallback",
-        toolName: name,
-        durationMs,
-        isError: false,
-      };
-    } catch (localErr: any) {
-      return {
-        result: null as any,
-        source: "local-fallback",
-        toolName: name,
-        durationMs: Date.now() - startTime,
-        isError: true,
-        error: localErr?.message || String(localErr),
-      };
-    }
+  async selectRole(role: "teacher" | "student", studentId: string) {
+    await this.initializeDemo(); const result = await this.demoApi("/api/role", { role, studentId }); this.actorToken = result.actorToken; if (typeof window !== "undefined") sessionStorage.setItem("machtia_demo_capability", JSON.stringify({actorToken:this.actorToken,judgeToken:this.judgeToken}));
   }
-
-  /**
-   * Internal local fallback runner reusing domain logic.
-   */
-  private async executeLocalFallback(name: string, args: Record<string, any>): Promise<any> {
-    switch (name) {
-      case "analyze_student_performance":
-        return analyze_student_performance(args.groupId, args.subjectId);
-      case "find_students_needing_support":
-        return find_students_needing_support(
-          args.groupId,
-          args.subjectId || "matematicas",
-          args.threshold !== undefined ? args.threshold : 65
-        );
-      case "get_student_learning_gap":
-        return get_student_learning_gap(
-          args.studentId,
-          args.subjectId || "matematicas",
-          args.topicId
-        );
-      case "generate_adaptive_practice":
-        return generate_adaptive_practice(
-          args.studentId,
-          args.topicId,
-          args.initialDifficulty || "easy",
-          args.exerciseCount || 5
-        );
-      case "assign_practice_to_student":
-        return assign_practice_to_student(args.practiceId, args.studentId);
-      case "get_student_progress":
-        return get_student_progress(args.studentId, args.subjectId || "matematicas");
-      case "report_progress_to_teacher":
-        return report_progress_to_teacher(args.studentId, args.subjectId || "matematicas");
-      // Alexa+ 8 conversational tools
-      case "get_student_context":
-        return get_student_context(args as any);
-      case "get_assigned_practice":
-        return get_assigned_practice(args as any);
-      case "start_practice":
-        return start_practice(args as any);
-      case "submit_answer":
-        return submit_answer(args as any);
-      case "get_hint":
-        return get_hint(args as any);
-      case "get_adaptive_explanation":
-        return get_adaptive_explanation(args as any);
-      case "complete_practice":
-        return complete_practice(args as any);
-      case "get_practice_result":
-        return get_practice_result(args as any);
-      default:
-        throw new Error(`Herramienta '${name}' no encontrada en el catálogo local.`);
-    }
+  async snapshot() { await this.initializeDemo(); return this.demoApi("/api/state"); }
+  async checkHealth() { try { const res = await fetch(this.getHealthUrl(), { signal: AbortSignal.timeout(15000) }); return res.ok ? await res.json() : null; } catch { return null; } }
+  async checkConnection(): Promise<McpConnectionStatus> { const started = Date.now(); const health = await this.checkHealth(); return { connected: Boolean(health), protocolVersion: health?.protocolVersion, serverName: health?.server, toolsCount: health?.toolsCount, latencyMs: Date.now() - started, transport: "Streamable HTTP", error: health ? undefined : "Servidor no disponible. No se guardarán resultados locales." }; }
+  async listTools() { const res = await fetch(this.serverUrl, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }) }); const value = await res.json(); if (!res.ok || !value.result) throw new Error("Cannot list MCP tools"); return value.result.tools; }
+  async callTool<T = any>(name: string, args: Record<string, any>): Promise<McpClientToolCallResponse<T>> {
+    await this.initializeDemo(); const started = Date.now();
+    const res = await fetch(this.serverUrl, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream", "MCP-Protocol-Version": "2025-11-25", Authorization: "Bearer " + this.actorToken }, body: JSON.stringify({ jsonrpc: "2.0", id: crypto.randomUUID(), method: "tools/call", params: { name, arguments: args } }), signal: AbortSignal.timeout(30000) });
+    const json = await res.json(); if (!res.ok || json.error || json.result?.isError) throw new Error(json.error?.message || json.result?.structuredContent?.message || json.result?.content?.[0]?.text || "MCP request failed");
+    return { result: json.result.structuredContent as T, source: "mcp", toolName: name, durationMs: Date.now() - started, isError: false };
   }
-
   // Type-safe convenience wrappers
   async analyzeStudentPerformance(groupId: string, subjectId: string) {
     return this.callTool("analyze_student_performance", { groupId, subjectId });

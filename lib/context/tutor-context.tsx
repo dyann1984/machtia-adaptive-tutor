@@ -36,6 +36,7 @@ export interface McpStatusInfo {
 }
 
 interface TutorContextType {
+  dataError: string | null;
   role: "teacher" | "student";
   setRole: (role: "teacher" | "student") => void;
   activeTeacherTab: "dashboard" | "group" | "tutor" | "support" | "practices" | "evidences" | "progress";
@@ -72,7 +73,7 @@ interface TutorContextType {
   handleQuickAction: (actionKey: string, payload?: any) => Promise<void>;
   generatePracticeForStudent: (studentId: string) => Promise<string>;
   submitAnswer: (exerciseId: string, answer: string, attemptNumber: number) => Promise<any>;
-  completePractice: (practiceId: string, results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number; supportEvents?: SupportEvent[] }) => Promise<void>;
+  completePractice: (practiceId: string, results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number; supportEvents?: SupportEvent[] }) => Promise<LearningEvidence>;
   resetDemo: () => void;
   refreshState: () => void;
 }
@@ -80,6 +81,7 @@ interface TutorContextType {
 const TutorContext = createContext<TutorContextType | undefined>(undefined);
 
 export function TutorProvider({ children }: { children: React.ReactNode }) {
+  const [dataError, setDataError] = useState<string | null>(null);
   const initialJudgeDemo = Boolean(
     process.env.NEXT_PUBLIC_JUDGE_DEMO === "true" ||
     process.env.JUDGE_DEMO === "true"
@@ -113,7 +115,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     {
       id: "initial-welcome",
       sender: "agent",
-      text: "👋 ¡Hola, Profesor Carlos! Soy **MACHTIA Adaptive Tutor**. He analizado el grupo **3° B** en la materia de **Matemáticas**. Puedes consultarme quién necesita apoyo o pedirme diagnósticos específicos.",
+      text: "👋 ¡Hola, Profesor Carlos! Soy **MACHTIA Adaptive Tutor**. Puedo consultar el diagnóstico demo del grupo **3° B** en **Matemáticas**. Puedes consultarme quién necesita apoyo o pedirme diagnósticos específicos.",
       timestamp: "2026-09-28T09:00:00.000Z",
       quickActions: [
         {
@@ -133,7 +135,8 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   const [isAgentThinking, setIsAgentThinking] = useState(false);
   const [activeAgentSteps, setActiveAgentSteps] = useState<string[]>([]);
 
-  const refreshState = () => {
+  const refreshState = async () => {
+    try { repository.hydrate(await mcpClient.snapshot()); setDataError(null); } catch (error) { setDataError(String(error));setMcpStatus(prev => ({ ...prev, connected: false, error: String(error) })); return; }
     setTeacher(repository.getTeacher());
     setGroup(repository.getGroup());
     setSubject(repository.getSubject());
@@ -168,8 +171,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   const startJudgeDemoTour = () => {
     cancelGlobalSpeech();
     mcpClient.setForceRealMcp(true);
-    repository.resetOfficialDemoScenario();
-    refreshState();
+    void mcpClient.initializeDemo(true).then(() => refreshState());
     checkMcpConnection();
     setIsJudgeDemo(true);
     setShowJudgeGuide(true);
@@ -194,37 +196,15 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    if (shouldActivateJudge) {
-      mcpClient.setForceRealMcp(true);
-      repository.resetOfficialDemoScenario();
-      setRole("teacher");
-      setActiveTeacherTab("dashboard");
-      setActiveStudentTab("home");
-      setSelectedStudentId("mariana-lopez");
-      setCurrentPracticingId(null);
-      setShowLanding(false);
-      setShowJudgeGuide(true);
-      setJudgeGuideStep(1);
-      setIsJudgeDemo(true);
-    } else {
-      repository.loadFromStorage();
-      if (teacherWorkspace) { setShowLanding(false); setIsJudgeDemo(false); }
-    }
-    refreshState();
-    checkMcpConnection();
+    void (async () => {
+      await mcpClient.initializeDemo();
+      await mcpClient.selectRole("teacher", "mariana-lopez");
+      if (shouldActivateJudge) { setShowLanding(false);setShowJudgeGuide(true);setIsJudgeDemo(true); }
+      else if (teacherWorkspace) { setShowLanding(false);setIsJudgeDemo(false); }
+      await refreshState(); await checkMcpConnection();
+    })().catch(error => { setDataError(String(error));setMcpStatus(prev => ({ ...prev, connected: false, error: String(error) })); });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const simulateAgentSteps = async (steps: string[]) => {
-    setIsAgentThinking(true);
-    setActiveAgentSteps([]);
-    for (let i = 0; i < steps.length; i++) {
-      await new Promise((r) => setTimeout(r, 380));
-      setActiveAgentSteps((prev) => [...prev, steps[i]]);
-    }
-    await new Promise((r) => setTimeout(r, 260));
-    setIsAgentThinking(false);
-  };
 
   const sendMessageToTutor = async (query: string) => {
     // Add user message
@@ -236,65 +216,13 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     };
     setChatMessages((prev) => [...prev, userMsg]);
 
-    const q = query.toLowerCase();
-    const isMcpOnline = mcpStatus.connected;
-    const mcpNote = isMcpOnline
-      ? "Conectado a MACHTIA Tutor Server"
-      : "MCP Offline (Modo Demo Activo)";
-
-    let steps: string[] = [
-      "AGENT | Analizando solicitud del profesor",
-      `MCP | ${mcpNote}`,
-    ];
-
-    if (!q.includes("práctica") && (q.includes("apoyo") || q.includes("quién") || q.includes("quien") || q.includes("rezago"))) {
-      steps = [
-        "AGENT | Analizando solicitud del profesor",
-        `MCP | ${mcpNote}`,
-        "TOOL | analyze_student_performance",
-        "RESULT | Tema con menor desempeño: Fracciones equivalentes",
-        "TOOL | find_students_needing_support",
-        "RESULT | 2 alumnos necesitan apoyo",
-        "TOOL | get_student_learning_gap",
-        "RESULT | Mariana López — Matemáticas — Fracciones equivalentes — 52%",
-      ];
-    } else if (!q.includes("práctica") && (q.includes("mariana") || q.includes("diagnóstico") || q.includes("brecha"))) {
-      steps = [
-        "AGENT | Analizando solicitud del profesor",
-        `MCP | ${mcpNote}`,
-        "TOOL | get_student_learning_gap",
-        "RESULT | Mariana López — Matemáticas — Fracciones equivalentes — 52%",
-        "TOOL | analyze_student_performance",
-        "RESULT | Error recurrente: Comparación errónea de denominadores (52% aciertos)",
-      ];
-    } else if (q.includes("generar práctica") || q.includes("crear práctica") || q.includes("práctica de apoyo")) {
-      steps = [
-        "AGENT | Analizando solicitud del profesor",
-        `MCP | ${mcpNote}`,
-        "TOOL | generate_adaptive_practice",
-        "RESULT | Práctica de apoyo generada con 5 ejercicios y 3 niveles de andamiaje",
-        "TOOL | assign_practice_to_student",
-        "RESULT | Mariana López — Práctica asignada con éxito (estado: pending)",
-      ];
-    } else if (q.includes("mejoró") || q.includes("mejora") || q.includes("progreso")) {
-      steps = [
-        "AGENT | Analizando solicitud del profesor",
-        `MCP | ${mcpNote}`,
-        "TOOL | get_student_progress",
-        "RESULT | Diagnóstico inicial: 52% → Práctica completada: 80%",
-        "TOOL | report_progress_to_teacher",
-        "RESULT | Mariana López: +28 puntos porcentuales (Mejora detectada)",
-      ];
-    }
-
-    await simulateAgentSteps(steps);
-
+    setIsAgentThinking(true);setActiveAgentSteps(["Consultando herramientas MCP del servidor"]);
     const result = await tutorAgent.processTeacherQuery(query, {
       selectedStudentId,
     });
 
     setChatMessages((prev) => [...prev, result.message]);
-    refreshState();
+    await refreshState();setIsAgentThinking(false);setActiveAgentSteps([]);
   };
 
   const handleQuickAction = async (actionKey: string, payload?: any) => {
@@ -333,7 +261,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     ) {
       const studentId = payload?.studentId || "mariana-lopez";
       setSelectedStudentId(studentId);
-      setRole("student");
+      handleSetRole("student", studentId);
       setActiveStudentTab("practices");
       const currentList = repository.getPracticesByStudent(studentId);
       const pendingPractice = currentList.find((p: Practice) => p.status !== "completed");
@@ -376,84 +304,34 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       try {
         await mcpClient.assignPracticeToStudent(pId, student.id);
       } catch {
-        // Fallback local
+        throw new Error("No se pudo asignar la práctica en el servidor");
       }
       refreshState();
       return pId;
     }
 
-    // Resilient fallback
-    const fallbackPractice = await generate_adaptive_practice(student.id, "fracciones-equivalentes", "easy", 5);
-    refreshState();
-    return fallbackPractice.practiceId;
+    throw new Error("El servidor no generó la práctica.");
   };
 
   const submitAnswer = async (exerciseId: string, answer: string, attemptNumber: number) => {
-    return evaluate_answer(exerciseId, answer, attemptNumber);
+    const practice = repository.getPractices().find(p => p.id === currentPracticingId && p.exercises.some(e => e.id === exerciseId)) || repository.getPractices().find(p => p.studentId === selectedStudentId && p.exercises.some(e => e.id === exerciseId));
+    if (!practice) throw new Error("Práctica no encontrada");
+    await mcpClient.selectRole("student", practice.studentId);
+    const result = await mcpClient.submitAnswer(practice.id, exerciseId, answer, attemptNumber, practice.studentId);
+    return result.result;
   };
-
-  const completePractice = async (
-    practiceId: string,
-    results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number; supportEvents?: SupportEvent[] }
-  ) => {
-    repository.updatePracticeStatus(practiceId, "completed");
-
+  const completePractice = async (practiceId: string, _results: any) => {
     const practice = repository.getPracticeById(practiceId);
-    if (!practice) return;
-
-    const student = repository.getStudentById(practice.studentId);
-    if (!student) return;
-
-    const baselineAvailable = student.topicPerformances[practice.topicId] !== undefined;
-    const initialScore = student.topicPerformances[practice.topicId] ?? 0;
-    repository.updateStudentScore(student.id, practice.topicId, results.score);
-
-
-    const delta = results.score - initialScore;
-
-    repository.saveEvidence({
-      id: `evi-${Date.now()}`,
-      studentId: student.id,
-      studentName: student.name,
-      practiceId: practice.id,
-      subjectId: practice.subjectId,
-      topicName: practice.topicName,
-      initialScore: initialScore,
-      baselineAvailable,
-      totalCorrect: results.totalCorrect,
-      totalExercises: results.totalExercises,
-      supportEvents: results.supportEvents,
-      finalScore: results.score,
-      totalAttempts: results.totalAttempts,
-      hintsUsed: results.hintsUsed,
-      reexplanationsUsed: results.reexplanationsUsed,
-      improvementDelta: baselineAvailable ? delta : 0,
-      status: !baselineAvailable ? "Primera medición" : delta > 0 ? "Mejora detectada" : delta < 0 ? "Requiere refuerzo adicional" : "Resultado estable",
-      masteredConcepts: results.mastered,
-      pendingConcepts: results.pending,
-      tutorObservations: `${student.name} completó la práctica guiada por el Tutor IA. Resolvió correctamente ${results.totalCorrect} de ${results.totalExercises} reactivos obteniendo un puntaje de ${results.score}%. ${baselineAvailable ? `Diagnóstico inicial: ${initialScore}%.` : "Sin diagnóstico inicial comparable; este resultado establece su primera medición."} Intentos: ${results.totalAttempts ?? "sin registro"}. Pistas: ${results.hintsUsed ?? "sin registro"}. Re-explicaciones: ${results.reexplanationsUsed ?? "sin registro"}.`,
-      timestamp: new Date().toISOString(),
-      attemptId: `att-${Date.now()}`,
-    });
-
-    repository.logAction({
-      toolName: "save_learning_evidence",
-      displayName: "Guardó evidencia de aprendizaje",
-      description: `${student.name}: resultado ${results.score}%. ${baselineAvailable ? `Cambio ${delta} puntos desde ${initialScore}%.` : "Primera medición, sin delta comparable."}`,
-      input: { studentId: student.id, practiceId: practice.id, score: results.score },
-      output: { status: "saved", delta },
-      status: "success",
-      durationMs: 140,
-      source: "local-fallback",
-      mcpProtocol: "2025-11-25",
-    });
-
-    refreshState();
+    if (!practice) throw new Error("Práctica no encontrada");
+    await mcpClient.selectRole("student", practice.studentId);
+    const result = await mcpClient.completePractice(practiceId, practice.studentId);
+    await refreshState();
+    return result.result.evidence as LearningEvidence;
   };
 
-  const handleSetRole = (newRole: "teacher" | "student") => {
+  const handleSetRole = (newRole: "teacher" | "student", studentId = selectedStudentId) => {
     cancelGlobalSpeech();
-    setRole(newRole);
+    void mcpClient.selectRole(newRole, studentId).then(() => { setRole(newRole); void refreshState(); }).catch(error => { setDataError(String(error));setMcpStatus(prev => ({ ...prev, connected: false, error: String(error) })); });
   };
 
   const handleSetActiveTeacherTab = (tab: "dashboard" | "group" | "tutor" | "support" | "practices" | "evidences" | "progress") => {
@@ -473,8 +351,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
 
   const resetDemo = () => {
     cancelGlobalSpeech();
-    repository.resetOfficialDemoScenario();
-    refreshState();
+    void mcpClient.initializeDemo(true).then(() => refreshState());
     checkMcpConnection();
     setRole("teacher");
     setActiveTeacherTab("dashboard");
@@ -487,7 +364,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
       {
         id: "initial-welcome",
         sender: "agent",
-        text: "👋 ¡Hola, Profesor Carlos! Soy **MACHTIA Adaptive Tutor**. He analizado el grupo **3° B** en la materia de **Matemáticas**. Puedes consultarme quién necesita apoyo o pedirme diagnósticos específicos.",
+        text: "👋 ¡Hola, Profesor Carlos! Soy **MACHTIA Adaptive Tutor**. Puedo consultar el diagnóstico demo del grupo **3° B** en **Matemáticas**. Puedes consultarme quién necesita apoyo o pedirme diagnósticos específicos.",
         timestamp: new Date().toISOString(),
         quickActions: [
           {
@@ -508,6 +385,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   return (
     <TutorContext.Provider
       value={{
+        dataError,
         role,
         setRole: handleSetRole,
         activeTeacherTab,

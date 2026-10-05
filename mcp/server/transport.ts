@@ -1,282 +1,98 @@
-/**
- * MACHTIA Adaptive Tutor - MCP Streamable HTTP Transport
- * Protocol Version: 2025-11-25
- * Specification: Model Context Protocol (MCP) Streamable HTTP & SSE Transport
- */
-
 import http from "node:http";
 import { listMcpTools, executeMcpTool } from "./tools";
-
-export interface TransportConfig {
-  port: number;
-  host?: string;
-  corsOrigin?: string;
-  webHandler?: http.RequestListener;
-}
-
+import { authenticate, createDemoSession, issueActor, judgeSession, runAsActor } from "./session";
+import { publishDraft } from "@/lib/learning/catalog";
+import { ledger } from "./learning-ledger";
+export interface TransportConfig { port: number; host?: string; corsOrigin?: string; webHandler?: http.RequestListener }
 export const PROTOCOL_VERSION = "2025-11-25";
 export const SERVER_NAME = "machtia-tutor-mcp-server";
-export const SERVER_VERSION = "1.0.0";
-
-/**
- * Creates and configures the Streamable HTTP MCP Server.
- */
-export function createMcpHttpServer(config: TransportConfig): http.Server {
-  const { port, host = "0.0.0.0", corsOrigin } = config;
-
-  const server = http.createServer(async (req, res) => {
-    const requestPath = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`).pathname;
-    const isMcpRequest = ["/health", "/healthz", "/mcp", "/sse", "/mcp/stream"].includes(requestPath)
-      || (req.method === "POST" && requestPath === "/");
-    if (config.webHandler && !isMcpRequest) {
-      await config.webHandler(req, res);
-      return;
-    }
-    // 1. Setup CORS Headers dynamically supporting MCP_ALLOWED_ORIGINS
-    const incomingOrigin = req.headers.origin;
-    const envOrigins = process.env.MCP_ALLOWED_ORIGINS;
-    let resolvedOrigin = "*";
-
-    if (envOrigins) {
-      const allowed = envOrigins.split(",").map((s) => s.trim()).filter(Boolean);
-      if (incomingOrigin) {
-        const matches = allowed.some((allowedOrigin) => {
-          if (allowedOrigin === "*") return true;
-          if (allowedOrigin === incomingOrigin) return true;
-          if (allowedOrigin.includes("*")) {
-            const regex = new RegExp("^" + allowedOrigin.replace(/\./g, "\\.").replace(/\*/g, ".*") + "$");
-            return regex.test(incomingOrigin);
-          }
-          return false;
-        });
-        if (matches) {
-          resolvedOrigin = incomingOrigin;
-        } else {
-          resolvedOrigin = allowed[0] || "*";
-        }
-      } else {
-        resolvedOrigin = allowed[0] || "*";
-      }
-    } else if (corsOrigin) {
-      resolvedOrigin = corsOrigin;
-    }
-
-    res.setHeader("Access-Control-Allow-Origin", resolvedOrigin);
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-    res.setHeader(
-      "Access-Control-Allow-Headers",
-      "Content-Type, Authorization, x-mcp-session-id, x-mcp-protocol-version"
-    );
-    res.setHeader("Access-Control-Max-Age", "86400");
-
-    if (req.method === "OPTIONS") {
-      res.writeHead(204);
-      res.end();
-      return;
-    }
-
-    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
-    const pathname = url.pathname;
-
-    // 2. Health Endpoint
-    if (req.method === "GET" && (pathname === "/health" || pathname === "/healthz")) {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(
-        JSON.stringify({
-          status: "ok",
-          protocolVersion: PROTOCOL_VERSION,
-          transport: "Streamable HTTP",
-          server: SERVER_NAME,
-          version: SERVER_VERSION,
-          toolsCount: listMcpTools().length,
-          timestamp: new Date().toISOString(),
-        })
-      );
-      return;
-    }
-
-    // 3. SSE / Streamable connection (GET /mcp or GET /sse)
-    if (req.method === "GET" && (pathname === "/mcp" || pathname === "/sse" || pathname === "/mcp/stream")) {
-      res.writeHead(200, {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-      });
-
-      res.write(`event: endpoint\ndata: ${pathname}\n\n`);
-      res.write(
-        `event: ready\ndata: ${JSON.stringify({
-          server: SERVER_NAME,
-          protocolVersion: PROTOCOL_VERSION,
-          transport: "Streamable HTTP",
-        })}\n\n`
-      );
-
-      // Keep alive heartbeat interval
-      const heartbeat = setInterval(() => {
-        if (!res.writableEnded) {
-          res.write(`event: ping\ndata: {}\n\n`);
-        }
-      }, 15000);
-
-      req.on("close", () => {
-        clearInterval(heartbeat);
-      });
-      return;
-    }
-
-    // 4. Main MCP JSON-RPC Streamable HTTP Endpoint (POST /mcp or POST /)
-    if (req.method === "POST" && (pathname === "/mcp" || pathname === "/")) {
-      let body = "";
-      req.setEncoding("utf8");
-
-      req.on("data", (chunk) => {
-        body += chunk;
-      });
-
-      req.on("end", async () => {
-        if (!body.trim()) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: "Empty request body" }));
-          return;
-        }
-
-        try {
-          const jsonRpcRequest = JSON.parse(body);
-          const response = await handleJsonRpcMessage(jsonRpcRequest);
-
-          if (response === null) {
-            // Notification without response
-            res.writeHead(204);
-            res.end();
-            return;
-          }
-
-          res.writeHead(200, {
-            "Content-Type": "application/json; charset=utf-8",
-            "Transfer-Encoding": "chunked",
-          });
-          res.end(JSON.stringify(response));
-        } catch (err: any) {
-          res.writeHead(400, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              id: null,
-              error: {
-                code: -32700,
-                message: "Parse error",
-                data: err?.message,
-              },
-            })
-          );
-        }
-      });
-      return;
-    }
-
-    // 404 Fallback
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Endpoint not found", path: pathname }));
-  });
-
-  return server;
+export const SERVER_VERSION = "1.1.0";
+async function readBody(req: http.IncomingMessage) {
+  let size = 0; const parts: Buffer[] = [];
+  for await (const chunk of req) { size += chunk.length; if (size > 128 * 1024) throw Object.assign(new Error("Request body too large"), { statusCode: 413 }); parts.push(Buffer.from(chunk)); }
+  try { return JSON.parse(Buffer.concat(parts).toString("utf8")); } catch { throw Object.assign(new Error("Invalid JSON"), { statusCode: 400 }); }
 }
-
-/**
- * Handles incoming JSON-RPC 2.0 messages according to the MCP specification.
- */
-async function handleJsonRpcMessage(
-  req: any
-): Promise<any | null> {
-  // Support batch requests
-  if (Array.isArray(req)) {
-    const results = await Promise.all(req.map((r) => handleJsonRpcMessage(r)));
-    return results.filter((r) => r !== null);
-  }
-
-  const { jsonrpc, id, method, params } = req || {};
-
-  // Notifications (no id)
-  if (id === undefined || id === null) {
-    if (method === "notifications/initialized") {
-      return null;
-    }
-  }
-
-  // 1. initialize
-  if (method === "initialize") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        protocolVersion: PROTOCOL_VERSION,
-        capabilities: {
-          tools: {
-            listChanged: false,
-          },
-        },
-        serverInfo: {
-          name: SERVER_NAME,
-          version: SERVER_VERSION,
-        },
-        instructions:
-          "MACHTIA Adaptive Tutor MCP Server - Exposes educational diagnostics, adaptive practice generation, and teacher reporting for Amazon Alexa+ and AI tutors.",
-      },
-    };
-  }
-
-  // 2. ping
-  if (method === "ping") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {},
-    };
-  }
-
-  // 3. tools/list
-  if (method === "tools/list") {
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: {
-        tools: listMcpTools(),
-      },
-    };
-  }
-
-  // 4. tools/call
-  if (method === "tools/call") {
-    const toolName = params?.name;
-    const args = params?.arguments || {};
-
-    if (!toolName) {
-      return {
-        jsonrpc: "2.0",
-        id,
-        error: {
-          code: -32602,
-          message: "Invalid params: 'name' is required in tools/call",
-        },
-      };
-    }
-
-    const callResult = await executeMcpTool(toolName, args);
-    return {
-      jsonrpc: "2.0",
-      id,
-      result: callResult,
-    };
-  }
-
-  // Method not found
-  return {
-    jsonrpc: "2.0",
-    id,
-    error: {
-      code: -32601,
-      message: `Method not found: '${method}'`,
-    },
-  };
+export function createMcpHttpServer(config: TransportConfig): http.Server {
+  return http.createServer(async (req, res) => {
+    const pathname = new URL(req.url || "/", "http://localhost").pathname;
+    const api = pathname.startsWith("/api/");
+    const controlled = api || ["/health", "/healthz", "/mcp", "/sse", "/mcp/stream"].includes(pathname);
+    if (!controlled && config.webHandler) { config.webHandler(req, res); return; }
+    const send = (status: number, value?: unknown) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(value === undefined ? undefined : JSON.stringify(value)); };
+    const origin = req.headers.origin;
+    const allowed = (process.env.MCP_ALLOWED_ORIGINS || config.corsOrigin || "http://localhost:3000,http://127.0.0.1:3000").split(",").map(s => s.trim()).filter(s => s && !s.includes("*"));
+    if (origin && !allowed.includes(origin)) { send(403, { error: "Origin forbidden" }); return; }
+    if (origin) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin"); }
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, Accept, MCP-Protocol-Version, MCP-Session-Id, X-Demo-Control");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    if (req.method === "OPTIONS") { send(204); return; }
+    try {
+      if (req.method === "GET" && ["/health", "/healthz"].includes(pathname)) {
+        send(200, { status: "ok", protocolVersion: PROTOCOL_VERSION, transport: "Streamable HTTP", server: SERVER_NAME, version: SERVER_VERSION, toolsCount: listMcpTools().length,
+          commit: process.env.RENDER_GIT_COMMIT || process.env.BUILD_SHA || null, dataMode: "isolated-ephemeral-demo", aiProvider: "deterministic", timestamp: new Date().toISOString() }); return;
+      }
+      if (req.method === "POST" && pathname === "/api/demo") {
+        await readBody(req); const { session, actorToken } = createDemoSession(); send(201, { judgeToken: session.judgeToken, actorToken, expiresAt: session.expires, mode: "isolated-demo" }); return;
+      }
+      if (req.method === "POST" && pathname === "/api/role") {
+        const session = judgeSession(String(req.headers["x-demo-control"] || ""));
+        if (!session) { send(403, { error: "Judge controller capability required" }); return; }
+        const body = await readBody(req);
+        if (!["teacher", "student"].includes(body.role)) { send(400, { error: "Invalid role" }); return; }
+        send(200, { actorToken: issueActor(session, body.role, body.role === "teacher" ? session.repository.getTeacher().id : body.studentId) }); return;
+      }
+      const actor = authenticate((req.headers.authorization || "").replace(/^Bearer /, ""));
+      if (api) {
+        if (!actor) { send(401, { error: "Authenticated demo actor required" }); return; }
+        if (req.method === "POST" && pathname === "/api/support") {
+          const body = await readBody(req);
+          const practice = actor.session.repository.getPracticeById(body.practiceId);
+          if (!practice || actor.role !== "student" || practice.studentId !== actor.id || practice.status === "completed" || !practice.exercises.some(e => e.id === body.exerciseId)) { send(403, { error: "Support resource forbidden" }); return; }
+          if (!["verbal_hint", "visual_hint", "alternative_representation", "guided_steps"].includes(body.kind)) throw new Error("Invalid support kind");
+          runAsActor(actor, () => ledger(practice.id).supports.push({ exerciseId: body.exerciseId, kind: body.kind, source: "requested", timestamp: new Date().toISOString() }));
+          send(200, { recorded: true }); return;
+        }
+        if (req.method === "GET" && pathname === "/api/state") {
+          const r = actor.session.repository;
+          const practices = r.getPractices().filter(p => actor.role === "teacher" || p.studentId === actor.id);
+          send(200, { teacher: r.getTeacher(), group: r.getGroup(), subject: r.getSubject(), students: r.getStudents().filter(s => actor.role === "teacher" || s.id === actor.id),
+            practices: practices.map(p => actor.role === "teacher" ? p : { ...p, exercises: p.exercises.map(e => ({ ...e, correctAnswer: "", explanation: "", alternativeExplanation: "", guidedExample: "", hint: "Revisa la estrategia del tema antes de elegir." })) }),
+            evidences: r.getEvidences().filter(e => actor.role === "teacher" || e.studentId === actor.id), actionLogs: actor.role === "teacher" ? r.getActionLogs() : [] }); return;
+        }
+        if (req.method === "POST" && pathname === "/api/practices") {
+          if (actor.role !== "teacher") { send(403, { error: "Teacher role required" }); return; }
+          const draft = await readBody(req);
+          if (!draft || !Array.isArray(draft.exercises) || draft.exercises.length > 20 || !draft.config) throw new Error("Invalid draft");
+          for (const e of draft.exercises) if (!e || !Array.isArray(e.options) || !e.options.includes(e.correctAnswer) || new Set(e.options).size !== e.options.length) throw new Error("Invalid exercise options");
+          const result = runAsActor(actor, () => publishDraft(draft)); send(200, result); return;
+        }
+        send(404, { error: "Endpoint not found" }); return;
+      }
+      if (pathname !== "/mcp") { send(404, { error: "Endpoint not found" }); return; }
+      if (req.method === "GET") { send(405, { error: "Server has no unsolicited event stream; use POST" }); return; }
+      if (req.method !== "POST") { send(405, { error: "Method not allowed" }); return; }
+      const accept = req.headers.accept || "";
+      if (!accept.includes("application/json") || !accept.includes("text/event-stream")) { send(406, { error: "Accept must include application/json and text/event-stream" }); return; }
+      if (!req.headers["content-type"]?.includes("application/json")) { send(415, { error: "Content-Type must be application/json" }); return; }
+      const version = req.headers["mcp-protocol-version"];
+      if (version && version !== PROTOCOL_VERSION) { send(400, { error: "Unsupported MCP protocol version" }); return; }
+      const message = await readBody(req);
+      if (!message || Array.isArray(message) || message.jsonrpc !== "2.0" || typeof message.method !== "string" || message.id === null || message.id !== undefined && typeof message.id !== "string" && typeof message.id !== "number") { send(400, { jsonrpc: "2.0", id: null, error: { code: -32600, message: "Invalid Request" } }); return; }
+      if (message.id === undefined) {
+        if (message.method.startsWith("notifications/")) { send(202); return; }
+        send(400, { error: "Request id required" }); return;
+      }
+      const reply = (result: unknown) => send(200, { jsonrpc: "2.0", id: message.id, result });
+      if (message.method === "initialize") { reply({ protocolVersion: PROTOCOL_VERSION, capabilities: { tools: { listChanged: false } }, serverInfo: { name: SERVER_NAME, version: SERVER_VERSION }, instructions: "Isolated educational demo. Obtain scoped actor capability via POST /api/demo. Alexa+ experience is simulated." }); return; }
+      if (message.method === "ping") { reply({}); return; }
+      if (message.method === "tools/list") { reply({ tools: listMcpTools() }); return; }
+      if (message.method === "tools/call") {
+        if (!actor) { send(401, { error: "Authenticated actor required" }); return; }
+        if (typeof message.params?.name !== "string" || !message.params.arguments || typeof message.params.arguments !== "object" || Array.isArray(message.params.arguments)) { send(400, { error: "Invalid tool arguments" }); return; }
+        reply(await runAsActor(actor, () => executeMcpTool(message.params.name, message.params.arguments))); return;
+      }
+      send(200, { jsonrpc: "2.0", id: message.id, error: { code: -32601, message: "Method not found" } });
+    } catch (error: any) { if (!res.headersSent) send(error.statusCode || 400, { error: error.message || "Request failed" }); }
+  });
 }

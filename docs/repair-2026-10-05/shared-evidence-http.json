@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-10-05T22:27:22.197Z",
+  "base": "http://127.0.0.1:62975",
+  "scope": "HTTP E2E; browser UI verification recorded separately",
+  "practiceId": "teacher-db75fb10-5dd5-4c55-b21a-cf0c2fb4d906",
+  "evidenceId": "evi-9b3d468d-8f9c-426c-a54a-2464ef043c28",
+  "WEB": 100,
+  "TEACHER": 100,
+  "MCP": 100,
+  "ALEXA_SIMULATOR": 100,
+  "totalAttempts": 6,
+  "hintsUsed": 2,
+  "allFieldsEqual": true
+}

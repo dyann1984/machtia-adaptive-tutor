@@ -46,6 +46,7 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-xs">
+      <p className="text-center text-xs bg-amber-50 text-amber-950 py-1">Datos sintéticos · Demo aislada · Tutor determinista · Alexa+ simulada</p>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between min-h-20 py-3 gap-3">
           {/* IZQUIERDA: Logo MACHTIA + Adaptive Tutor + Badges discretos */}
@@ -93,16 +94,16 @@ export function Navbar() {
               <button
                 onClick={() => setShowAlexaSimulator(true)}
                 className="text-[11px] text-slate-500 hover:text-slate-800 font-medium bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md border border-slate-200/60 transition cursor-pointer"
-                title="Alexa+ Ready • Clic para abrir el Simulador Interactivo Alexa+"
+                title="Simulación Alexa+ • Clic para abrir el Simulador Interactivo Alexa+"
               >
-                Alexa+ Ready
+                Simulación Alexa+
               </button>
             </div>
           </div>
 
           {/* CENTRO: Navegación de pestañas clara y espaciosa */}
           {!showLanding && (
-            <nav className="hidden lg:flex flex-wrap order-last w-full justify-center items-center gap-1.5">
+            <nav className="flex flex-wrap order-last w-full justify-center items-center gap-1.5">
               {role === "teacher" ? (
                 <>
                   <button

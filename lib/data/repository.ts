@@ -18,7 +18,7 @@ import {
   SAMPLE_EXERCISES_POOL,
 } from "./mock-data";
 
-class TutorRepository {
+export class TutorRepository {
   private teacher: Teacher = { ...INITIAL_TEACHER };
   private group: Group = { ...INITIAL_GROUP };
   private subject: Subject = { ...INITIAL_SUBJECT };
@@ -54,6 +54,12 @@ class TutorRepository {
         console.warn("Could not load from localStorage, using memory store", e);
       }
     }
+  }
+
+  public hydrate(snapshot: { teacher: Teacher; group: Group; subject: Subject; students: Student[]; practices: Practice[]; evidences: LearningEvidence[]; actionLogs: TutorAction[] }) {
+    this.teacher = snapshot.teacher; this.group = snapshot.group; this.subject = snapshot.subject;
+    this.students = snapshot.students; this.practices = snapshot.practices;
+    this.evidences = snapshot.evidences; this.actionLogs = snapshot.actionLogs;
   }
 
   private persist() {
@@ -128,7 +134,7 @@ class TutorRepository {
 
     this.practices = [officialPractice];
     this.attempts = [];
-    this.evidences = JSON.parse(JSON.stringify(INITIAL_EVIDENCES));
+    this.evidences = [];
     this.actionLogs = [];
 
     this.persist();
@@ -277,7 +283,8 @@ class TutorRepository {
       (e) => e.topicName.toLowerCase().includes("fracciones") || e.subjectId === "matematicas"
     );
 
-    const initialScore = 52; // baseline for Mariana
+    const evidence = evidences.find(e => this.getPracticeById(e.practiceId)?.topicId === topicId);
+    const initialScore = evidence?.initialScore ?? student.topicPerformances[topicId] ?? 0;
     const currentScore = student.topicPerformances[topicId] ?? initialScore;
     const delta = currentScore - initialScore;
 
@@ -298,4 +305,13 @@ class TutorRepository {
   }
 }
 
-export const repository = new TutorRepository();
+const defaultRepository = new TutorRepository();
+let resolveRepository = () => defaultRepository;
+export function installRepositoryResolver(resolver: () => TutorRepository) { resolveRepository = resolver; }
+export const repository = new Proxy(defaultRepository, {
+  get(_target, key) {
+    const current = resolveRepository();
+    const value = Reflect.get(current, key);
+    return typeof value === "function" ? value.bind(current) : value;
+  },
+});

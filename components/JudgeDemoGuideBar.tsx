@@ -107,7 +107,7 @@ export function JudgeDemoGuideBar({
       title: "Acompañamiento didáctico con Tutor Robot",
       description:
         "Como Mariana, resuelve los ejercicios interactivos. Observa la explicación visual previa, prueba pedir pistas o equivocarte para recibir andamiaje, y finaliza.",
-      actionLabel: "Ver Evidencia Docente (+28 pts)",
+      actionLabel: "Ver evidencia calculada",
       targetRole: "teacher",
       onAction: () => {
         setRole("teacher");
@@ -120,7 +120,7 @@ export function JudgeDemoGuideBar({
       badge: "Paso 4 • Evidencia Verificable",
       title: "Comprueba el avance cuantitativo y cualitativo",
       description:
-        "Observa la nueva tarjeta de LearningEvidence de Mariana López: calificación 80% (+28 puntos delta), conceptos dominados y pendientes calculados en tiempo real.",
+        "Observa la nueva tarjeta de LearningEvidence de Mariana López: calificación y cambio calculados desde los intentos, conceptos dominados y pendientes calculados en tiempo real.",
       actionLabel: "Abrir Simulador Alexa+ (MCP Real)",
       targetRole: "teacher",
       onAction: () => {
@@ -179,7 +179,7 @@ export function JudgeDemoGuideBar({
               </span>
               {isMarianaImproved && judgeGuideStep >= 3 && (
                 <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5 rounded-full">
-                  ✓ Mariana: 80% (+28 pts)
+                  ✓ Mariana: resultado registrado
                 </span>
               )}
             </div>

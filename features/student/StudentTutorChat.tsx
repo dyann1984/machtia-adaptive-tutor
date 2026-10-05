@@ -37,7 +37,7 @@ export function StudentTutorChat() {
       let reply = `¡Gran pregunta, ${student.name.split(" ")[0]}! Recuerda siempre que dos fracciones son equivalentes si multiplicas o divides tanto el numerador como el denominador por el mismo número.`;
 
       if (query.toLowerCase().includes("1/2")) {
-        reply = `¡Exacto! 1/2 es equivalente a 2/4, 3/6, 4/8 y 5/10. ¡Todas cubren la mitad exacta del entero! 🍫`;
+        reply = `Representa la fracción con un dibujo. Para conservar la cantidad, transforma el numerador y el denominador con el mismo factor. Prueba tu elección en la práctica.`;
       } else if (query.toLowerCase().includes("denominador")) {
         reply = `El denominador te dice en cuántas partes iguales se divide el entero. ¡Entre más partes dividas una pizza, más pequeñas serán las rebanadas! Por eso 1/4 es más pequeño que 1/2.`;
       }
@@ -61,7 +61,7 @@ export function StudentTutorChat() {
           </div>
         </div>
         <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full font-semibold">
-          En línea
+          Guía determinista
         </span>
       </div>
 
@@ -95,7 +95,7 @@ export function StudentTutorChat() {
           type="text"
           value={inputText}
           onChange={(e) => setInputText(e.target.value)}
-          placeholder="Escribe tu duda sobre fracciones (ej. ¿Por qué 1/2 es igual a 2/4?)..."
+          placeholder="Escribe tu duda sobre fracciones (ej. ¿Cómo comparo fracciones?)..."
           className="flex-1 bg-white border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-slate-800"
         />
         <button

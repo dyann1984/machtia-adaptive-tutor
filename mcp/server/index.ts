@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 /**
  * MACHTIA Adaptive Tutor - MCP Server Entrypoint
  * Protocol Version: 2025-11-25
@@ -12,7 +13,7 @@ export const DEFAULT_MCP_PORT = 3100;
 
 export function startMcpServer(
   port: number = parseInt(process.env.PORT || process.env.MCP_PORT || String(DEFAULT_MCP_PORT), 10),
-  host: string = process.env.MCP_HOST || "0.0.0.0"
+  host: string = process.env.MCP_HOST || "127.0.0.1"
 ): Promise<http.Server> {
   return new Promise((resolve, reject) => {
     const server = createMcpHttpServer({ port, host });
@@ -56,12 +57,7 @@ export function stopMcpServer(server?: http.Server): Promise<void> {
 }
 
 // Auto-run only if executed directly as entrypoint
-const isImported = Boolean(
-  process.env.VITEST ||
-  process.env.NODE_ENV === "test" ||
-  process.env.npm_lifecycle_event?.startsWith("test") ||
-  process.argv[1]?.includes("verify-")
-);
+const isImported = !process.argv[1] || import.meta.url !== pathToFileURL(process.argv[1]).href;
 
 if (!isImported) {
   const port = parseInt(process.env.PORT || process.env.MCP_PORT || String(DEFAULT_MCP_PORT), 10);

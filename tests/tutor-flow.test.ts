@@ -168,13 +168,13 @@ describe("MACHTIA Adaptive Tutor - Core Pedagogical Flow", () => {
     const teacherReport = await report_progress_to_teacher("mariana-lopez", "matematicas");
 
     expect(teacherReport.studentName).toBe("Mariana López");
-    expect(teacherReport.scoreBefore).toBe(52);
-    expect(teacherReport.scoreAfter).toBe(80);
-    expect(teacherReport.improvementDelta).toBe(28);
-    expect(teacherReport.status).toBe("Mejora detectada");
-    expect(teacherReport.reportText).toContain("Mariana López mostró una mejora notable");
-    expect(teacherReport.masteredConcepts).toContain("Identificación de fracciones equivalentes");
-    expect(teacherReport.pendingConcepts).toContain("Simplificación de fracciones");
+    expect(teacherReport.scoreBefore).toBeNull();
+    expect(teacherReport.scoreAfter).toBeNull();
+    expect(teacherReport.improvementDelta).toBeNull();
+    expect(teacherReport.status).toBe("Sin evidencia todavía");
+    expect(teacherReport.reportText).toContain("Todavía no hay");
+    expect(teacherReport.masteredConcepts).toEqual([]);
+    expect(teacherReport.pendingConcepts).toEqual([]);
   });
 
   // TEST 9: Reiniciar Demo restaura estado inicial

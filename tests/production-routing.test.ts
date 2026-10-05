@@ -33,7 +33,7 @@ describe("Production web and MCP share one service", () => {
     expect((await health.json()).toolsCount).toBe(15);
     const response = await fetch(baseUrl + "/mcp", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "initialize", params: {} }),
     });
     expect((await response.json()).result.protocolVersion).toBe("2025-11-25");
