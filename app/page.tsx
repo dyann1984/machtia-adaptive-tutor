@@ -33,7 +33,29 @@ export default function Home() {
     resetDemo,
   } = useTutor();
 
-  if (dataError) return <section role="alert" className="theme-card p-6 max-w-3xl mx-auto space-y-4"><h1 className="text-xl font-bold">No se pudieron recuperar los datos de la sesión</h1><p>El servidor debe estar disponible para consultar prácticas y guardar evidencia. Una sesión demo expirada puede reiniciarse.</p><p className="text-sm">{dataError}</p><button className="theme-primary" onClick={resetDemo}>Reiniciar sesión demo</button></section>;
+  if (dataError) {
+    const isWakingUp = dataError.includes("iniciando") || dataError.includes("spin-up");
+    return (
+      <section role="alert" className="theme-card p-6 sm:p-8 max-w-2xl mx-auto space-y-4 my-8 text-center sm:text-left">
+        <h1 className="text-xl sm:text-2xl font-black text-slate-900">
+          {isWakingUp ? "Iniciando servidor en la nube..." : "Conexión con el servidor"}
+        </h1>
+        <p className="text-sm text-slate-600 leading-relaxed">
+          {isWakingUp
+            ? "El servidor de MACHTIA en la nube está terminando de iniciar (Render cold-start). Esto toma unos segundos al activarse por primera vez."
+            : "El servidor debe estar disponible para consultar prácticas y guardar evidencia del alumno. Una sesión demo expirada puede reiniciarse en un clic."}
+        </p>
+        <p className="text-xs bg-slate-100 text-slate-700 p-3 rounded-xl font-mono overflow-x-auto border border-slate-200">
+          {dataError}
+        </p>
+        <div className="flex flex-wrap gap-3 pt-2">
+          <button className="theme-primary" onClick={resetDemo}>
+            Reiniciar sesión demo
+          </button>
+        </div>
+      </section>
+    );
+  }
 
   if (showLanding) {
     return (

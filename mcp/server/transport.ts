@@ -3,6 +3,7 @@ import { listMcpTools, executeMcpTool } from "./tools";
 import { authenticate, createDemoSession, issueActor, judgeSession, runAsActor } from "./session";
 import { publishDraft } from "@/lib/learning/catalog";
 import { ledger } from "./learning-ledger";
+import { miaAgent } from "@/lib/ai/mia-agent";
 export interface TransportConfig { port: number; host?: string; corsOrigin?: string; webHandler?: http.RequestListener }
 export const PROTOCOL_VERSION = "2025-11-25";
 export const SERVER_NAME = "machtia-tutor-mcp-server";
@@ -20,7 +21,7 @@ export function createMcpHttpServer(config: TransportConfig): http.Server {
     if (!controlled && config.webHandler) { config.webHandler(req, res); return; }
     const send = (status: number, value?: unknown) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(value === undefined ? undefined : JSON.stringify(value)); };
     const origin = req.headers.origin;
-    const allowed = (process.env.MCP_ALLOWED_ORIGINS || config.corsOrigin || "http://localhost:3000,http://127.0.0.1:3000").split(",").map(s => s.trim()).filter(s => s && !s.includes("*"));
+    const allowed = (process.env.MCP_ALLOWED_ORIGINS || config.corsOrigin || "http://localhost:3000,http://127.0.0.1:3000,https://machtia-tutor-mcp-server.onrender.com,http://machtia-tutor-mcp-server.onrender.com,https://machtia-adaptive-tutor.onrender.com,http://machtia-adaptive-tutor.onrender.com").split(",").map(s => s.trim()).filter(s => s && !s.includes("*"));
     if (origin && !allowed.includes(origin)) { send(403, { error: "Origin forbidden" }); return; }
     if (origin) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin"); }
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -41,6 +42,13 @@ export function createMcpHttpServer(config: TransportConfig): http.Server {
         const body = await readBody(req);
         if (!["teacher", "student"].includes(body.role)) { send(400, { error: "Invalid role" }); return; }
         send(200, { actorToken: issueActor(session, body.role, body.role === "teacher" ? session.repository.getTeacher().id : body.studentId) }); return;
+      }
+      if (req.method === "POST" && pathname === "/api/mia") {
+        const body = await readBody(req);
+        const { message, mode, practiceContext } = body || {};
+        const reply = await miaAgent.respond(String(message || ""), mode || "free", practiceContext);
+        send(200, reply);
+        return;
       }
       const actor = authenticate((req.headers.authorization || "").replace(/^Bearer /, ""));
       if (api) {

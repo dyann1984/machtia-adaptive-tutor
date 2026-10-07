@@ -15,7 +15,7 @@ export class TutorAgentOrchestrator {
         const generated = await mcpClient.generateAdaptivePractice(studentId, "fracciones-equivalentes", "easy", 5);
         if (!generated.result) throw new Error("No se generó la práctica");
         await mcpClient.assignPracticeToStudent(generated.result.practiceId, studentId);
-        text = `${generated.result.studentName || studentId}: práctica asignada por el servidor. Incluye explicación previa y apoyos progresivos.`;
+        text = `${generated.result.studentName || studentId}: ¡Práctica de apoyo asignada exitosamente! Incluye explicación previa y apoyos progresivos.`;
         quickActions = [{ label: "Entrar como alumno", actionKey: "enter_as_mariana", payload: { studentId, practiceId: generated.result.practiceId }, primary: true }];
       } else if (/mejor|progreso|resultado|how did/.test(q)) {
         const result = await mcpClient.reportProgressToTeacher(studentId);

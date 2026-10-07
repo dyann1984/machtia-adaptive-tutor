@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { TutorProvider } from "@/lib/context/tutor-context";
 import { Navbar } from "@/components/Navbar";
+import { MiaFloatingCompanion } from "@/components/MiaFloatingCompanion";
 
 export const metadata: Metadata = {
   title: "MACHTIA Adaptive Tutor - Tutor IA Educativo",
@@ -24,6 +25,7 @@ export default function RootLayout({
           <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
             {children}
           </main>
+          <MiaFloatingCompanion />
           <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500">
             <p>
               MACHTIA Adaptive Tutor • Desarrollado para Hackathon Amazon / Alexa+ • Protocolo MCP Compatible
