@@ -76,6 +76,8 @@ interface TutorContextType {
   completePractice: (practiceId: string, results: { score: number; totalCorrect: number; totalExercises: number; mastered: string[]; pending: string[]; totalAttempts?: number; hintsUsed?: number; reexplanationsUsed?: number; supportEvents?: SupportEvent[] }) => Promise<LearningEvidence>;
   resetDemo: () => void;
   refreshState: () => void;
+  retryConnection: () => Promise<void>;
+  useLocalOfflineMode: () => void;
 }
 
 const TutorContext = createContext<TutorContextType | undefined>(undefined);
@@ -382,6 +384,40 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     ]);
   };
 
+  const retryConnection = async () => {
+    setDataError(null);
+    try {
+      await mcpClient.initializeDemo();
+      await mcpClient.selectRole(role, selectedStudentId);
+      await refreshState();
+      await checkMcpConnection();
+    } catch (err: any) {
+      setDataError(String(err?.message || err));
+      setMcpStatus((prev) => ({ ...prev, connected: false, error: String(err?.message || err) }));
+    }
+  };
+
+  const useLocalOfflineMode = () => {
+    cancelGlobalSpeech();
+    repository.resetOfficialDemoScenario();
+    setDataError(null);
+    setTeacher(repository.getTeacher());
+    setGroup(repository.getGroup());
+    setSubject(repository.getSubject());
+    setStudents(repository.getStudents());
+    setPractices(repository.getPractices());
+    setEvidences(repository.getEvidences());
+    setActionLogs(repository.getActionLogs());
+    setMcpStatus({
+      connected: true,
+      protocolVersion: "2025-11-25",
+      transport: "Modo Local Autónomo",
+      serverName: "machtia-local-sandbox",
+      toolsCount: 15,
+      error: undefined,
+    });
+  };
+
   return (
     <TutorContext.Provider
       value={{
@@ -424,6 +460,8 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         completePractice,
         resetDemo,
         refreshState,
+        retryConnection,
+        useLocalOfflineMode,
       }}
     >
       {children}

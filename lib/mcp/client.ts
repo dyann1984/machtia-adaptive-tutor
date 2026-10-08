@@ -2,40 +2,93 @@ import { PracticeGenerationResult } from "@/types";
 export interface McpConnectionStatus { connected: boolean; protocolVersion?: string; serverName?: string; latencyMs?: number; error?: string; transport?: string; toolsCount?: number }
 export interface McpClientToolCallResponse<T = any> { result: T; source: "mcp" | "local-fallback"; toolName: string; durationMs: number; isError: boolean; error?: string }
 
+export class McpHttpError extends Error {
+  status: number;
+  endpoint: string;
+  isColdStart: boolean;
+  isNotFound: boolean;
+  isUnauthorized: boolean;
+  isForbidden: boolean;
+  isRateLimited: boolean;
+  isTimeout: boolean;
+
+  constructor(status: number, message: string, endpoint: string, options?: { isTimeout?: boolean; isColdStart?: boolean }) {
+    super(message);
+    this.name = "McpHttpError";
+    this.status = status;
+    this.endpoint = endpoint;
+    this.isTimeout = Boolean(options?.isTimeout);
+    this.isNotFound = status === 404;
+    this.isUnauthorized = status === 401;
+    this.isForbidden = status === 403;
+    this.isRateLimited = status === 429;
+    this.isColdStart = Boolean(options?.isColdStart) || (!this.isTimeout && !this.isNotFound && (status === 502 || status === 503 || status === 504));
+  }
+}
+
 async function parseResponseSafely<T = any>(res: Response, endpoint: string): Promise<T> {
   const contentType = res.headers.get("content-type") || "";
   let raw = "";
   try {
     raw = await res.text();
   } catch (readErr) {
-    throw new Error(`Error al leer respuesta (${endpoint}): ${String(readErr)}`);
+    throw new McpHttpError(res.status, `Error al leer respuesta (${endpoint}): ${String(readErr)}`, endpoint);
   }
   const trimmed = raw.trim();
 
-  // Guard against HTML responses (Render cold-start spin-up, Cloudflare, 502/503/504)
+  // Specific handling for HTTP 404 - NEVER classify 404 as cold-start
+  if (res.status === 404) {
+    throw new McpHttpError(404, `Ruta no encontrada en el servidor (HTTP 404) para ${endpoint}.`, endpoint);
+  }
+
+  // Specific handling for HTTP 401 Unauthorized
+  if (res.status === 401) {
+    throw new McpHttpError(401, `Sesión demo no autorizada o expirada (HTTP 401) para ${endpoint}.`, endpoint);
+  }
+
+  // Specific handling for HTTP 403 Forbidden
+  if (res.status === 403) {
+    throw new McpHttpError(403, `Acceso denegado u origen no permitido (HTTP 403) para ${endpoint}.`, endpoint);
+  }
+
+  // Specific handling for HTTP 429 Rate limit
+  if (res.status === 429) {
+    throw new McpHttpError(429, `Límite de solicitudes alcanzado (HTTP 429). Por favor espere un momento.`, endpoint);
+  }
+
+  // Guard against HTML responses (Render cold-start spin-up 502/503/504 or gateway error)
   if (trimmed.startsWith("<!DOCTYPE") || trimmed.startsWith("<html") || contentType.includes("text/html")) {
-    const isWakingUp = res.status === 502 || res.status === 503 || res.status === 504 || trimmed.toLowerCase().includes("waking up") || trimmed.toLowerCase().includes("spin");
-    if (isWakingUp) {
-      throw new Error(`Servidor MACHTIA iniciando en la nube (Render spin-up, HTTP ${res.status}). Reintentando conexión...`);
+    const isColdStart = (res.status === 502 || res.status === 503 || res.status === 504) ||
+      trimmed.toLowerCase().includes("waking up") ||
+      trimmed.toLowerCase().includes("spinning up") ||
+      trimmed.toLowerCase().includes("service is waking");
+    if (isColdStart) {
+      throw new McpHttpError(
+        res.status || 503,
+        `Servidor MACHTIA iniciando en la nube (Render spin-up, HTTP ${res.status}). Reintentando conexión...`,
+        endpoint,
+        { isColdStart: true }
+      );
     }
-    throw new Error(`Servidor devolvió HTML inesperado (HTTP ${res.status}) para ${endpoint}.`);
+    throw new McpHttpError(res.status, `Servidor devolvió HTML inesperado (HTTP ${res.status}) para ${endpoint}.`, endpoint);
   }
 
   if (!trimmed) {
     if (res.ok) return {} as T;
-    throw new Error(`Respuesta vacía del servidor (HTTP ${res.status}) para ${endpoint}`);
+    throw new McpHttpError(res.status, `Respuesta vacía del servidor (HTTP ${res.status}) para ${endpoint}`, endpoint);
   }
 
   let data: any;
   try {
     data = JSON.parse(trimmed);
   } catch {
-    throw new Error(`Respuesta no válida del servidor (HTTP ${res.status}): ${trimmed.slice(0, 100)}`);
+    throw new McpHttpError(res.status, `Respuesta no válida del servidor (HTTP ${res.status}): ${trimmed.slice(0, 100)}`, endpoint);
   }
 
   if (!res.ok) {
     const errorMsg = data?.error?.message || data?.error || data?.message || `HTTP ${res.status}`;
-    throw new Error(typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg));
+    const msg = typeof errorMsg === "string" ? errorMsg : JSON.stringify(errorMsg);
+    throw new McpHttpError(res.status, msg, endpoint);
   }
 
   return data as T;
@@ -48,8 +101,25 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 3, delayMs = 1200): 
       return await fn();
     } catch (err: any) {
       lastError = err;
-      const msg = String(err?.message || "");
-      const isRetriable = msg.includes("iniciando") || msg.includes("spin-up") || msg.includes("HTML inesperado") || msg.includes("Failed to fetch") || msg.includes("NetworkError");
+      const status = err?.status || 0;
+      // Do not retry 400, 401, 403, 404
+      if (status === 400 || status === 401 || status === 403 || status === 404) {
+        throw err;
+      }
+      const isRetriable =
+        err?.isColdStart ||
+        err?.isTimeout ||
+        status === 502 ||
+        status === 503 ||
+        status === 504 ||
+        status === 429 ||
+        err?.name === "AbortError" ||
+        err?.name === "TimeoutError" ||
+        String(err?.message || "").includes("iniciando") ||
+        String(err?.message || "").includes("spin-up") ||
+        String(err?.message || "").includes("Failed to fetch") ||
+        String(err?.message || "").includes("NetworkError");
+
       if (attempt < retries && isRetriable) {
         await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
         continue;
@@ -87,28 +157,35 @@ export class McpClient {
     if (!reset && !this.actorToken && typeof window !== "undefined") {
       try {
         const stored = JSON.parse(sessionStorage.getItem("machtia_demo_capability") || "null");
-        if (stored) {
+        if (stored?.actorToken && stored?.judgeToken) {
           this.actorToken = stored.actorToken;
           this.judgeToken = stored.judgeToken;
-          const res = await fetch(this.endpoint("/api/state"), { headers: { Authorization: "Bearer " + this.actorToken }, cache: "no-store" });
-          if (res.status === 401 || res.status >= 500) {
+          const res = await fetch(this.endpoint("/api/state"), {
+            headers: { Authorization: "Bearer " + this.actorToken },
+            cache: "no-store",
+            signal: AbortSignal.timeout(10000),
+          });
+          if (res.status === 401) {
+            // ONLY truly expired/invalid session token clears stored credentials
             this.actorToken = "";
             this.judgeToken = "";
             sessionStorage.removeItem("machtia_demo_capability");
-          } else if (!res.ok) {
-            const raw = await res.text().catch(() => "");
-            if (raw.trim().startsWith("<")) {
-              this.actorToken = "";
-              this.judgeToken = "";
-              sessionStorage.removeItem("machtia_demo_capability");
-            } else {
-              throw new Error("No se pudo restaurar la sesión demo");
-            }
+          } else if (res.ok) {
+            return;
+          } else if (res.status === 404) {
+            throw new McpHttpError(404, "Endpoint /api/state no encontrado (HTTP 404)", "/api/state");
+          } else if (res.status >= 500) {
+            // Server error / spin-up: DO NOT wipe valid student session tokens!
+            throw new McpHttpError(res.status, `Servidor MACHTIA temporalmente no disponible (HTTP ${res.status}).`, "/api/state", { isColdStart: true });
           }
         }
-      } catch {
-        this.actorToken = "";
-        this.judgeToken = "";
+      } catch (err: any) {
+        if (err?.status === 401) {
+          this.actorToken = "";
+          this.judgeToken = "";
+        } else if (err?.status === 404 || err?.status >= 500) {
+          throw err;
+        }
       }
     }
     if (!reset && this.actorToken) return;
@@ -117,7 +194,9 @@ export class McpClient {
       const result = await this.demoApi("/api/demo", {});
       this.actorToken = result.actorToken;
       this.judgeToken = result.judgeToken;
-      if (typeof window !== "undefined") sessionStorage.setItem("machtia_demo_capability", JSON.stringify({ actorToken: this.actorToken, judgeToken: this.judgeToken }));
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("machtia_demo_capability", JSON.stringify({ actorToken: this.actorToken, judgeToken: this.judgeToken }));
+      }
     })();
     try { await this.initialization; } finally { this.initialization = undefined; }
   }

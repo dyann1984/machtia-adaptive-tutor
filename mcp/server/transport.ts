@@ -21,7 +21,7 @@ export function createMcpHttpServer(config: TransportConfig): http.Server {
     if (!controlled && config.webHandler) { config.webHandler(req, res); return; }
     const send = (status: number, value?: unknown) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(value === undefined ? undefined : JSON.stringify(value)); };
     const origin = req.headers.origin;
-    const allowed = (process.env.MCP_ALLOWED_ORIGINS || config.corsOrigin || "http://localhost:3000,http://127.0.0.1:3000,https://machtia-tutor-mcp-server.onrender.com,http://machtia-tutor-mcp-server.onrender.com,https://machtia-adaptive-tutor.onrender.com,http://machtia-adaptive-tutor.onrender.com").split(",").map(s => s.trim()).filter(s => s && !s.includes("*"));
+    const allowed = (process.env.MCP_ALLOWED_ORIGINS || config.corsOrigin || "http://localhost:3000,http://127.0.0.1:3000,https://machtia-tutor-mcp-server.onrender.com,http://machtia-tutor-mcp-server.onrender.com,https://machtia-adaptive-tutor.onrender.com,http://machtia-adaptive-tutor.onrender.com,https://machtia-adaptive-tutor.vercel.app").split(",").map(s => s.trim()).filter(s => s && !s.includes("*"));
     if (origin && !allowed.includes(origin)) { send(403, { error: "Origin forbidden" }); return; }
     if (origin) { res.setHeader("Access-Control-Allow-Origin", origin); res.setHeader("Vary", "Origin"); }
     res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");

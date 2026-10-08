@@ -26,5 +26,5 @@ services:
       - key: NEXT_PUBLIC_MCP_URL
         value: "https://machtia-tutor-mcp-server.onrender.com/mcp"
       - key: MCP_ALLOWED_ORIGINS
-        value: "http://localhost:3000,http://127.0.0.1:3000,https://machtia-tutor-mcp-server.onrender.com,http://machtia-tutor-mcp-server.onrender.com,https://machtia-adaptive-tutor.onrender.com,http://machtia-adaptive-tutor.onrender.com"
+        value: "http://localhost:3000,http://127.0.0.1:3000,https://machtia-tutor-mcp-server.onrender.com,http://machtia-tutor-mcp-server.onrender.com,https://machtia-adaptive-tutor.onrender.com,http://machtia-adaptive-tutor.onrender.com,https://machtia-adaptive-tutor.vercel.app"
 
