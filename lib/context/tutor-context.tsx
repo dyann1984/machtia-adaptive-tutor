@@ -218,13 +218,39 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     };
     setChatMessages((prev) => [...prev, userMsg]);
 
-    setIsAgentThinking(true);setActiveAgentSteps(["Consultando herramientas MCP del servidor"]);
-    const result = await tutorAgent.processTeacherQuery(query, {
-      selectedStudentId,
-    });
+    setIsAgentThinking(true);
+    setActiveAgentSteps(["Consultando herramientas MCP del servidor..."]);
+    try {
+      const result = await tutorAgent.processTeacherQuery(query, {
+        selectedStudentId,
+        onStep: (step: string) => setActiveAgentSteps([step]),
+      });
 
-    setChatMessages((prev) => [...prev, result.message]);
-    await refreshState();setIsAgentThinking(false);setActiveAgentSteps([]);
+      setChatMessages((prev) => [...prev, result.message]);
+      await refreshState().catch((err) => {
+        console.warn("Advertencia refrescando estado tras consulta:", err);
+      });
+    } catch (err: any) {
+      console.error("Error no controlado en sendMessageToTutor:", err);
+      const errorMsg: AgentChatMessage = {
+        id: `agent-error-${Date.now()}`,
+        sender: "agent",
+        text: `No se pudo completar la consulta en el servidor MCP: ${err?.message || String(err)}. Puedes reintentar la operación.`,
+        timestamp: new Date().toISOString(),
+        quickActions: [
+          {
+            label: "Reintentar consulta",
+            actionKey: "retry_last_query",
+            payload: { query },
+            primary: true,
+          },
+        ],
+      };
+      setChatMessages((prev) => [...prev, errorMsg]);
+    } finally {
+      setIsAgentThinking(false);
+      setActiveAgentSteps([]);
+    }
   };
 
   const handleQuickAction = async (actionKey: string, payload?: any) => {
@@ -277,6 +303,8 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
     } else if (actionKey === "ask_mariana_improvement") {
       setActiveTeacherTab("tutor");
       await sendMessageToTutor("¿Mejoró Mariana López después de la práctica?");
+    } else if (actionKey === "retry_last_query" && payload?.query) {
+      await sendMessageToTutor(payload.query);
     }
   };
 

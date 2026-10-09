@@ -2,6 +2,15 @@ import { PracticeGenerationResult } from "@/types";
 export interface McpConnectionStatus { connected: boolean; protocolVersion?: string; serverName?: string; latencyMs?: number; error?: string; transport?: string; toolsCount?: number }
 export interface McpClientToolCallResponse<T = any> { result: T; source: "mcp" | "local-fallback"; toolName: string; durationMs: number; isError: boolean; error?: string }
 
+export function safeUUID(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    try {
+      return crypto.randomUUID();
+    } catch {}
+  }
+  return "mcp-" + Date.now().toString(36) + "-" + Math.random().toString(36).substring(2, 9);
+}
+
 export class McpHttpError extends Error {
   status: number;
   endpoint: string;
@@ -138,9 +147,31 @@ export class McpClient {
   constructor(serverUrl?: string, _forceRealMcp?: boolean) { this.serverUrl = serverUrl || process.env.NEXT_PUBLIC_MCP_URL || "/mcp"; }
   setForceRealMcp(_force: boolean) {}
   isForceRealMcp() { return true; }
-  getServerUrl() { return this.serverUrl; }
-  getHealthUrl() { return this.serverUrl.replace(/\/mcp\/?$/, "/health"); }
-  private endpoint(path: string) { return this.serverUrl.replace(/\/mcp\/?$/, path); }
+  setServerUrl(url: string) { this.serverUrl = url; }
+  getServerUrl(): string {
+    if (!this.serverUrl.startsWith("http://") && !this.serverUrl.startsWith("https://")) {
+      if (typeof window !== "undefined" && window.location?.origin) {
+        return new URL(this.serverUrl, window.location.origin).toString();
+      }
+      const host = process.env.MCP_BACKEND_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      return new URL(this.serverUrl, host).toString();
+    }
+    return this.serverUrl;
+  }
+  getHealthUrl(): string {
+    return this.endpoint("/health");
+  }
+  private endpoint(path: string): string {
+    const raw = this.serverUrl.replace(/\/mcp\/?$/, path);
+    if (!raw.startsWith("http://") && !raw.startsWith("https://")) {
+      if (typeof window !== "undefined" && window.location?.origin) {
+        return new URL(raw, window.location.origin).toString();
+      }
+      const host = process.env.MCP_BACKEND_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      return new URL(raw, host).toString();
+    }
+    return raw;
+  }
   async demoApi(path: string, body?: unknown) {
     return withRetry(async () => {
       const res = await fetch(this.endpoint(path), {
@@ -148,6 +179,7 @@ export class McpClient {
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + this.actorToken, "X-Demo-Control": this.judgeToken },
         body: body === undefined ? undefined : JSON.stringify(body),
         cache: "no-store",
+        signal: AbortSignal.timeout(15000),
       });
       return parseResponseSafely(res, path);
     }, 3, 1200);
@@ -165,8 +197,8 @@ export class McpClient {
             cache: "no-store",
             signal: AbortSignal.timeout(10000),
           });
-          if (res.status === 401) {
-            // ONLY truly expired/invalid session token clears stored credentials
+          if (res.status === 401 || res.status === 403) {
+            // Expired or lost session token clears stored credentials cleanly
             this.actorToken = "";
             this.judgeToken = "";
             sessionStorage.removeItem("machtia_demo_capability");
@@ -180,7 +212,7 @@ export class McpClient {
           }
         }
       } catch (err: any) {
-        if (err?.status === 401) {
+        if (err?.status === 401 || err?.status === 403) {
           this.actorToken = "";
           this.judgeToken = "";
         } else if (err?.status === 404 || err?.status >= 500) {
@@ -202,14 +234,29 @@ export class McpClient {
   }
   async selectRole(role: "teacher" | "student", studentId: string) {
     await this.initializeDemo();
-    const result = await this.demoApi("/api/role", { role, studentId });
-    this.actorToken = result.actorToken;
-    if (typeof window !== "undefined") sessionStorage.setItem("machtia_demo_capability", JSON.stringify({ actorToken: this.actorToken, judgeToken: this.judgeToken }));
+    try {
+      const result = await this.demoApi("/api/role", { role, studentId });
+      this.actorToken = result.actorToken;
+      if (typeof window !== "undefined") sessionStorage.setItem("machtia_demo_capability", JSON.stringify({ actorToken: this.actorToken, judgeToken: this.judgeToken }));
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403 || String(err?.message || "").includes("Judge controller capability")) {
+        // Backend lost session or restarted in memory: cleanly recreate demo session and retry
+        this.actorToken = "";
+        this.judgeToken = "";
+        if (typeof window !== "undefined") sessionStorage.removeItem("machtia_demo_capability");
+        await this.initializeDemo(true);
+        const retryResult = await this.demoApi("/api/role", { role, studentId });
+        this.actorToken = retryResult.actorToken;
+        if (typeof window !== "undefined") sessionStorage.setItem("machtia_demo_capability", JSON.stringify({ actorToken: this.actorToken, judgeToken: this.judgeToken }));
+      } else {
+        throw err;
+      }
+    }
   }
   async snapshot() { await this.initializeDemo(); return this.demoApi("/api/state"); }
   async checkHealth() {
     try {
-      const res = await fetch(this.getHealthUrl(), { signal: AbortSignal.timeout(15000), cache: "no-store" });
+      const res = await fetch(this.getHealthUrl(), { signal: AbortSignal.timeout(10000), cache: "no-store" });
       if (!res.ok) return null;
       const contentType = res.headers.get("content-type") || "";
       const text = await res.text();
@@ -236,21 +283,20 @@ export class McpClient {
   }
   async listTools() {
     return withRetry(async () => {
-      const res = await fetch(this.serverUrl, {
+      const res = await fetch(this.getServerUrl(), {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json, text/event-stream" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+        signal: AbortSignal.timeout(15000),
       });
       const value = await parseResponseSafely<any>(res, "tools/list");
       if (!value.result?.tools) throw new Error("Cannot list MCP tools");
       return value.result.tools;
     }, 3, 1200);
   }
-  async callTool<T = any>(name: string, args: Record<string, any>): Promise<McpClientToolCallResponse<T>> {
-    await this.initializeDemo();
-    const started = Date.now();
+  private async executeCallToolInternal<T = any>(name: string, args: Record<string, any>, started: number): Promise<McpClientToolCallResponse<T>> {
     return withRetry(async () => {
-      const res = await fetch(this.serverUrl, {
+      const res = await fetch(this.getServerUrl(), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -258,8 +304,8 @@ export class McpClient {
           "MCP-Protocol-Version": "2025-11-25",
           Authorization: "Bearer " + this.actorToken,
         },
-        body: JSON.stringify({ jsonrpc: "2.0", id: crypto.randomUUID(), method: "tools/call", params: { name, arguments: args } }),
-        signal: AbortSignal.timeout(30000),
+        body: JSON.stringify({ jsonrpc: "2.0", id: safeUUID(), method: "tools/call", params: { name, arguments: args } }),
+        signal: AbortSignal.timeout(20000),
       });
       const json = await parseResponseSafely<any>(res, `tools/call:${name}`);
       if (json.error || json.result?.isError) {
@@ -270,8 +316,25 @@ export class McpClient {
           "MCP request failed"
         );
       }
-      return { result: json.result.structuredContent as T, source: "mcp" as const, toolName: name, durationMs: Date.now() - started, isError: false };
+      return { result: (json.result?.structuredContent ?? json.result) as T, source: "mcp" as const, toolName: name, durationMs: Date.now() - started, isError: false };
     }, 2, 1000);
+  }
+  async callTool<T = any>(name: string, args: Record<string, any>): Promise<McpClientToolCallResponse<T>> {
+    await this.initializeDemo();
+    const started = Date.now();
+    try {
+      return await this.executeCallToolInternal<T>(name, args, started);
+    } catch (err: any) {
+      if (err?.status === 401 || err?.status === 403 || String(err?.message || "").includes("actor required") || String(err?.message || "").includes("capability required")) {
+        // Backend lost session or restarted in memory: auto-refresh demo session and retry once
+        this.actorToken = "";
+        this.judgeToken = "";
+        if (typeof window !== "undefined") sessionStorage.removeItem("machtia_demo_capability");
+        await this.initializeDemo(true);
+        return await this.executeCallToolInternal<T>(name, args, started);
+      }
+      throw err;
+    }
   }
   // Type-safe convenience wrappers
   async analyzeStudentPerformance(groupId: string, subjectId: string) {

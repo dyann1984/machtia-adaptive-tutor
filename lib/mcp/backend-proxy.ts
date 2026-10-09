@@ -49,18 +49,24 @@ export async function proxyToBackend(req: NextRequest, targetPath: string): Prom
       headers,
       body,
       cache: "no-store",
-      signal: AbortSignal.timeout(35000),
+      signal: AbortSignal.timeout(14000),
     });
 
     const resContentType = res.headers.get("content-type") || "";
     const resBody = await res.text();
 
     // If backend returns HTML during spin-up (502/503/504), normalize to JSON so frontend does not choke
-    if (resContentType.includes("text/html") && (res.status === 502 || res.status === 503 || res.status === 504 || resBody.toLowerCase().includes("waking up"))) {
+    if (resContentType.includes("text/html") || resBody.trim().startsWith("<!DOCTYPE") || resBody.trim().startsWith("<html")) {
+      const isColdStart = (res.status === 502 || res.status === 503 || res.status === 504) ||
+        resBody.toLowerCase().includes("waking up") ||
+        resBody.toLowerCase().includes("spinning up") ||
+        resBody.toLowerCase().includes("service is waking");
       return NextResponse.json(
         {
-          error: `Servidor MACHTIA iniciando en la nube (Render spin-up, HTTP ${res.status}). Reintentando conexión...`,
-          isColdStart: true,
+          error: isColdStart
+            ? `Servidor MACHTIA iniciando en la nube (Render spin-up, HTTP ${res.status}). Reintentando conexión...`
+            : `Servidor backend devolvió HTML inesperado (HTTP ${res.status}) para ${targetPath}.`,
+          isColdStart,
           status: res.status,
         },
         { status: res.status }

@@ -183,9 +183,13 @@ export function AITutorAgentView() {
                         {msg.text}
                       </p>
 
-                    {/* Si el mensaje del tutor menciona estudiantes con dificultad, renderizar tarjetas limpias */}
+                    {/* Si el mensaje del tutor responde a detección grupal de alumnos con dificultad, renderizar tarjetas limpias */}
                     {msg.sender === "agent" &&
-                      (msg.text.includes("Mariana") || msg.text.includes("necesitan")) && (
+                      !msg.text.includes("Diagnóstico Pedagógico MCP") &&
+                      (msg.text.includes("rezago en el grupo") ||
+                       msg.text.includes("necesitan refuerzo") ||
+                       msg.text.includes("estudiantes con rendimiento") ||
+                       (msg.text.includes("Mariana") && msg.text.includes("Luis") && msg.text.includes("apoyo"))) && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                           {/* Tarjeta Mariana */}
                           <div className="bg-white p-4 rounded-xl border border-amber-200 shadow-xs space-y-2">
