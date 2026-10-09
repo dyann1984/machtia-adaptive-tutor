@@ -12,50 +12,8 @@ export interface UseSpeechReturn {
   selectedVoiceName: string | null;
 }
 
-/**
- * Phonetically and pedagogically normalizes raw text for natural Mexican Spanish TTS.
- * Converts fraction notations, mathematical operators, and educational symbols
- * into clear spoken words while removing emojis and markdown formatting.
- */
-export function normalizeOralMathText(rawText: string): string {
-  if (!rawText) return "";
-
-  return rawText
-    // Remove markdown formatting
-    .replace(/[*_#`~>]/g, "")
-    // Remove common emojis so TTS does not read symbol descriptions
-    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]/g, "")
-    // Spoken fractions in primary mathematics
-    .replace(/\b1\/2\b/g, "un medio")
-    .replace(/\b2\/4\b/g, "dos cuartos")
-    .replace(/\b1\/3\b/g, "un tercio")
-    .replace(/\b2\/6\b/g, "dos sextos")
-    .replace(/\b3\/6\b/g, "tres sextos")
-    .replace(/\b4\/6\b/g, "cuatro sextos")
-    .replace(/\b1\/4\b/g, "un cuarto")
-    .replace(/\b2\/5\b/g, "dos quintos")
-    .replace(/\b4\/10\b/g, "cuatro décimos")
-    .replace(/\b3\/4\b/g, "tres cuartos")
-    .replace(/\b6\/8\b/g, "seis octavos")
-    .replace(/\b6\/9\b/g, "seis novenos")
-    .replace(/\b2\/3\b/g, "dos tercios")
-    .replace(/\b3\/3\b/g, "tres tercios")
-    .replace(/\b4\/8\b/g, "cuatro octavos")
-    .replace(/\b2\/8\b/g, "dos octavos")
-    .replace(/\b1\/6\b/g, "un sexto")
-    // Mathematical operators and expressions
-    .replace(/(\d+)\s*[×x*]\s*(\d+)/g, "$1 por $2")
-    .replace(/(\d+)\s*[÷/]\s*(\d+)/g, "$1 entre $2")
-    .replace(/(\d+)\s*=\s*(\d+)/g, "$1 es igual a $2")
-    .replace(/\b500\s*\+\s*2\b/g, "quinientos más dos")
-    .replace(/\+/g, " más ")
-    .replace(/%/g, " por ciento")
-    .replace(/\b3°\s*B\b/gi, "tercero B")
-    .replace(/&ldquo;|&rdquo;|&quot;|"/g, "")
-    // Normalize spaces
-    .replace(/\s+/g, " ")
-    .trim();
-}
+import { normalizeOralMathText } from "@/lib/tts/normalization";
+export { normalizeOralMathText };
 
 /**
  * Priority-based Spanish voice finder:

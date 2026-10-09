@@ -35,3 +35,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /.repair-backup-20261005/
+.tts-quota-ledger.json
+

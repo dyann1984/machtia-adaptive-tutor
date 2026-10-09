@@ -18,9 +18,10 @@ import {
   MessageCircle,
   BookOpen,
   ChevronDown,
+  Loader2,
 } from "lucide-react";
 import { useTutor } from "@/lib/context/tutor-context";
-import { useSpeech } from "@/lib/hooks/use-speech";
+import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
 import { MiaMode, MiaResponse } from "@/lib/ai/mia-agent";
 
 interface ChatEntry {
@@ -33,6 +34,7 @@ interface ChatEntry {
   funFact?: string;
   challenge?: string;
   aiProvider?: string;
+  ttsSignature?: string;
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -56,10 +58,21 @@ export function MiaFloatingCompanion() {
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
-
-  const { speak, stop, isSpeaking } = useSpeech();
+  const {
+    speak,
+    stop,
+    isSpeaking,
+    isLoading: isLoadingVoice,
+    activeRawText,
+    voiceSource,
+  } = useMiaVoice();
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+
+  // Stop audio immediately when student changes activity or practice context
+  useEffect(() => {
+    stop();
+  }, [currentPracticingId, selectedStudentId, stop]);
 
   // Active student and practice context
   const student = students.find((s) => s.id === selectedStudentId);
@@ -160,9 +173,21 @@ export function MiaFloatingCompanion() {
     setIsLoading(true);
 
     try {
+      let token = "";
+      if (typeof window !== "undefined") {
+        try {
+          const stored = JSON.parse(sessionStorage.getItem("machtia_demo_capability") || "null");
+          token = stored?.actorToken || stored?.judgeToken || "";
+        } catch {}
+      }
+      const fetchHeaders: Record<string, string> = { "Content-Type": "application/json" };
+      if (token) {
+        fetchHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
       const res = await fetch("/api/mia", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: fetchHeaders,
         body: JSON.stringify({
           message: text,
           mode: currentMode,
@@ -172,6 +197,7 @@ export function MiaFloatingCompanion() {
             topicName: activePractice?.topicName,
             subject: activePractice?.subjectId,
             studentName: student?.name || "Mariana",
+            studentId: selectedStudentId || "student-mariana-1",
             grade: 3,
           },
         }),
@@ -194,12 +220,13 @@ export function MiaFloatingCompanion() {
         funFact: data.funFact,
         challenge: data.challenge,
         aiProvider: data.aiProvider,
+        ttsSignature: data.ttsSignature,
       };
 
       setMessages((prev) => [...prev, miaEntry]);
 
       if (autoSpeak) {
-        speak(data.reply);
+        speak(data.reply, data.ttsSignature);
       }
     } catch {
       // Graceful offline fallback
@@ -313,9 +340,17 @@ export function MiaFloatingCompanion() {
                     </span>
                   </h2>
                 </div>
-                <p className="text-[11px] text-blue-100 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
-                  Lista para responder lo que quieras
+                <p className="text-[11px] text-blue-100 flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${isSpeaking ? "bg-amber-400 animate-ping" : "bg-emerald-400 animate-pulse"}`} />
+                  {isSpeaking ? (
+                    <span className="font-bold text-amber-200">
+                      {voiceSource === "elevenlabs" ? "🎙️ ElevenLabs HD (PnBj01JY...)" : "🗣️ Web Speech (es-MX)"}
+                    </span>
+                  ) : (
+                    <span className="opacity-90">
+                      Voz didáctica activa · <span className="text-amber-200 font-medium">ElevenLabs + es-MX</span>
+                    </span>
+                  )}
                 </p>
               </div>
             </div>
@@ -459,15 +494,46 @@ export function MiaFloatingCompanion() {
                         <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
                           {m.topic}
                         </span>
-                        {/* Audio Speak button */}
+                        {/* Audio Speak button with active states */}
                         <button
                           type="button"
-                          onClick={() => speak(m.text)}
-                          className="inline-flex items-center gap-1 text-slate-500 hover:text-blue-600 transition"
-                          title="Escuchar a MIA"
+                          onClick={() => {
+                            if (isSpeaking && activeRawText === m.text) {
+                              stop();
+                            } else {
+                              void speak(m.text, m.ttsSignature);
+                            }
+                          }}
+                          className={`inline-flex items-center gap-1 transition text-[11px] font-semibold ${
+                            isSpeaking && activeRawText === m.text
+                              ? "text-amber-600 font-bold"
+                              : isLoadingVoice && activeRawText === m.text
+                              ? "text-amber-500 animate-pulse"
+                              : "text-slate-500 hover:text-blue-600"
+                          }`}
+                          title={
+                            isSpeaking && activeRawText === m.text
+                              ? "Detener audio de MIA"
+                              : "Escuchar explicación de MIA"
+                          }
+                          aria-label={isSpeaking && activeRawText === m.text ? "Detener voz de MIA" : "Escuchar a MIA"}
                         >
-                          <Volume2 className="w-3 h-3 text-blue-600" />
-                          <span>Escuchar</span>
+                          {isLoadingVoice && activeRawText === m.text ? (
+                            <>
+                              <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
+                              <span>Cargando...</span>
+                            </>
+                          ) : isSpeaking && activeRawText === m.text ? (
+                            <>
+                              <VolumeX className="w-3 h-3 text-amber-600 animate-bounce" />
+                              <span>Detener</span>
+                            </>
+                          ) : (
+                            <>
+                              <Volume2 className="w-3 h-3 text-blue-600" />
+                              <span>Escuchar</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     )}

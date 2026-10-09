@@ -42,6 +42,7 @@ export interface MiaResponse {
   audioPrompt?: string;
   aiProvider: string;
   providerNotice?: string;
+  ttsSignature?: string;
 }
 
 // System prompt persona for external LLMs
