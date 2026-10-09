@@ -232,7 +232,12 @@ export class McpClient {
     })();
     try { await this.initialization; } finally { this.initialization = undefined; }
   }
+  private currentRole: "teacher" | "student" = "teacher";
+  private currentStudentId: string = "mariana-lopez";
+
   async selectRole(role: "teacher" | "student", studentId: string) {
+    this.currentRole = role;
+    this.currentStudentId = studentId;
     await this.initializeDemo();
     try {
       const result = await this.demoApi("/api/role", { role, studentId });
@@ -325,12 +330,32 @@ export class McpClient {
     try {
       return await this.executeCallToolInternal<T>(name, args, started);
     } catch (err: any) {
-      if (err?.status === 401 || err?.status === 403 || String(err?.message || "").includes("actor required") || String(err?.message || "").includes("capability required")) {
-        // Backend lost session or restarted in memory: auto-refresh demo session and retry once
+      // 1. NUNCA reintentar ni re-autorizar automáticamente ante 403 Forbidden o denegación de permisos RBAC/IDOR
+      if (
+        err?.status === 403 ||
+        String(err?.message || "").includes("FORBIDDEN") ||
+        String(err?.message || "").includes("outside this actor's authorization") ||
+        String(err?.message || "").includes("ownership mismatch") ||
+        String(err?.message || "").includes("Teacher role required")
+      ) {
+        throw err;
+      }
+
+      // 2. Solo recuperar si el servidor perdió la sesión en memoria tras un reinicio (HTTP 401: Authenticated actor required)
+      const isLostSession =
+        err?.status === 401 &&
+        (String(err?.message || "").includes("Authenticated actor required") ||
+         String(err?.message || "").includes("Authenticated demo actor required"));
+
+      if (isLostSession) {
         this.actorToken = "";
         this.judgeToken = "";
         if (typeof window !== "undefined") sessionStorage.removeItem("machtia_demo_capability");
         await this.initializeDemo(true);
+        // Si el rol previo era estudiante, restaurar explícitamente el rol de estudiante para evitar escalada de privilegios a docente
+        if (this.currentRole === "student") {
+          await this.selectRole("student", this.currentStudentId);
+        }
         return await this.executeCallToolInternal<T>(name, args, started);
       }
       throw err;
