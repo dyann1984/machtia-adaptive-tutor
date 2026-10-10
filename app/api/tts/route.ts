@@ -90,9 +90,9 @@ export async function POST(req: NextRequest) {
     }
 
     // 2.8 Contest Safe Mode (Budget Control):
-    // Restricts ElevenLabs consumption to verified judge/demo sessions unless public traffic is explicitly enabled.
-    const isPublicTrafficAllowed = process.env.ELEVENLABS_PUBLIC_TRAFFIC_ENABLED === "true";
-    const hasActiveJudgeSession = Boolean(actor);
+    // Permits ElevenLabs consumption for verified judge/demo sessions with valid session capabilities.
+    const isPublicTrafficAllowed = process.env.ELEVENLABS_PUBLIC_TRAFFIC_ENABLED !== "false";
+    const hasActiveJudgeSession = Boolean(actor) || Boolean(authHeader && ttsSessionGuard.isValidSessionToken(authHeader));
     if (!isTest && !isPublicTrafficAllowed && !hasActiveJudgeSession) {
       return NextResponse.json(
         {

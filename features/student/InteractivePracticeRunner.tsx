@@ -34,7 +34,7 @@ export function InteractivePracticeRunner({
   practice: Practice;
   onFinish: () => void;
 }) {
-  const { submitAnswer, completePractice, setRole, setActiveTeacherTab, setActiveStudentTab } = useTutor();
+  const { submitAnswer, completePractice, setRole, setActiveTeacherTab, setActiveStudentTab, setActiveExerciseContext } = useTutor();
   const speech = useSpeech();
 
   // Phase: 'explanation' | 'questions' | 'results'
@@ -101,6 +101,25 @@ export function InteractivePracticeRunner({
   useEffect(() => {
     stopSpeech();
   }, [exerciseIndex, phase, stopSpeech]);
+
+  // Synchronize active exercise details for MIA pedagogical companion
+  useEffect(() => {
+    if (currentExercise && phase === "questions") {
+      setActiveExerciseContext({
+        exerciseId: currentExercise.id,
+        exercisePrompt: currentExercise.prompt,
+        topicName: practice.topicName,
+        options: currentExercise.options,
+        attemptCount,
+        lastError: evaluationResult && !evaluationResult.isCorrect ? `El alumno seleccionó «${selectedOption || "una opción incorrecta"}»` : undefined,
+      });
+    } else {
+      setActiveExerciseContext(null);
+    }
+    return () => {
+      setActiveExerciseContext(null);
+    };
+  }, [currentExercise, phase, attemptCount, evaluationResult, selectedOption, practice.topicName, setActiveExerciseContext]);
 
   // Pedagogical Progression Bar: 1. Explicación -> 2. Práctica -> 3. Pista -> 4. Re-explicación -> 5. Evidencia
   const renderPedagogicalProgression = () => {

@@ -15,20 +15,48 @@ export interface UseSpeechReturn {
 import { normalizeOralMathText } from "@/lib/tts/normalization";
 export { normalizeOralMathText };
 
+export type AudioInterrupter = () => void;
+const activeInterrupters = new Set<AudioInterrupter>();
+
+export function registerGlobalAudioSource(stopFn: AudioInterrupter): () => void {
+  activeInterrupters.add(stopFn);
+  return () => {
+    activeInterrupters.delete(stopFn);
+  };
+}
+
+export function stopAllGlobalAudio() {
+  activeInterrupters.forEach((stopFn) => {
+    try {
+      stopFn();
+    } catch {}
+  });
+  cancelGlobalSpeech();
+}
+
 /**
  * Priority-based Spanish voice finder:
- * 1. es-MX female voice (preferred friendly, calm, educational tone)
- * 2. Any es-MX voice
- * 3. Any Spanish female voice across any dialect (es-*)
- * 4. Any Spanish voice (es-*)
- * 5. First available voice fallback
+ * 1. es-MX female natural / online voice (e.g. Microsoft Dalia Online Natural es-MX)
+ * 2. es-MX female voice
+ * 3. Any es-MX voice
+ * 4. Any Spanish female voice across any dialect (es-*)
+ * 5. Any Spanish voice (es-*)
+ * 6. First available voice fallback
  */
 export function findPreferredSpanishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
   if (!voices || voices.length === 0) return undefined;
 
-  const femaleKeywords = /sabina|paulina|monica|mónica|hilda|sofia|sofía|lucia|lucía|elena|paloma|conchita|mia|mía|laura|helena|female|mujer/i;
+  const femaleKeywords = /dalia|camila|paulina|mia|mía|sabina|monica|mónica|hilda|sofia|sofía|lucia|lucía|elena|paloma|conchita|laura|helena|jimena|renata|estrella|valeria|andrea|paola|female|mujer/i;
+  const naturalKeywords = /natural|neural|online/i;
 
-  // 1. es-MX female
+  // 1. es-MX female with Natural/Online priority (warmest, most human intonation)
+  const esMxNaturalFemale = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    return lang === "es-mx" && femaleKeywords.test(v.name) && naturalKeywords.test(v.name);
+  });
+  if (esMxNaturalFemale) return esMxNaturalFemale;
+
+  // 2. es-MX female voice
   const esMxFemale = voices.find((v) => {
     const lang = v.lang.toLowerCase().replace(/_/g, "-");
     const isEsMx = lang === "es-mx";
@@ -36,14 +64,21 @@ export function findPreferredSpanishVoice(voices: SpeechSynthesisVoice[]): Speec
   });
   if (esMxFemale) return esMxFemale;
 
-  // 2. Any es-MX voice
+  // 3. Any es-MX natural/neural voice
+  const esMxNatural = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    return lang === "es-mx" && naturalKeywords.test(v.name);
+  });
+  if (esMxNatural) return esMxNatural;
+
+  // 4. Any es-MX voice
   const esMxAny = voices.find((v) => {
     const lang = v.lang.toLowerCase().replace(/_/g, "-");
     return lang === "es-mx";
   });
   if (esMxAny) return esMxAny;
 
-  // 3. Any Spanish female voice (es-*)
+  // 5. Any Spanish female voice (es-*)
   const esFemaleAny = voices.find((v) => {
     const lang = v.lang.toLowerCase().replace(/_/g, "-");
     const isEs = lang.startsWith("es");
@@ -51,11 +86,11 @@ export function findPreferredSpanishVoice(voices: SpeechSynthesisVoice[]): Speec
   });
   if (esFemaleAny) return esFemaleAny;
 
-  // 4. Any Spanish voice
+  // 6. Any Spanish voice
   const esAny = voices.find((v) => v.lang.toLowerCase().startsWith("es"));
   if (esAny) return esAny;
 
-  // 5. Fallback default
+  // 7. Fallback default
   return voices[0];
 }
 
@@ -140,6 +175,11 @@ export function useSpeech(): UseSpeechReturn {
     setActiveRawText(null);
   }, []);
 
+  // Register with global audio registry so all audio sources coordinate
+  useEffect(() => {
+    return registerGlobalAudioSource(stop);
+  }, [stop]);
+
   const speak = useCallback(
     (rawText: string) => {
       // Graceful fallback if Web Speech API is not supported in the environment
@@ -152,8 +192,8 @@ export function useSpeech(): UseSpeechReturn {
         return;
       }
 
-      // Stop any ongoing speech immediately before queueing new utterance
-      stop();
+      // Stop any ongoing speech across the entire app immediately
+      stopAllGlobalAudio();
 
       try {
         // Resume synthesis if browser suspended it (Chromium autoplay policy)
@@ -219,7 +259,7 @@ export function useSpeech(): UseSpeechReturn {
         setActiveRawText(null);
       }
     },
-    [stop]
+    []
   );
 
   // Stop speech if page is hidden, blurred, or unmounted

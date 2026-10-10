@@ -66,6 +66,8 @@ interface TutorContextType {
   activeAgentSteps: string[];
   currentPracticingId: string | null;
   setCurrentPracticingId: (id: string | null) => void;
+  activeExerciseContext: { exerciseId?: string; exercisePrompt?: string; topicName?: string; options?: string[]; attemptCount?: number; lastError?: string } | null;
+  setActiveExerciseContext: (ctx: { exerciseId?: string; exercisePrompt?: string; topicName?: string; options?: string[]; attemptCount?: number; lastError?: string } | null) => void;
   mcpStatus: McpStatusInfo;
   checkMcpConnection: () => Promise<void>;
   // Actions
@@ -97,6 +99,7 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
   const [activeStudentTab, setActiveStudentTab] = useState<"home" | "practices" | "tutor" | "progress">("home");
   const [selectedStudentId, setSelectedStudentId] = useState<string>("mariana-lopez");
   const [currentPracticingId, setCurrentPracticingId] = useState<string | null>(null);
+  const [activeExerciseContext, setActiveExerciseContext] = useState<{ exerciseId?: string; exercisePrompt?: string; topicName?: string; options?: string[]; attemptCount?: number; lastError?: string } | null>(null);
   const [showLanding, setShowLanding] = useState<boolean>(!initialJudgeDemo);
 
   const [teacher, setTeacher] = useState<Teacher>(repository.getTeacher());
@@ -479,6 +482,8 @@ export function TutorProvider({ children }: { children: React.ReactNode }) {
         activeAgentSteps,
         currentPracticingId,
         setCurrentPracticingId: handleSetCurrentPracticingId,
+        activeExerciseContext,
+        setActiveExerciseContext,
         mcpStatus,
         checkMcpConnection,
         sendMessageToTutor,

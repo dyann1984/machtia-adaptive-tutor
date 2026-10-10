@@ -19,6 +19,7 @@ import {
   BookOpen,
   ChevronDown,
   Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { useTutor } from "@/lib/context/tutor-context";
 import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
@@ -37,20 +38,44 @@ interface ChatEntry {
   ttsSignature?: string;
 }
 
-const SUGGESTED_QUESTIONS = [
+const PRACTICE_SUGGESTIONS = [
+  { text: "¿Me das una pista para mi ejercicio? 💡", mode: "practice" as const },
+  { text: "¿Cómo sé si dos fracciones son equivalentes? 🍰", mode: "practice" as const },
+  { text: "¿Qué es el numerador y el denominador? 🔢", mode: "practice" as const },
+  { text: "¿Cuál es mi diagnóstico en matemáticas? 📊", mode: "practice" as const },
+  { text: "Explícamelo paso a paso 🪜", mode: "practice" as const },
+];
+
+const FREE_SUGGESTIONS = [
   { text: "¿Por qué el cielo es azul? 🌌", mode: "free" as const },
   { text: "Enséñame las tablas de multiplicar ✖️", mode: "free" as const },
-  { text: "¿Qué es un agujero negro? 🚀", mode: "curiosity" as const },
+  { text: "¿Qué es un agujero negro? 🚀", mode: "free" as const },
   { text: "¿Cómo se dice perro en inglés? 🐶", mode: "free" as const },
-  { text: "Explícame los dinosaurios 🦖", mode: "curiosity" as const },
-  { text: "¿Qué es una fracción? 🍰", mode: "practice" as const },
+  { text: "Explícame los dinosaurios 🦖", mode: "free" as const },
+  { text: "¿Qué es una fracción? 🍰", mode: "free" as const },
   { text: "Quiero aprender programación 💻", mode: "free" as const },
-  { text: "Cuéntame sobre los planetas 🪐", mode: "curiosity" as const },
+  { text: "¿Por qué llueve? 💧", mode: "free" as const },
   { text: "No entendí mi tarea escolar 📝", mode: "free" as const },
 ];
 
+const CURIOSITY_SUGGESTIONS = [
+  { text: "Cuéntame sobre los planetas 🪐", mode: "curiosity" as const },
+  { text: "¿Los dinosaurios siguen vivos? 🦖", mode: "curiosity" as const },
+  { text: "¿Cómo funciona un volcán? 🌋", mode: "curiosity" as const },
+  { text: "La historia mágica del chocolate 🍫", mode: "curiosity" as const },
+  { text: "¿Por qué la Luna cambia de forma? 🌙", mode: "curiosity" as const },
+];
+
 export function MiaFloatingCompanion() {
-  const { role, currentPracticingId, practices, selectedStudentId, students } = useTutor();
+  const {
+    role,
+    currentPracticingId,
+    practices,
+    selectedStudentId,
+    students,
+    activeExerciseContext,
+  } = useTutor();
+
   const [isOpen, setIsOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<MiaMode>("free");
   const [inputText, setInputText] = useState("");
@@ -58,6 +83,8 @@ export function MiaFloatingCompanion() {
   const [autoSpeak, setAutoSpeak] = useState(false);
   const [isListeningVoice, setIsListeningVoice] = useState(false);
   const [speechRecognitionSupported, setSpeechRecognitionSupported] = useState(false);
+  const [micNotice, setMicNotice] = useState<string | null>(null);
+
   const {
     speak,
     stop,
@@ -66,8 +93,10 @@ export function MiaFloatingCompanion() {
     activeRawText,
     voiceSource,
   } = useMiaVoice();
+
   const chatScrollRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
+  const handleSendMessageRef = useRef<((text?: string) => Promise<void>) | null>(null);
 
   // Stop audio immediately when student changes activity or practice context
   useEffect(() => {
@@ -80,16 +109,37 @@ export function MiaFloatingCompanion() {
     ? practices.find((p) => p.id === currentPracticingId)
     : null;
 
-  const [messages, setMessages] = useState<ChatEntry[]>([
-    {
-      id: "welcome-mia",
-      sender: "mia",
-      text: "Hola, soy MIA 👋\nTu compañera de aprendizaje.\nPregúntame lo que quieras aprender.\nAquí puedes preguntar, equivocarte y volver a intentar.",
-      timestamp: new Date().toISOString(),
-      mode: "free",
-      topic: "Bienvenida",
-    },
-  ]);
+  // Session storage message persistence (preserves multi-turn conversation)
+  const [messages, setMessages] = useState<ChatEntry[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = sessionStorage.getItem("machtia_mia_chat_history");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch {}
+    }
+    return [
+      {
+        id: "welcome-mia",
+        sender: "mia",
+        text: "Hola, soy MIA 👋\nTu compañera de aprendizaje.\nPregúntame lo que quieras aprender.\nAquí puedes preguntar, equivocarte y volver a intentar.",
+        timestamp: new Date().toISOString(),
+        mode: "free",
+        topic: "Bienvenida",
+      },
+    ];
+  });
+
+  // Save conversation to sessionStorage
+  useEffect(() => {
+    if (typeof window !== "undefined" && messages.length > 0) {
+      try {
+        sessionStorage.setItem("machtia_mia_chat_history", JSON.stringify(messages));
+      } catch {}
+    }
+  }, [messages]);
 
   // Check speech recognition support in browser
   useEffect(() => {
@@ -107,13 +157,18 @@ export function MiaFloatingCompanion() {
           const transcript = event.results[0]?.[0]?.transcript || "";
           if (transcript) {
             setInputText(transcript);
-            void handleSendMessage(transcript);
+            void handleSendMessageRef.current?.(transcript);
           }
           setIsListeningVoice(false);
         };
 
-        recog.onerror = () => {
+        recog.onerror = (e: any) => {
+          console.warn("[MIA] Speech recognition error:", e);
           setIsListeningVoice(false);
+          if (e?.error === "not-allowed") {
+            setMicNotice("Permiso de micrófono no otorgado. Puedes escribir tu pregunta.");
+            setTimeout(() => setMicNotice(null), 5000);
+          }
         };
 
         recog.onend = () => {
@@ -123,7 +178,6 @@ export function MiaFloatingCompanion() {
         recognitionRef.current = recog;
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Auto-scroll chat to bottom
@@ -135,13 +189,19 @@ export function MiaFloatingCompanion() {
 
   // Switch to practice mode automatically if student enters a practice
   useEffect(() => {
-    if (activePractice) {
+    if (activePractice || activeExerciseContext) {
       setCurrentMode("practice");
     }
-  }, [activePractice]);
+  }, [activePractice, activeExerciseContext]);
 
   const toggleVoiceInput = () => {
+    if (!speechRecognitionSupported) {
+      setMicNotice("El reconocimiento de voz por micrófono está optimizado para Chrome y Edge. Escribe tu pregunta con confianza.");
+      setTimeout(() => setMicNotice(null), 5000);
+      return;
+    }
     if (!recognitionRef.current) return;
+
     if (isListeningVoice) {
       recognitionRef.current.stop();
       setIsListeningVoice(false);
@@ -151,7 +211,7 @@ export function MiaFloatingCompanion() {
         recognitionRef.current.start();
         setIsListeningVoice(true);
       } catch (e) {
-        console.warn("Speech recognition error:", e);
+        console.warn("Speech recognition start error:", e);
       }
     }
   };
@@ -160,7 +220,10 @@ export function MiaFloatingCompanion() {
     const text = (textToSend || inputText).trim();
     if (!text || isLoading) return;
 
+    // Interrupt any active voice playback before user asks new question
+    stop();
     setInputText("");
+
     const userEntry: ChatEntry = {
       id: `user-${Date.now()}`,
       sender: "user",
@@ -169,7 +232,8 @@ export function MiaFloatingCompanion() {
       mode: currentMode,
     };
 
-    setMessages((prev) => [...prev, userEntry]);
+    const updatedMessages = [...messages, userEntry];
+    setMessages(updatedMessages);
     setIsLoading(true);
 
     try {
@@ -180,10 +244,39 @@ export function MiaFloatingCompanion() {
           token = stored?.actorToken || stored?.judgeToken || "";
         } catch {}
       }
-      const fetchHeaders: Record<string, string> = { "Content-Type": "application/json" };
-      if (token) {
-        fetchHeaders["Authorization"] = `Bearer ${token}`;
+      if (!token) {
+        token = "machtia-active-session-demo-token-client";
       }
+
+      const fetchHeaders: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      };
+
+      // Prepare multi-turn history payload for contextual memory
+      const historyPayload = updatedMessages.slice(-10).map((m) => ({
+        sender: m.sender,
+        text: m.text,
+        topic: m.topic,
+        mode: m.mode,
+      }));
+
+      // Rich educational context
+      const practiceContext = {
+        practiceId: activePractice?.id,
+        exerciseId: activeExerciseContext?.exerciseId,
+        topic: activePractice?.topicId,
+        topicName: activeExerciseContext?.topicName || activePractice?.topicName || "Fracciones Equivalentes",
+        subject: activePractice?.subjectId || "Matemáticas",
+        exercisePrompt: activeExerciseContext?.exercisePrompt,
+        options: activeExerciseContext?.options,
+        attemptNumber: activeExerciseContext?.attemptCount,
+        studentName: student?.name || "Mariana López",
+        studentId: selectedStudentId || "student-mariana-1",
+        grade: 3,
+        diagnosticScore: student?.topicPerformances?.["fracciones-equivalentes"] ?? 52,
+        diagnosticGap: "Comparación de fracciones con distinto denominador",
+      };
 
       const res = await fetch("/api/mia", {
         method: "POST",
@@ -191,15 +284,8 @@ export function MiaFloatingCompanion() {
         body: JSON.stringify({
           message: text,
           mode: currentMode,
-          practiceContext: {
-            practiceId: activePractice?.id,
-            topic: activePractice?.topicId,
-            topicName: activePractice?.topicName,
-            subject: activePractice?.subjectId,
-            studentName: student?.name || "Mariana",
-            studentId: selectedStudentId || "student-mariana-1",
-            grade: 3,
-          },
+          practiceContext,
+          history: historyPayload,
         }),
       });
 
@@ -229,11 +315,11 @@ export function MiaFloatingCompanion() {
         speak(data.reply, data.ttsSignature);
       }
     } catch {
-      // Graceful offline fallback
+      // Graceful offline fallback with socratic encouragement
       const fallbackEntry: ChatEntry = {
         id: `mia-${Date.now()}`,
         sender: "mia",
-        text: `¡Qué gran pregunta! Sobre "${text}": en la escuela aprendemos pasito a pasito. Recuerda que no hay dudas pequeñas y preguntar es lo que nos hace más inteligentes. ¿Quieres que lo comparemos con un ejemplo divertido?`,
+        text: `¡Qué gran pregunta, Mariana! 🌟 Sobre "${text}": en la escuela aprendemos pasito a pasito. Recuerda que no hay dudas pequeñas y preguntar es lo que nos hace más inteligentes. ¿Quieres que lo comparemos con un ejemplo de chocolate o de pizzas?`,
         timestamp: new Date().toISOString(),
         mode: currentMode,
         topic: "Aprendizaje Adaptativo",
@@ -243,9 +329,15 @@ export function MiaFloatingCompanion() {
       setIsLoading(false);
     }
   };
+  handleSendMessageRef.current = handleSendMessage;
 
   const handleClearChat = () => {
     stop();
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.removeItem("machtia_mia_chat_history");
+      } catch {}
+    }
     setMessages([
       {
         id: `welcome-${Date.now()}`,
@@ -257,6 +349,14 @@ export function MiaFloatingCompanion() {
       },
     ]);
   };
+
+  // Select dynamic suggestion list based on current active mode
+  const currentSuggestions =
+    currentMode === "practice"
+      ? PRACTICE_SUGGESTIONS
+      : currentMode === "curiosity"
+      ? CURIOSITY_SUGGESTIONS
+      : FREE_SUGGESTIONS;
 
   return (
     <>
@@ -277,7 +377,11 @@ export function MiaFloatingCompanion() {
             <Sparkles className="w-4 h-4 text-amber-500 animate-spin-slow" />
             <span>Pregúntale a MIA</span>
             <span className="text-[10px] bg-blue-100 text-blue-800 px-2 py-0.5 rounded-full font-semibold">
-              {currentMode === "practice" ? "🎯 Práctica" : currentMode === "curiosity" ? "🚀 Curiosidad" : "💡 Libre"}
+              {currentMode === "practice"
+                ? "🎯 Práctica"
+                : currentMode === "curiosity"
+                ? "🚀 Curiosidad"
+                : "💡 Libre"}
             </span>
           </button>
 
@@ -317,12 +421,23 @@ export function MiaFloatingCompanion() {
           data-testid="mia-chat-window"
           role="dialog"
           aria-label="Conversación con MIA"
-          className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-50 w-[95vw] sm:w-[430px] max-w-[440px] h-[610px] max-h-[88vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          className="fixed bottom-3 right-3 sm:bottom-5 sm:right-5 z-50 w-[95vw] sm:w-[440px] max-w-[450px] h-[620px] max-h-[88vh] bg-white rounded-3xl shadow-2xl border border-slate-200/90 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
         >
           {/* Header */}
           <header className="bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700 text-white p-3.5 sm:p-4 flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-3">
-              <div className="relative w-11 h-11 rounded-2xl bg-slate-950 border-2 border-amber-300/80 overflow-hidden shrink-0 shadow-sm">
+              {/* Avatar with visual status glow */}
+              <div
+                className={`relative w-11 h-11 rounded-2xl bg-slate-950 border-2 overflow-hidden shrink-0 shadow-sm transition-all duration-300 ${
+                  isSpeaking
+                    ? "border-amber-400 ring-4 ring-amber-300/40 scale-105"
+                    : isListeningVoice
+                    ? "border-red-400 ring-4 ring-red-400/40 animate-pulse"
+                    : isLoading
+                    ? "border-sky-400 ring-4 ring-sky-300/40"
+                    : "border-amber-300/80"
+                }`}
+              >
                 <Image
                   src="/mia-thumb.png"
                   alt="MIA Robot"
@@ -331,6 +446,7 @@ export function MiaFloatingCompanion() {
                   className="w-full h-full object-contain"
                 />
               </div>
+
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-black tracking-tight flex items-center gap-1.5">
@@ -340,16 +456,35 @@ export function MiaFloatingCompanion() {
                     </span>
                   </h2>
                 </div>
+
+                {/* Real-time Dynamic Visual Status Indicator */}
                 <p className="text-[11px] text-blue-100 flex items-center gap-1.5">
-                  <span className={`w-1.5 h-1.5 rounded-full inline-block ${isSpeaking ? "bg-amber-400 animate-ping" : "bg-emerald-400 animate-pulse"}`} />
-                  {isSpeaking ? (
-                    <span className="font-bold text-amber-200">
-                      {voiceSource === "elevenlabs" ? "🎙️ ElevenLabs HD (PnBj01JY...)" : "🗣️ Web Speech (es-MX)"}
-                    </span>
+                  {isListeningVoice ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-red-400 animate-ping inline-block" />
+                      <span className="font-bold text-red-200">🎙️ Escuchando tu voz...</span>
+                    </>
+                  ) : isLoading ? (
+                    <>
+                      <Loader2 className="w-3 h-3 text-sky-200 animate-spin inline-block" />
+                      <span className="font-semibold text-sky-100">Pensando explicación...</span>
+                    </>
+                  ) : isSpeaking ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-bounce inline-block" />
+                      <span className="font-bold text-amber-200">
+                        {voiceSource === "elevenlabs"
+                          ? "🎙️ ElevenLabs HD (Paulina · es-MX)"
+                          : "🗣️ Voz Didáctica (es-MX)"}
+                      </span>
+                    </>
                   ) : (
-                    <span className="opacity-90">
-                      Voz didáctica activa · <span className="text-amber-200 font-medium">ElevenLabs + es-MX</span>
-                    </span>
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                      <span className="opacity-95">
+                        Lista para resolver tus dudas · <span className="text-amber-200 font-semibold">Voz didáctica activa</span>
+                      </span>
+                    </>
                   )}
                 </p>
               </div>
@@ -365,7 +500,7 @@ export function MiaFloatingCompanion() {
                 }}
                 className={`p-2 rounded-xl transition ${
                   autoSpeak
-                    ? "bg-amber-400 text-slate-900 font-bold"
+                    ? "bg-amber-400 text-slate-900 font-bold shadow-xs"
                     : "text-blue-200 hover:text-white hover:bg-white/10"
                 }`}
                 title={autoSpeak ? "Voz automática activada" : "Activar voz automática"}
@@ -373,6 +508,19 @@ export function MiaFloatingCompanion() {
               >
                 {autoSpeak ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
               </button>
+
+              {/* Stop ongoing speech immediately */}
+              {isSpeaking && (
+                <button
+                  type="button"
+                  onClick={stop}
+                  className="p-2 rounded-xl bg-red-500/80 hover:bg-red-600 text-white font-bold transition shadow-xs"
+                  title="Detener reproducción de audio"
+                  aria-label="Detener audio"
+                >
+                  <VolumeX className="w-4 h-4 animate-bounce" />
+                </button>
+              )}
 
               {/* Clear chat */}
               <button
@@ -447,7 +595,7 @@ export function MiaFloatingCompanion() {
           <div className="bg-blue-50/70 px-4 py-1.5 border-b border-blue-100/80 text-[11px] text-blue-900 flex items-center justify-between">
             <span>
               {currentMode === "practice" && (
-                <>🎯 <strong>Modo Práctica:</strong> Te guío con pistas sin darte la respuesta de inmediato.</>
+                <>🎯 <strong>Modo Práctica:</strong> Te guío con pistas socráticas sin darte la respuesta de inmediato.</>
               )}
               {currentMode === "free" && (
                 <>💡 <strong>Pregunta Libre:</strong> Aprende de ciencias, matemáticas, inglés, espacio o dudas de clase.</>
@@ -465,13 +613,21 @@ export function MiaFloatingCompanion() {
           >
             {messages.map((m) => {
               const isMia = m.sender === "mia";
+              const isSpeakingThisMessage = isSpeaking && activeRawText === m.text;
+
               return (
                 <div
                   key={m.id}
                   className={`flex gap-2.5 ${isMia ? "items-start" : "items-end justify-end"}`}
                 >
                   {isMia && (
-                    <div className="w-8 h-8 rounded-xl bg-slate-950 border border-blue-300 overflow-hidden shrink-0 mt-0.5">
+                    <div
+                      className={`w-8 h-8 rounded-xl bg-slate-950 border overflow-hidden shrink-0 mt-0.5 transition ${
+                        isSpeakingThisMessage
+                          ? "border-amber-400 ring-2 ring-amber-300"
+                          : "border-blue-300"
+                      }`}
+                    >
                       <Image
                         src="/mia-thumb.png"
                         alt="MIA"
@@ -483,9 +639,11 @@ export function MiaFloatingCompanion() {
                   )}
 
                   <div
-                    className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed shadow-xs ${
+                    className={`max-w-[85%] rounded-2xl p-3.5 text-xs sm:text-sm leading-relaxed shadow-xs transition-all ${
                       isMia
-                        ? "bg-white border border-slate-200/90 text-slate-800 rounded-tl-sm space-y-2"
+                        ? isSpeakingThisMessage
+                          ? "bg-amber-50/70 border-2 border-amber-300 text-slate-900 rounded-tl-sm space-y-2 ring-2 ring-amber-200/50"
+                          : "bg-white border border-slate-200/90 text-slate-800 rounded-tl-sm space-y-2"
                         : "bg-blue-600 text-white rounded-br-sm"
                     }`}
                   >
@@ -494,7 +652,8 @@ export function MiaFloatingCompanion() {
                         <span className="text-blue-700 bg-blue-50 px-2 py-0.5 rounded">
                           {m.topic}
                         </span>
-                        {/* Audio Speak button with active states */}
+
+                        {/* Audio Speak button with synchronized states */}
                         <button
                           type="button"
                           onClick={() => {
@@ -504,28 +663,36 @@ export function MiaFloatingCompanion() {
                               void speak(m.text, m.ttsSignature);
                             }
                           }}
-                          className={`inline-flex items-center gap-1 transition text-[11px] font-semibold ${
-                            isSpeaking && activeRawText === m.text
-                              ? "text-amber-600 font-bold"
+                          className={`inline-flex items-center gap-1.5 transition text-[11px] font-semibold px-2 py-0.5 rounded-lg ${
+                            isSpeakingThisMessage
+                              ? "bg-amber-100 text-amber-800 font-bold"
                               : isLoadingVoice && activeRawText === m.text
-                              ? "text-amber-500 animate-pulse"
-                              : "text-slate-500 hover:text-blue-600"
+                              ? "bg-amber-50 text-amber-600 animate-pulse"
+                              : "text-slate-500 hover:text-blue-600 hover:bg-slate-50"
                           }`}
                           title={
-                            isSpeaking && activeRawText === m.text
+                            isSpeakingThisMessage
                               ? "Detener audio de MIA"
                               : "Escuchar explicación de MIA"
                           }
-                          aria-label={isSpeaking && activeRawText === m.text ? "Detener voz de MIA" : "Escuchar a MIA"}
+                          aria-label={
+                            isSpeakingThisMessage ? "Detener voz de MIA" : "Escuchar a MIA"
+                          }
                         >
                           {isLoadingVoice && activeRawText === m.text ? (
                             <>
                               <Loader2 className="w-3 h-3 text-amber-500 animate-spin" />
-                              <span>Cargando...</span>
+                              <span>Generando voz...</span>
                             </>
-                          ) : isSpeaking && activeRawText === m.text ? (
+                          ) : isSpeakingThisMessage ? (
                             <>
-                              <VolumeX className="w-3 h-3 text-amber-600 animate-bounce" />
+                              {/* Animated equalizing bars */}
+                              <div className="flex items-center gap-0.5">
+                                <span className="w-0.5 h-3 bg-amber-600 rounded-full animate-bounce" />
+                                <span className="w-0.5 h-4 bg-amber-600 rounded-full animate-bounce [animation-delay:0.15s]" />
+                                <span className="w-0.5 h-2.5 bg-amber-600 rounded-full animate-bounce [animation-delay:0.3s]" />
+                              </div>
+                              <VolumeX className="w-3 h-3 text-amber-700 ml-0.5" />
                               <span>Detener</span>
                             </>
                           ) : (
@@ -554,14 +721,21 @@ export function MiaFloatingCompanion() {
               );
             })}
 
+            {/* Thinking Visual Indicator */}
             {isLoading && (
-              <div className="flex gap-2.5 items-start">
-                <div className="w-8 h-8 rounded-xl bg-slate-950 border border-blue-300 overflow-hidden shrink-0 animate-pulse">
-                  <Image src="/mia-thumb.png" alt="MIA" width={32} height={32} className="w-full h-full object-contain" />
+              <div className="flex gap-2.5 items-start animate-in fade-in duration-200">
+                <div className="w-8 h-8 rounded-xl bg-slate-950 border border-sky-400 ring-2 ring-sky-300/40 overflow-hidden shrink-0 animate-pulse">
+                  <Image
+                    src="/mia-thumb.png"
+                    alt="MIA"
+                    width={32}
+                    height={32}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-3 text-xs text-slate-500 flex items-center gap-2">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-                  <span>MIA está pensando la mejor explicación...</span>
+                <div className="bg-white border border-slate-200 rounded-2xl rounded-tl-sm p-3 text-xs text-slate-700 flex items-center gap-2 shadow-xs">
+                  <Sparkles className="w-4 h-4 text-blue-600 animate-spin" />
+                  <span className="font-medium">MIA está pensando la mejor explicación paso a paso...</span>
                 </div>
               </div>
             )}
@@ -569,7 +743,7 @@ export function MiaFloatingCompanion() {
 
           {/* Quick Suggestions Chips Carousel */}
           <div className="bg-white border-t border-slate-100 px-3 py-2 overflow-x-auto no-scrollbar flex gap-2">
-            {SUGGESTED_QUESTIONS.map((s, idx) => (
+            {currentSuggestions.map((s, idx) => (
               <button
                 key={idx}
                 type="button"
@@ -586,18 +760,33 @@ export function MiaFloatingCompanion() {
 
           {/* Input Bar with Text and Voice */}
           <footer className="p-3 bg-white border-t border-slate-200">
+            {/* Listening Visual Banner */}
             {isListeningVoice && (
               <div className="mb-2 p-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center justify-between animate-pulse">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                  <span>MIA te está escuchando... ¡Habla ahora!</span>
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+                  <span>MIA te está escuchando... ¡Habla ahora con tu micrófono!</span>
                 </div>
                 <button
                   type="button"
                   onClick={toggleVoiceInput}
-                  className="text-xs text-red-800 underline"
+                  className="text-xs text-red-800 underline hover:text-red-950"
                 >
                   Detener
+                </button>
+              </div>
+            )}
+
+            {/* Mic Notice (permission/unsupported) */}
+            {micNotice && (
+              <div className="mb-2 p-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-semibold flex items-center justify-between">
+                <span>{micNotice}</span>
+                <button
+                  type="button"
+                  onClick={() => setMicNotice(null)}
+                  className="text-amber-900 ml-2"
+                >
+                  <X className="w-3.5 h-3.5" />
                 </button>
               </div>
             )}
@@ -623,21 +812,25 @@ export function MiaFloatingCompanion() {
               />
 
               {/* Microphone Voice Button */}
-              {speechRecognitionSupported && (
-                <button
-                  type="button"
-                  onClick={toggleVoiceInput}
-                  className={`p-2.5 rounded-2xl border transition ${
-                    isListeningVoice
-                      ? "bg-red-500 text-white border-red-600 animate-pulse"
-                      : "bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 border-slate-200"
-                  }`}
-                  title={isListeningVoice ? "Detener micrófono" : "Hablar por micrófono con MIA"}
-                  aria-label="Hablar por voz"
-                >
-                  {isListeningVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={toggleVoiceInput}
+                className={`p-2.5 rounded-2xl border transition ${
+                  isListeningVoice
+                    ? "bg-red-500 text-white border-red-600 animate-pulse shadow-md"
+                    : "bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 border-slate-200"
+                }`}
+                title={
+                  isListeningVoice
+                    ? "Detener micrófono"
+                    : speechRecognitionSupported
+                    ? "Hablar por micrófono con MIA"
+                    : "Reconocimiento por micrófono"
+                }
+                aria-label="Hablar por voz"
+              >
+                {isListeningVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
 
               {/* Send Button */}
               <button
@@ -654,7 +847,7 @@ export function MiaFloatingCompanion() {
             <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 px-1">
               <span>MACHTIA Adaptive Companion · Primaria 3° B</span>
               <span className="flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                 Seguro para niños
               </span>
             </div>

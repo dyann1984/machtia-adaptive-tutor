@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { findPreferredSpanishVoice, cancelGlobalSpeech } from "./use-speech";
+import { findPreferredSpanishVoice, cancelGlobalSpeech, stopAllGlobalAudio, registerGlobalAudioSource } from "./use-speech";
 import { normalizeOralMathText } from "@/lib/tts/normalization";
 
 export interface UseMiaVoiceReturn {
@@ -79,6 +79,11 @@ export function useMiaVoice(): UseMiaVoiceReturn {
     setVoiceSource(null);
   }, []);
 
+  // Register with global audio registry so all audio sources coordinate across the application
+  useEffect(() => {
+    return registerGlobalAudioSource(stop);
+  }, [stop]);
+
   /**
    * Fallback synthesis using local browser Web Speech API.
    */
@@ -151,8 +156,8 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       const trimmed = (rawText || "").trim();
       if (!trimmed) return;
 
-      // Stop any ongoing speech immediately before starting new phrase
-      stop();
+      // Stop any ongoing speech across the entire app immediately before starting new phrase
+      stopAllGlobalAudio();
 
       setIsLoading(true);
       setActiveRawText(trimmed);
