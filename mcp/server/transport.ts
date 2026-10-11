@@ -16,9 +16,15 @@ async function readBody(req: http.IncomingMessage) {
 export function createMcpHttpServer(config: TransportConfig): http.Server {
   return http.createServer(async (req, res) => {
     const pathname = new URL(req.url || "/", "http://localhost").pathname;
-    const api = pathname.startsWith("/api/");
-    const controlled = api || ["/health", "/healthz", "/mcp", "/sse", "/mcp/stream"].includes(pathname);
-    if (!controlled && config.webHandler) { config.webHandler(req, res); return; }
+    const isMcpProtocol = ["/mcp", "/sse", "/mcp/stream", "/health", "/healthz"].includes(pathname);
+    const isMcpDemoApi = ["/api/demo", "/api/role", "/api/support", "/api/state", "/api/practices"].includes(pathname);
+
+    // If Next.js webHandler is mounted, delegate all web & non-MCP routes to Next.js (including /api/tts and /api/mia)
+    if (config.webHandler && !isMcpProtocol && !isMcpDemoApi) {
+      config.webHandler(req, res);
+      return;
+    }
+
     const send = (status: number, value?: unknown) => { res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" }); res.end(value === undefined ? undefined : JSON.stringify(value)); };
     const origin = req.headers.origin;
     const allowed = (process.env.MCP_ALLOWED_ORIGINS || config.corsOrigin || "http://localhost:3000,http://127.0.0.1:3000,https://machtia-tutor-mcp-server.onrender.com,http://machtia-tutor-mcp-server.onrender.com,https://machtia-adaptive-tutor.onrender.com,http://machtia-adaptive-tutor.onrender.com,https://machtia-adaptive-tutor.vercel.app").split(",").map(s => s.trim()).filter(s => s && !s.includes("*"));
@@ -45,13 +51,15 @@ export function createMcpHttpServer(config: TransportConfig): http.Server {
       }
       if (req.method === "POST" && pathname === "/api/mia") {
         const body = await readBody(req);
-        const { message, mode, practiceContext } = body || {};
-        const reply = await miaAgent.respond(String(message || ""), mode || "free", practiceContext);
-        send(200, reply);
+        const { message, mode, practiceContext, history } = body || {};
+        const reply = await miaAgent.respond(String(message || ""), mode || "free", practiceContext, history);
+        const { generateDidacticSignature } = await import("@/lib/tts/signature");
+        const ttsSignature = generateDidacticSignature(reply.reply, practiceContext?.studentId || "student-mariana-1");
+        send(200, { ...reply, ttsSignature, boundActorId: practiceContext?.studentId || "student-mariana-1" });
         return;
       }
       const actor = authenticate((req.headers.authorization || "").replace(/^Bearer /, ""));
-      if (api) {
+      if (isMcpDemoApi) {
         if (!actor) { send(401, { error: "Authenticated demo actor required" }); return; }
         if (req.method === "POST" && pathname === "/api/support") {
           const body = await readBody(req);

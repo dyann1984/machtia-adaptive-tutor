@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import type { Exercise, SupportEvent, SupportKind } from "@/types";
 import { supportDialogue, SUPPORT_LABELS } from "@/lib/learning/support";
 import { SpeechAudioButton } from "./SpeechAudioButton";
-import { useSpeech } from "@/lib/hooks/use-speech";
+import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
 import { mcpClient } from "@/lib/mcp/client";
 import { useTutor } from "@/lib/context/tutor-context";
 import { activePracticeForExercise } from "@/lib/learning/active-practice";
@@ -29,7 +29,7 @@ export function SupportCoach({ exercise, onSupport, initialSupport = "independen
   initialSupport?: "independent" | "verbal" | "visual";
   onDialogue?: (text: string) => void;
 }) {
-  const speech = useSpeech();
+  const speech = useMiaVoice();
   const { practices, selectedStudentId, currentPracticingId } = useTutor();
   const [serverError, setServerError] = useState("");
   const [hintLevel, setHintLevel] = useState(initialSupport === "visual" ? 2 : initialSupport === "verbal" ? 1 : 0);

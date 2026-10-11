@@ -7,12 +7,18 @@ import { normalizeOralMathText } from "@/lib/tts/normalization";
 export interface UseMiaVoiceReturn {
   speak: (text: string, signature?: string) => Promise<void>;
   stop: () => void;
+  replay: () => Promise<void>;
   isSpeaking: boolean;
   isLoading: boolean;
   isSupported: boolean;
   activeText: string | null;
   activeRawText: string | null;
   voiceSource: "elevenlabs" | "webspeech" | null;
+  provider: string | null;
+  latencyMs: number | null;
+  error: string | null;
+  isFallback: boolean;
+  fallbackReason: string | null;
 }
 
 export function useMiaVoice(): UseMiaVoiceReturn {
@@ -22,11 +28,17 @@ export function useMiaVoice(): UseMiaVoiceReturn {
   const [activeText, setActiveText] = useState<string | null>(null);
   const [activeRawText, setActiveRawText] = useState<string | null>(null);
   const [voiceSource, setVoiceSource] = useState<"elevenlabs" | "webspeech" | null>(null);
+  const [provider, setProvider] = useState<string | null>(null);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isFallback, setIsFallback] = useState(false);
+  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
+  const activeSignatureRef = useRef<string | undefined>(undefined);
 
   /**
    * Complete teardown and cancellation of all active audio sources:
@@ -75,8 +87,6 @@ export function useMiaVoice(): UseMiaVoiceReturn {
     setIsSpeaking(false);
     setIsLoading(false);
     setActiveText(null);
-    setActiveRawText(null);
-    setVoiceSource(null);
   }, []);
 
   // Register with global audio registry so all audio sources coordinate across the application
@@ -88,7 +98,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
    * Fallback synthesis using local browser Web Speech API.
    */
   const speakWebSpeech = useCallback(
-    (rawText: string) => {
+    (rawText: string, reasonNotice?: string) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         stop();
         return;
@@ -123,6 +133,9 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           setActiveText(cleanText);
           setActiveRawText(rawText);
           setVoiceSource("webspeech");
+          setProvider("Web Speech API (Síntesis del navegador · es-MX)");
+          setIsFallback(true);
+          if (reasonNotice) setFallbackReason(reasonNotice);
         };
 
         utterance.onend = () => {
@@ -132,6 +145,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
         utterance.onerror = (e) => {
           if (e.error !== "canceled" && e.error !== "interrupted") {
             console.warn("[useMiaVoice] WebSpeech error:", e.error);
+            setError(`Error de síntesis de voz del navegador (${e.error})`);
           }
           stop();
         };
@@ -148,19 +162,23 @@ export function useMiaVoice(): UseMiaVoiceReturn {
 
   /**
    * Main speak function:
-   * Tries ElevenLabs via /api/tts with session auth.
-   * If unconfigured, quota-limited, or failed, falls back seamlessly to Web Speech.
+   * Prioritizes ElevenLabs HD via /api/tts.
+   * If unconfigured, quota-limited, or failed, falls back gracefully to Web Speech,
+   * accurately reporting the effective provider.
    */
   const speak = useCallback(
     async (rawText: string, signature?: string) => {
       const trimmed = (rawText || "").trim();
       if (!trimmed) return;
 
+      activeSignatureRef.current = signature;
+
       // Stop any ongoing speech across the entire app immediately before starting new phrase
       stopAllGlobalAudio();
 
       setIsLoading(true);
       setActiveRawText(trimmed);
+      setError(null);
 
       // Retrieve current session token from sessionStorage if present
       let token = "";
@@ -180,6 +198,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
 
       const controller = new AbortController();
       abortControllerRef.current = controller;
+      const startTime = Date.now();
 
       try {
         const response = await fetch("/api/tts", {
@@ -194,16 +213,28 @@ export function useMiaVoice(): UseMiaVoiceReturn {
 
         if (controller.signal.aborted) return;
 
+        const roundtripMs = Date.now() - startTime;
+        const latencyHeader = response.headers.get("X-TTS-Latency-Ms");
+        const effectiveLatency = latencyHeader ? parseInt(latencyHeader, 10) : roundtripMs;
+        setLatencyMs(effectiveLatency);
+
         const contentType = response.headers.get("content-type") || "";
         const fallbackHeader = response.headers.get("X-TTS-Fallback");
+        const sourceHeader = response.headers.get("X-TTS-Source");
 
         // If server signals fallback or returned JSON instead of audio
         if (fallbackHeader === "true" || contentType.includes("application/json") || !response.ok) {
-          speakWebSpeech(trimmed);
+          let reason = "EXTERNAL_FALLBACK";
+          try {
+            const jsonBody = await response.json();
+            reason = jsonBody.reason || jsonBody.message || "Respaldo activo";
+          } catch {}
+          setFallbackReason(reason);
+          speakWebSpeech(trimmed, reason);
           return;
         }
 
-        // Server returned MP3 audio
+        // Server returned authentic MP3 audio from ElevenLabs (or cache)
         const blob = await response.blob();
         if (controller.signal.aborted) return;
 
@@ -218,6 +249,13 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           setIsLoading(false);
           setActiveText(normalizeOralMathText(trimmed));
           setVoiceSource("elevenlabs");
+          setProvider(
+            sourceHeader === "cache"
+              ? "ElevenLabs HD (Caché didáctico · es-MX)"
+              : "ElevenLabs HD (Paulina · es-MX)"
+          );
+          setIsFallback(false);
+          setFallbackReason(null);
         };
 
         audio.onended = () => {
@@ -227,7 +265,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
         audio.onerror = () => {
           console.warn("[useMiaVoice] HTMLAudioElement playback error. Falling back to Web Speech.");
           stop();
-          speakWebSpeech(trimmed);
+          speakWebSpeech(trimmed, "AUDIO_ELEMENT_ERROR");
         };
 
         // Attempt playback (respecting browser autoplay policies)
@@ -240,7 +278,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           } else {
             console.warn("[useMiaVoice] Audio play error:", playErr);
             stop();
-            speakWebSpeech(trimmed);
+            speakWebSpeech(trimmed, "PLAY_ERROR");
           }
         }
       } catch (err: any) {
@@ -249,11 +287,25 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           return;
         }
         console.warn("[useMiaVoice] /api/tts request failed. Falling back to Web Speech:", err);
-        speakWebSpeech(trimmed);
+        speakWebSpeech(trimmed, "NETWORK_ERROR");
       }
     },
     [stop, speakWebSpeech]
   );
+
+  /**
+   * Replays the active message from the beginning.
+   */
+  const replay = useCallback(async () => {
+    if (activeRawText) {
+      const textToReplay = activeRawText;
+      const sigToReplay = activeSignatureRef.current;
+      stop();
+      // brief pause before restarting to clear audio channels cleanly
+      await new Promise((r) => setTimeout(r, 60));
+      await speak(textToReplay, sigToReplay);
+    }
+  }, [activeRawText, stop, speak]);
 
   // Stop speech if page is hidden, tab switched, or unmounted
   useEffect(() => {
@@ -279,13 +331,34 @@ export function useMiaVoice(): UseMiaVoiceReturn {
     () => ({
       speak,
       stop,
+      replay,
       isSpeaking,
       isLoading,
       isSupported,
       activeText,
       activeRawText,
       voiceSource,
+      provider,
+      latencyMs,
+      error,
+      isFallback,
+      fallbackReason,
     }),
-    [speak, stop, isSpeaking, isLoading, isSupported, activeText, activeRawText, voiceSource]
+    [
+      speak,
+      stop,
+      replay,
+      isSpeaking,
+      isLoading,
+      isSupported,
+      activeText,
+      activeRawText,
+      voiceSource,
+      provider,
+      latencyMs,
+      error,
+      isFallback,
+      fallbackReason,
+    ]
   );
 }

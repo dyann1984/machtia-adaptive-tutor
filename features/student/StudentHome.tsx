@@ -4,7 +4,7 @@ import React from "react";
 import { useTutor } from "@/lib/context/tutor-context";
 import { TutorRobotAvatar } from "@/components/TutorRobotAvatar";
 import { SpeechAudioButton } from "@/components/SpeechAudioButton";
-import { useSpeech } from "@/lib/hooks/use-speech";
+import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
 import { subjectName } from "@/lib/learning/catalog";
 import {
   Sparkles,
@@ -24,7 +24,7 @@ export function StudentHome({
   onStartPractice: (practiceId: string) => void;
 }) {
   const { practices, selectedStudentId, students, evidences, setActiveStudentTab } = useTutor();
-  const speech = useSpeech();
+  const speech = useMiaVoice();
 
   const student = students.find((s) => s.id === selectedStudentId) || students[0];
   const studentPractices = practices.filter((p) => p.studentId === student.id);

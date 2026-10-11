@@ -7,7 +7,7 @@ import { summarizeSupports } from "@/lib/learning/support";
 import { SupportCoach } from "@/components/SupportCoach";
 import { TutorRobotAvatar, type TutorEmotion } from "@/components/TutorRobotAvatar";
 import { SpeechAudioButton } from "@/components/SpeechAudioButton";
-import { useSpeech } from "@/lib/hooks/use-speech";
+import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
 import { repository } from "@/lib/data/repository";
 
 function initialEvent(practice: Practice, index: number): SupportEvent[] {
@@ -16,7 +16,7 @@ function initialEvent(practice: Practice, index: number): SupportEvent[] {
 }
 export function SubjectPracticeRunner({ practice, onFinish }: { practice: Practice; onFinish: () => void }) {
   const { submitAnswer, completePractice, setRole, setActiveTeacherTab } = useTutor();
-  const speech = useSpeech();
+  const speech = useMiaVoice();
   const [phase, setPhase] = useState<"intro" | "questions" | "results">("intro");
   const [index, setIndex] = useState(0);
   const [choice, setChoice] = useState<string | null>(null);

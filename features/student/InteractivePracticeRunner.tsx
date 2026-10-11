@@ -14,7 +14,7 @@ import { ChocolateBarInteractive } from "@/components/exercises/ChocolateBarInte
 import { RelationalComparisonInteractive } from "@/components/exercises/RelationalComparisonInteractive";
 import { CrossProductInteractive } from "@/components/exercises/CrossProductInteractive";
 import { SimplificationInteractive } from "@/components/exercises/SimplificationInteractive";
-import { useSpeech } from "@/lib/hooks/use-speech";
+import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
 import { adapt_difficulty } from "@/lib/tools/tutor-tools";
 import confetti from "canvas-confetti";
 import {
@@ -35,7 +35,7 @@ export function InteractivePracticeRunner({
   onFinish: () => void;
 }) {
   const { submitAnswer, completePractice, setRole, setActiveTeacherTab, setActiveStudentTab, setActiveExerciseContext } = useTutor();
-  const speech = useSpeech();
+  const speech = useMiaVoice();
 
   // Phase: 'explanation' | 'questions' | 'results'
   const [phase, setPhase] = useState<"explanation" | "questions" | "results">("explanation");
@@ -664,6 +664,12 @@ export function InteractivePracticeRunner({
                       : evaluationResult?.guidedExample || evaluationResult?.alternativeExplanation || "Piensa en partes iguales de una pizza: al duplicar las rebanadas, cada una es la mitad de grande."
                     : evaluationResult?.feedback}
                 </p>
+                {!evaluationResult?.isCorrect && (
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-900 bg-amber-100/90 px-3.5 py-2 rounded-xl border border-amber-300 shadow-xs">
+                    <span className="text-base">🌟</span>
+                    <span>¡Reconocimiento por esfuerzo! Equivocarse es la forma número uno en que aprende el cerebro. ¡Sigue adelante!</span>
+                  </div>
+                )}
               </div>
             )}
 

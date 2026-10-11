@@ -49,10 +49,12 @@ export async function POST(req: NextRequest) {
     // 2.2 Didactic Signature Gate (Adversarial Grade):
     // Prevents synthesis of arbitrary/unauthorized text, cross-student replay, and expired tokens.
     const isTest = process.env.NODE_ENV === "test";
-    const hasSignature = typeof body?.signature === "string";
-    const sigResult = verifyDidacticSignatureDetail(validation.cleanText, body?.signature, resolvedActorId);
+    const signatureToVerify = typeof body?.signature === "string" ? body.signature : (typeof body?.ttsSignature === "string" ? body.ttsSignature : undefined);
+    const hasSignature = typeof signatureToVerify === "string";
+    const sigResult = verifyDidacticSignatureDetail(validation.cleanText, signatureToVerify, resolvedActorId);
+    const hasValidSessionToken = Boolean(authHeader && ttsSessionGuard.isValidSessionToken(authHeader));
 
-    if (!sigResult.valid && (!isTest || hasSignature)) {
+    if (hasSignature && !sigResult.valid) {
       let errorMessage = "Texto didáctico no autorizado o firma criptográfica no válida.";
       let statusCode = 403;
 
@@ -74,6 +76,15 @@ export async function POST(req: NextRequest) {
           reason: sigResult.reason || "UNAUTHORIZED_DIDACTIC_TEXT",
         },
         { status: statusCode, headers: PRIVATE_NO_CACHE_HEADERS }
+      );
+    } else if (!hasSignature && !hasValidSessionToken && !isTest) {
+      return NextResponse.json(
+        {
+          error: "Sesión o firma didáctica requerida para síntesis de audio.",
+          fallback: true,
+          reason: "UNAUTHORIZED_DIDACTIC_TEXT",
+        },
+        { status: 401, headers: PRIVATE_NO_CACHE_HEADERS }
       );
     }
 
@@ -175,12 +186,17 @@ export async function POST(req: NextRequest) {
           "Content-Type": cached.contentType,
           ...PRIVATE_NO_CACHE_HEADERS,
           "X-TTS-Source": "cache",
+          "X-TTS-Provider": "elevenlabs",
+          "X-TTS-Voice-Id": process.env.ELEVENLABS_VOICE_ID || "default",
+          "X-TTS-Latency-Ms": "0",
         },
       });
     }
 
     // 8. Synthesize via ElevenLabs adapter
+    const startMs = Date.now();
     const result = await adapter.synthesize(normalizedText);
+    const latencyMs = Date.now() - startMs;
 
     if (result.success && result.audioBuffer) {
       // Store in memory cache
@@ -192,6 +208,9 @@ export async function POST(req: NextRequest) {
           "Content-Type": result.contentType || "audio/mpeg",
           ...PRIVATE_NO_CACHE_HEADERS,
           "X-TTS-Source": "elevenlabs",
+          "X-TTS-Provider": "elevenlabs",
+          "X-TTS-Voice-Id": process.env.ELEVENLABS_VOICE_ID || "default",
+          "X-TTS-Latency-Ms": String(latencyMs),
         },
       });
     }
@@ -200,14 +219,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         fallback: true,
+        provider: "webspeech",
         reason: result.reason || "PROVIDER_ERROR",
-        message: result.message || "Error al sintetizar; activando Web Speech.",
+        message: result.message || "Error al sintetizar con ElevenLabs; activando Web Speech de respaldo.",
+        latencyMs,
       },
       {
         status: 200,
         headers: {
           ...PRIVATE_NO_CACHE_HEADERS,
           "X-TTS-Fallback": "true",
+          "X-TTS-Provider": "webspeech",
+          "X-TTS-Latency-Ms": String(latencyMs),
         },
       }
     );

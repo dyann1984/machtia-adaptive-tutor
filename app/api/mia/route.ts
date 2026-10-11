@@ -6,7 +6,8 @@ import { authenticate } from "@/mcp/server/session";
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const { message, mode, practiceContext, history } = body || {};
+    const { message, mode, practiceContext } = body || {};
+    const history = body?.history || body?.conversationHistory;
 
     // 1. Actor resolution for signature binding
     const authHeader = req.headers.get("authorization") || req.headers.get("x-demo-control");
@@ -23,7 +24,15 @@ export async function POST(req: Request) {
 
     const reply = await miaAgent.respond(String(message || ""), mode || "free", practiceContext, history);
     const ttsSignature = generateDidacticSignature(reply.reply, actorId);
-    return NextResponse.json({ ...reply, ttsSignature, boundActorId: actorId }, { status: 200 });
+    return NextResponse.json(
+      {
+        ...reply,
+        ttsSignature,
+        signature: ttsSignature,
+        boundActorId: actorId,
+      },
+      { status: 200 }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Error procesando pregunta" }, { status: 400 });
   }

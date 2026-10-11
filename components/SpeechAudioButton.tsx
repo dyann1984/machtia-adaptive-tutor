@@ -2,27 +2,30 @@
 
 import React from "react";
 import { Volume2, VolumeX, RotateCcw } from "lucide-react";
-import { UseSpeechReturn, useSpeech, normalizeOralMathText } from "@/lib/hooks/use-speech";
+import { UseSpeechReturn, normalizeOralMathText } from "@/lib/hooks/use-speech";
+import { useMiaVoice, UseMiaVoiceReturn } from "@/lib/hooks/use-mia-voice";
 
 interface SpeechAudioButtonProps {
   textToSpeak: string;
+  signature?: string;
   label?: string;
   repeatLabel?: string;
   variant?: "primary" | "amber" | "subtle" | "compact";
-  speech?: UseSpeechReturn;
+  speech?: UseSpeechReturn | UseMiaVoiceReturn;
   className?: string;
 }
 
 export function SpeechAudioButton({
   textToSpeak,
+  signature,
   label = "Escuchar",
   repeatLabel = "Repetir",
   variant = "primary",
   speech: externalSpeech,
   className = "",
 }: SpeechAudioButtonProps) {
-  const internalSpeech = useSpeech();
-  const speech = externalSpeech || internalSpeech;
+  const internalMiaVoice = useMiaVoice();
+  const speech = externalSpeech || internalMiaVoice;
   const { speak, stop, isSpeaking, activeText, activeRawText } = speech;
 
   // Accurately determine if THIS button's content is the one currently speaking
@@ -40,15 +43,15 @@ export function SpeechAudioButton({
     if (isCurrentSpeaking) {
       stop();
     } else {
-      speak(textToSpeak);
+      (speak as (t: string, s?: string) => any)(textToSpeak, signature);
     }
   };
 
   const handleRepeat = () => {
     stop();
     setTimeout(() => {
-      speak(textToSpeak);
-    }, 100);
+      (speak as (t: string, s?: string) => any)(textToSpeak, signature);
+    }, 80);
   };
 
   if (variant === "compact") {
