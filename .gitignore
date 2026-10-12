@@ -36,4 +36,4 @@ yarn-error.log*
 next-env.d.ts
 /.repair-backup-20261005/
 .tts-quota-ledger.json
-
+.vercel/

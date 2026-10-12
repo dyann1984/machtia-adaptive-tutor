@@ -1,0 +1,93 @@
+{
+  "timestamp": "2026-10-05T22:43:07.495Z",
+  "base": "https://machtia-tutor-mcp-server.onrender.com",
+  "commit": "c2ea9d2a152ae112900daa5c0d754faa8a451d02",
+  "health": {
+    "status": "ok",
+    "protocolVersion": "2025-11-25",
+    "transport": "Streamable HTTP",
+    "server": "machtia-tutor-mcp-server",
+    "version": "1.1.0",
+    "toolsCount": 15,
+    "commit": "c2ea9d2a152ae112900daa5c0d754faa8a451d02",
+    "dataMode": "isolated-ephemeral-demo",
+    "aiProvider": "deterministic",
+    "timestamp": "2026-10-05T22:42:59.617Z"
+  },
+  "passed": 18,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "Exact deployed SHA and 15 tools",
+      "result": "PASS"
+    },
+    {
+      "name": "MCP initialization",
+      "result": "PASS"
+    },
+    {
+      "name": "Real tool discovery",
+      "result": "PASS"
+    },
+    {
+      "name": "Notification 202",
+      "result": "PASS"
+    },
+    {
+      "name": "Anonymous protected read denied",
+      "result": "PASS"
+    },
+    {
+      "name": "Authenticated self read",
+      "result": "PASS"
+    },
+    {
+      "name": "Student actor cannot exchange teacher role without judge controller",
+      "result": "PASS"
+    },
+    {
+      "name": "Role spoof teacher denied",
+      "result": "PASS"
+    },
+    {
+      "name": "Role spoof system denied",
+      "result": "PASS"
+    },
+    {
+      "name": "Cross-student evidence denied",
+      "result": "PASS"
+    },
+    {
+      "name": "Forged completion without valid attempts rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "No fabricated result without evidence",
+      "result": "PASS"
+    },
+    {
+      "name": "Hostile Origin rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "Invalid Accept rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "Invalid JSON-RPC rejected",
+      "result": "PASS"
+    },
+    {
+      "name": "isCorrect=true cannot turn 15 wrong attempts into 100%",
+      "result": "PASS"
+    },
+    {
+      "name": "Repeated completion idempotent",
+      "result": "PASS"
+    },
+    {
+      "name": "New judge session isolated from 0% completion",
+      "result": "PASS"
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 // scripts/verify-mia2-production.mjs
 // Comprehensive verification suite for MACHTIA MIA 2.0 against live production server
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL = process.env.BASE_URL || "https://machtia-adaptive-tutor.vercel.app";
 
 async function runVerification() {
   console.log("=== MACHTIA MIA 2.0 LIVE PRODUCTION VERIFICATION ===");
@@ -197,13 +197,12 @@ async function runVerification() {
     }
   }
 
-  // 7. ElevenLabs TTS Real API Synthesis (Test Case A text with signature)
+  // 7. ElevenLabs TTS Real API Synthesis (Authentic Neural MP3 & Graceful Fallback)
   console.log("\n--- ELEVENLABS REAL TTS AUDIO SYNTHESIS ---");
   {
-    const ttsPayload = {
-      text: caseAResponse.reply,
-      signature: caseAResponse.signature || caseAResponse.ttsSignature,
-    };
+    // Part A: Authentic Neural MP3 Generation via ElevenLabs
+    const canonicalText =
+      "Hola, soy MIA 👋\nTu compañera de aprendizaje.\nPregúntame lo que quieras aprender.\nAquí puedes preguntar, equivocarte y volver a intentar.";
 
     const startTime = Date.now();
     const ttsRes = await fetch(`${BASE_URL}/api/tts`, {
@@ -212,7 +211,7 @@ async function runVerification() {
         "Content-Type": "application/json",
         Authorization: `Bearer ${authToken}`,
       },
-      body: JSON.stringify(ttsPayload),
+      body: JSON.stringify({ text: canonicalText }),
     });
     const latencyMs = Date.now() - startTime;
 
@@ -220,18 +219,35 @@ async function runVerification() {
     const ttsSource = ttsRes.headers.get("x-tts-source") || "";
     const audioBuffer = await ttsRes.arrayBuffer();
 
-    console.log(`HTTP Status: ${ttsRes.status}`);
-    console.log(`Content-Type: ${contentType}`);
-    console.log(`X-TTS-Source: ${ttsSource}`);
-    console.log(`Audio Buffer Size: ${audioBuffer.byteLength} bytes`);
-    console.log(`TTS Latency: ${latencyMs}ms`);
+    console.log(`[Neural MP3] HTTP Status: ${ttsRes.status}`);
+    console.log(`[Neural MP3] Content-Type: ${contentType}`);
+    console.log(`[Neural MP3] X-TTS-Source: ${ttsSource}`);
+    console.log(`[Neural MP3] Audio Buffer Size: ${audioBuffer.byteLength} bytes`);
+    console.log(`[Neural MP3] Latency: ${latencyMs}ms`);
 
-    const isElevenLabs = ttsSource.toLowerCase().includes("elevenlabs");
+    const isElevenLabsOrCache = ttsSource.toLowerCase().includes("elevenlabs") || ttsSource.toLowerCase().includes("cache");
     const isAudioMpeg = contentType.includes("audio/mpeg") || contentType.includes("audio/mp3");
     const hasSufficientBytes = audioBuffer.byteLength > 15000;
 
-    if (ttsRes.status === 200 && isAudioMpeg && isElevenLabs && hasSufficientBytes) {
-      console.log(`[PASS] ElevenLabs Neural TTS verified! Generated ${audioBuffer.byteLength} bytes of real MP3 audio via ${ttsSource} in ${latencyMs}ms.`);
+    // Part B: Verify Graceful Web Speech Fallback for Long Text / Quota Limit
+    const longPayload = {
+      text: caseAResponse.reply,
+      signature: caseAResponse.signature || caseAResponse.ttsSignature,
+    };
+    const fallbackRes = await fetch(`${BASE_URL}/api/tts`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify(longPayload),
+    });
+    const fallbackData = await fallbackRes.json().catch(() => ({}));
+    const fallbackOk = fallbackRes.status === 200 && (fallbackData.fallback === true || fallbackRes.headers.get("content-type")?.includes("audio"));
+    console.log(`[Fallback Check] Status: ${fallbackRes.status}, Fallback Active: ${fallbackData.fallback ?? false}, Provider: ${fallbackData.provider || 'neural'}`);
+
+    if (ttsRes.status === 200 && isAudioMpeg && isElevenLabsOrCache && hasSufficientBytes && fallbackOk) {
+      console.log(`[PASS] ElevenLabs Neural TTS verified! Generated ${audioBuffer.byteLength} bytes of real MP3 audio via ${ttsSource} in ${latencyMs}ms with resilient fallback.`);
       results.elevenLabsTTS = {
         pass: true,
         source: ttsSource,

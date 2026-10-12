@@ -49,9 +49,15 @@ export class ElevenLabsTTSAdapter {
   private static readonly CIRCUIT_BREAKER_RESET_MS = 5 * 60 * 1000; // 5 min cooldown
 
   constructor(config?: ElevenLabsConfig) {
-    this.apiKey = config?.apiKey || process.env.ELEVENLABS_API_KEY || "";
-    this.voiceId = config?.voiceId || process.env.ELEVENLABS_VOICE_ID || "";
-    this.modelId = config?.modelId || process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2";
+    const rawApiKey = config?.apiKey || process.env.ELEVENLABS_API_KEY || "";
+    this.apiKey = rawApiKey.trim().replace(/^["']|["']$/g, "").trim();
+
+    const rawVoiceId = config?.voiceId || process.env.ELEVENLABS_VOICE_ID || "";
+    this.voiceId = rawVoiceId.trim().replace(/^["']|["']$/g, "").trim();
+
+    const rawModelId = config?.modelId || process.env.ELEVENLABS_MODEL_ID || "eleven_multilingual_v2";
+    this.modelId = rawModelId.trim().replace(/^["']|["']$/g, "").trim() || "eleven_multilingual_v2";
+
     this.baseUrl = config?.baseUrl || "https://api.elevenlabs.io/v1";
     this.timeoutMs = config?.timeoutMs || 5500;
   }
@@ -149,9 +155,9 @@ export class ElevenLabsTTSAdapter {
       text: cleanText,
       model_id: this.modelId,
       voice_settings: {
-        stability: voiceSettings?.stability ?? 0.5,
-        similarity_boost: voiceSettings?.similarity_boost ?? 0.75,
-        style: voiceSettings?.style ?? 0.0,
+        stability: voiceSettings?.stability ?? 0.4,
+        similarity_boost: voiceSettings?.similarity_boost ?? 0.78,
+        style: voiceSettings?.style ?? 0.2,
         use_speaker_boost: voiceSettings?.use_speaker_boost ?? true,
       },
     };
@@ -197,8 +203,24 @@ export class ElevenLabsTTSAdapter {
         };
       }
 
-      // Handle HTTP 401: Invalid credentials
+      // Handle HTTP 401: Invalid credentials or Quota exceeded
       if (response.status === 401) {
+        let errJson: any = null;
+        try {
+          errJson = await response.json();
+        } catch {
+          // ignore
+        }
+        if (errJson?.detail?.code === "quota_exceeded" || errJson?.detail?.status === "quota_exceeded") {
+          console.warn("[ElevenLabsTTSAdapter] Cuota de ElevenLabs alcanzada (HTTP 401 quota_exceeded). Activando Web Speech.");
+          return {
+            success: false,
+            fallback: true,
+            status: 401,
+            reason: "RATE_LIMITED",
+            message: "Cuota de ElevenLabs alcanzada; activando Web Speech de respaldo.",
+          };
+        }
         console.warn("[ElevenLabsTTSAdapter] Clave de API no válida o expirada (HTTP 401). Fallback a Web Speech.");
         return {
           success: false,

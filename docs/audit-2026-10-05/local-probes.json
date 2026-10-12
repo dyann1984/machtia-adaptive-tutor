@@ -1,0 +1,20 @@
+[
+  {
+    "probe": "Unauthenticated student profile read",
+    "confirmed": true
+  },
+  {
+    "probe": "Caller can self-declare teacher role",
+    "confirmed": true
+  },
+  {
+    "probe": "Unsubmitted wrong answers marked correct yield 100%",
+    "confirmed": true,
+    "score": 100
+  },
+  {
+    "probe": "Official MCP SDK connect and listTools",
+    "passed": true,
+    "count": 15
+  }
+]

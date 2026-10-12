@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-10-05T22:54:05.786Z",
+  "localCommit": "c2ea9d2a152ae112900daa5c0d754faa8a451d02",
+  "remoteCommit": "c2ea9d2a152ae112900daa5c0d754faa8a451d02",
+  "deployedCommit": "c2ea9d2a152ae112900daa5c0d754faa8a451d02",
+  "allSHAsEqual": true,
+  "ci": {
+    "conclusion": "success",
+    "url": "https://github.com/dyann1984/machtia-adaptive-tutor/actions/runs/37383755447",
+    "headSha": "c2ea9d2a152ae112900daa5c0d754faa8a451d02"
+  },
+  "health": {
+    "status": "ok",
+    "protocolVersion": "2025-11-25",
+    "transport": "Streamable HTTP",
+    "server": "machtia-tutor-mcp-server",
+    "version": "1.1.0",
+    "toolsCount": 15,
+    "commit": "c2ea9d2a152ae112900daa5c0d754faa8a451d02",
+    "dataMode": "isolated-ephemeral-demo",
+    "aiProvider": "deterministic",
+    "timestamp": "2026-10-05T22:54:03.278Z"
+  },
+  "publishedFileCount": 63,
+  "browserJourney": {
+    "evidenceId": "evi-4952ea24-e646-4eb0-adad-4f17c67207fa",
+    "web": 100,
+    "teacher": 100,
+    "mcp": 100,
+    "alexaSimulator": 100,
+    "totalAttempts": 6,
+    "hintsUsed": 2,
+    "consoleErrors": 0,
+    "consoleWarnings": 0,
+    "mobile": {
+      "viewport": 390,
+      "documentWidth": 385,
+      "allSevenTeacherTabsVisible": true
+    }
+  }
+}

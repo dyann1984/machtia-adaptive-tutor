@@ -1,0 +1,28 @@
+ M README.md
+ M docs/AMAZON_MCP_ARCHITECTURE.md
+ M docs/DEVPOST_SUBMISSION.md
+ M docs/screenshots/01-landing-and-mcp-status.png
+ M docs/screenshots/02-teacher-alert-and-prescription.png
+ M docs/screenshots/03-student-pre-explanation.png
+ M docs/screenshots/04-student-adaptive-hints.png
+ M docs/screenshots/05-student-result-calculated.png
+ M docs/screenshots/06-teacher-before-after-evidence.png
+ M docs/screenshots/07-header-branding.png
+ M docs/screenshots/08-student-tutor-home.png
+ M public/machtia-tutor-robot.png
+ M scripts/capture-all-screenshots.mjs
+?? docs/AMAZON_SUBMISSION_CHECKLIST.md
+?? docs/HACKATHON_COMPONENTS_MAP.md
+?? docs/HACKATHON_ISSUE_LOG.md
+?? docs/PRODUCTION_VERIFICATION_2026-10-02.md
+?? docs/VIDEO_DEMO_SCRIPT.md
+?? docs/evidence/
+?? docs/screenshots/interactive/
+?? public/machtia-tutor-official.jpg
+?? scripts/capture-alexa-simulator-screenshot.mjs
+?? scripts/capture-interactive-screenshots.mjs
+?? scripts/inspect-css-network.mjs
+?? scripts/make-robot-png.mjs
+?? scripts/verify-full-judge-journey.mjs
+?? scripts/verify-hydration.mjs
+?? scripts/verify-mcp-network.mjs

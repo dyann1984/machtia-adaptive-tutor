@@ -1,0 +1,53 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 22020
+  },
+  {
+    "path": "/?demo=judge",
+    "status": 200,
+    "bytes": 22020
+  },
+  {
+    "path": "/health",
+    "status": 200,
+    "body": {
+      "status": "ok",
+      "protocolVersion": "2025-11-25",
+      "transport": "Streamable HTTP",
+      "server": "machtia-tutor-mcp-server",
+      "version": "1.0.0",
+      "toolsCount": 15,
+      "timestamp": "2026-10-05T17:29:18.886Z"
+    },
+    "bytes": 185
+  },
+  {
+    "method": "initialize",
+    "status": 200,
+    "protocol": "2025-11-25"
+  },
+  {
+    "method": "tools/list",
+    "status": 200,
+    "toolCount": 15,
+    "toolNames": [
+      "analyze_student_performance",
+      "find_students_needing_support",
+      "get_student_learning_gap",
+      "generate_adaptive_practice",
+      "assign_practice_to_student",
+      "get_student_progress",
+      "report_progress_to_teacher",
+      "get_student_context",
+      "get_assigned_practice",
+      "start_practice",
+      "submit_answer",
+      "get_hint",
+      "get_adaptive_explanation",
+      "complete_practice",
+      "get_practice_result"
+    ]
+  }
+]

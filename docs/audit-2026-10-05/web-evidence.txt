@@ -1,0 +1,72 @@
+- banner:
+  - button "MACHTIA Tutor IA Robot Oficial MACHTIA Adaptive Tutor Tutor Educativo Inteligente":
+    - img "MACHTIA Tutor IA Robot Oficial"
+    - generic: MACHTIA
+    - generic: Adaptive Tutor
+    - generic: Tutor Educativo Inteligente
+  - generic "MCP Streamable HTTP conectado (24ms)":
+    - generic: MCP Conectado
+  - button "Alexa+ Ready"
+  - navigation:
+    - button "Dashboard":
+      - generic: Dashboard
+    - button "Mi grupo":
+      - generic: Mi grupo
+    - button "Tutor IA":
+      - generic: Tutor IA
+    - button "Apoyo 1":
+      - generic: Apoyo
+      - generic: "1"
+    - button "Prácticas":
+      - generic: Prácticas
+    - button "Evidencias":
+      - generic: Evidencias
+    - button "Progreso":
+      - generic: Progreso
+  - button "Profesor":
+    - generic: Profesor
+  - button "Alumna":
+    - generic: Alumna
+  - generic: CV
+  - generic: Prof. Carlos Vega
+  - generic: 3° B • Primaria
+  - button "Opciones de demostración":
+- main:
+  - heading "Progreso y Evidencias" [level=1]
+  - generic: Grupo 3° B
+  - paragraph: Auditoría pedagógica que demuestra la asimilación conceptual tras la intervención del Tutor IA.
+  - 'button "Consultar al Tutor: \"¿Mejoró Mariana?\""':
+    - generic: "Consultar al Tutor: \"¿Mejoró Mariana?\""
+  - generic: ML
+  - heading "Mariana López" [level=2]
+  - generic: "Estado: Mejora detectada"
+  - paragraph:
+    - text: "Materia:"
+    - strong: Matemáticas
+    - text: "• Tema:"
+    - strong: Fracciones equivalentes
+  - generic: Resultado generado a partir de la práctica realizada
+  - generic: ANTES
+  - generic: 52%
+  - generic: Diagnóstico inicial
+  - generic: →
+  - generic: +48 pts
+  - generic: Puntos porcentuales
+  - generic: DESPUÉS
+  - generic: 100%
+  - generic: Práctica con Tutor IA
+  - generic: Conceptos consolidados
+  - list:
+    - listitem: ✓ Equivalencia visual de 1/2
+    - listitem: ✓ Amplificación por factor 2
+    - listitem: ✓ Comparación de denominadores y factores
+    - listitem: ✓ Comprobación por productos cruzados
+    - listitem: ✓ Simplificación por división común
+  - generic: Conceptos por reforzar
+  - list
+  - generic "Qué apoyo recibió · 1 intervenciones"
+  - text: Observación del Tutor IA
+  - paragraph: "Mariana López completó la práctica guiada por el Tutor IA. Resolvió correctamente 5 de 5 reactivos obteniendo un puntaje de 100%. Diagnóstico inicial: 52%. Intentos: 6. Pistas: 1. Re-explicaciones: 0."
+- contentinfo:
+  - paragraph: MACHTIA Adaptive Tutor • Desarrollado para Hackathon Amazon / Alexa+ • Protocolo MCP Compatible
+- alert

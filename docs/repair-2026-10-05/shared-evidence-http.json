@@ -1,9 +1,9 @@
 {
-  "timestamp": "2026-10-05T22:27:22.197Z",
-  "base": "http://127.0.0.1:62975",
+  "timestamp": "2026-10-11T01:47:23.743Z",
+  "base": "http://127.0.0.1:49569",
   "scope": "HTTP E2E; browser UI verification recorded separately",
-  "practiceId": "teacher-db75fb10-5dd5-4c55-b21a-cf0c2fb4d906",
-  "evidenceId": "evi-9b3d468d-8f9c-426c-a54a-2464ef043c28",
+  "practiceId": "teacher-ed55475b-ea1c-4888-bf2e-637ff498ec70",
+  "evidenceId": "evi-c4f85548-788f-4cc6-b146-786027919e70",
   "WEB": 100,
   "TEACHER": 100,
   "MCP": 100,

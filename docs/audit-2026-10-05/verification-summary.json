@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-05",
+  "head": "aae547202c8b0d4c2a8514a4fc2778efffc20003",
+  "lint": {
+    "status": "PASS",
+    "exitCode": 0,
+    "warnings": 0,
+    "errors": 0
+  },
+  "typecheck": {
+    "status": "PASS",
+    "exitCode": 0
+  },
+  "build": {
+    "status": "PASS",
+    "exitCode": 0,
+    "warning": "Webpack cache EPERM rename"
+  },
+  "vitest": {
+    "status": "BLOCKED",
+    "exitCode": 1,
+    "executed": 0,
+    "reason": "Windows Application Control rejects Rollup native module; same outside sandbox"
+  },
+  "httpE2E": {
+    "status": "PASS_LIMITED",
+    "exitCode": 0,
+    "steps": 11,
+    "securityChecksPassed": 8,
+    "limitations": "Uses client-provided correctness flags and does not assert all outcomes"
+  },
+  "webJourneys": {
+    "completed": 2,
+    "fractionScore": 100,
+    "fractionAttempts": 6,
+    "fractionHints": 1,
+    "spanishScore": 100,
+    "errorsObserved": 0,
+    "contradictoryMcpScore": 52,
+    "simulatorScore": 20
+  },
+  "sdk": {
+    "status": "PASS",
+    "listedTools": 15
+  },
+  "adversarialFindings": 3,
+  "productionReadOnlyChecks": {
+    "status": "PASS",
+    "http200": 5
+  },
+  "npmAudit": {
+    "status": "FAIL",
+    "affectedPackages": 2,
+    "critical": 1,
+    "high": 1
+  },
+  "applicationCodeChanged": false,
+  "productionMutated": false,
+  "localServersStopped": true
+}

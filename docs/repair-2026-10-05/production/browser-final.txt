@@ -1,0 +1,90 @@
+- banner:
+  - paragraph: Datos sintéticos · Demo aislada · Tutor determinista · Alexa+ simulada
+  - button "MACHTIA Tutor IA Robot Oficial MACHTIA Adaptive Tutor Tutor Educativo Inteligente":
+    - img "MACHTIA Tutor IA Robot Oficial"
+    - generic: MACHTIA
+    - generic: Adaptive Tutor
+    - generic: Tutor Educativo Inteligente
+  - generic "MCP Streamable HTTP conectado (150ms)":
+    - generic: MCP Conectado
+  - button "Simulación Alexa+"
+  - navigation:
+    - button "Dashboard":
+      - generic: Dashboard
+    - button "Mi grupo":
+      - generic: Mi grupo
+    - button "Tutor IA":
+      - generic: Tutor IA
+    - button "Apoyo 1":
+      - generic: Apoyo
+      - generic: "1"
+    - button "Prácticas":
+      - generic: Prácticas
+    - button "Evidencias":
+      - generic: Evidencias
+    - button "Progreso":
+      - generic: Progreso
+  - button "Profesor":
+    - generic: Profesor
+  - button "Alumna":
+    - generic: Alumna
+  - generic: CV
+  - generic: Prof. Carlos Vega
+  - generic: 3° B • Primaria
+  - button "Opciones de demostración":
+  - dialog "Simulador Alexa+ · MACHTIA":
+    - heading "Simulador Alexa+ · MACHTIA" [level=2]
+    - button "Cerrar simulador": Cerrar
+    - paragraph: Cliente conversacional simulado. No requiere cuenta Amazon ni dispositivo Echo. La voz utiliza síntesis del navegador cuando está disponible.
+    - img "MACHTIA Tutor IA Robot Oficial"
+    - status: How did Mariana López do? 100% · evi-4952ea24-e646-4eb0-adad-4f17c67207fa · Resultado calculado por el servidor a partir de intentos registrados en una sesión demo. No acredita una integración desplegada con Alexa+.
+    - button "Escuchar simulación":
+      - generic: ▶ Escuchar simulación
+    - button "Repetir explicación en voz alta":
+      - generic: Repetir
+    - text: Consultar una práctica completada
+    - combobox "Evidencia en el simulador":
+      - option "Selecciona una evidencia"
+      - 'option "Práctica de apoyo: Fracciones equivalentes" [selected]'
+    - button "How did Mariana do? · Ver evidencia docente"
+    - generic "Traza de herramientas (1)"
+- main:
+  - heading "Registro de Evidencias de Aprendizaje" [level=1]
+  - generic: Auditoría Docente
+  - paragraph: Métricas comparativas cuantitativas y cualitativas de asimilación conceptual Antes vs. Después.
+  - button "Consultar progreso con Tutor IA":
+    - generic: Consultar progreso con Tutor IA
+  - generic: MA
+  - heading "Mariana López" [level=2]
+  - paragraph:
+    - text: "Tema:"
+    - strong: Fracciones equivalentes
+    - text: • 5 de octubre de 2026
+  - generic: "Antes:"
+  - generic: 52%
+  - generic: →
+  - generic: "Después:"
+  - generic: 100%
+  - generic: +48 pts • Mejora detectada
+  - generic: Matemáticas · Resultado generado a partir de la práctica realizada
+  - text: Dictamen Pedagógico del Tutor IA
+  - paragraph: Resultado calculado por el servidor a partir de intentos registrados en una sesión demo. No acredita una integración desplegada con Alexa+.
+  - generic "Qué apoyo recibió · 2 intervenciones"
+  - text: Conceptos Dominados en la Práctica
+  - list:
+    - generic: ✓
+    - generic: Equivalencia visual de 1/2
+    - generic: ✓
+    - generic: Amplificación por factor 2
+    - generic: ✓
+    - generic: Comparación de denominadores y factores
+    - generic: ✓
+    - generic: Comprobación por productos cruzados
+    - generic: ✓
+    - generic: Simplificación por división común
+  - text: Conceptos Pendientes para Siguiente Sesión
+  - list:
+    - listitem: No hay pendientes críticos
+- contentinfo:
+  - paragraph: MACHTIA Adaptive Tutor • Desarrollado para Hackathon Amazon / Alexa+ • Protocolo MCP Compatible
+- alert

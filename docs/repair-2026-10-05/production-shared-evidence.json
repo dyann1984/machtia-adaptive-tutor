@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-10-05T22:42:20.117Z",
+  "base": "https://machtia-tutor-mcp-server.onrender.com",
+  "scope": "HTTP E2E; browser UI verification recorded separately",
+  "practiceId": "teacher-170c7672-998d-4ae0-bddd-6f73a0a2803e",
+  "evidenceId": "evi-a4fe6cc9-8160-4e0b-862c-bc37dcbd6eac",
+  "WEB": 100,
+  "TEACHER": 100,
+  "MCP": 100,
+  "ALEXA_SIMULATOR": 100,
+  "totalAttempts": 6,
+  "hintsUsed": 2,
+  "allFieldsEqual": true
+}

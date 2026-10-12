@@ -179,6 +179,12 @@ export function MiaFloatingCompanion() {
           if (e?.error === "not-allowed") {
             setMicNotice("Permiso de micrófono no otorgado. Puedes escribir tu pregunta.");
             setTimeout(() => setMicNotice(null), 5000);
+          } else if (e?.error === "no-speech") {
+            setMicNotice("No alcancé a escucharte. Puedes intentar hablar de nuevo o escribir tu duda.");
+            setTimeout(() => setMicNotice(null), 4000);
+          } else if (e?.error === "network") {
+            setMicNotice("Problema momentáneo de red con la transcripción. Escribe tu pregunta con confianza.");
+            setTimeout(() => setMicNotice(null), 4000);
           }
         };
 
@@ -214,15 +220,21 @@ export function MiaFloatingCompanion() {
     if (!recognitionRef.current) return;
 
     if (isListeningVoice) {
-      recognitionRef.current.stop();
+      try {
+        recognitionRef.current.stop();
+      } catch {}
       setIsListeningVoice(false);
     } else {
       stop();
       try {
         recognitionRef.current.start();
         setIsListeningVoice(true);
-      } catch (e) {
-        console.warn("Speech recognition start error:", e);
+      } catch (e: any) {
+        if (e?.name === "InvalidStateError") {
+          setIsListeningVoice(true);
+        } else {
+          console.warn("Speech recognition start error:", e);
+        }
       }
     }
   };
@@ -298,6 +310,7 @@ export function MiaFloatingCompanion() {
           practiceContext,
           history: historyPayload,
         }),
+        signal: AbortSignal.timeout(8000),
       });
 
       let data: MiaResponse;
@@ -336,6 +349,9 @@ export function MiaFloatingCompanion() {
         topic: "Aprendizaje Adaptativo",
       };
       setMessages((prev) => [...prev, fallbackEntry]);
+      if (autoSpeak) {
+        void speak(fallbackEntry.text);
+      }
     } finally {
       setIsLoading(false);
     }

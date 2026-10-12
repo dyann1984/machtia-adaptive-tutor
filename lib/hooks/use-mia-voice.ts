@@ -118,8 +118,8 @@ export function useMiaVoice(): UseMiaVoiceReturn {
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
         utterance.lang = "es-MX";
-        utterance.rate = 0.92;
-        utterance.pitch = 1.05;
+        utterance.rate = 0.94;
+        utterance.pitch = 1.08;
 
         const voices = window.speechSynthesis.getVoices();
         const preferred = findPreferredSpanishVoice(voices);

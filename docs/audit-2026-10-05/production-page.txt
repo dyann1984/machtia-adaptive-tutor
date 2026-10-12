@@ -1,0 +1,42 @@
+- banner:
+  - button "MACHTIA Tutor IA Robot Oficial MACHTIA Tutor Educativo Inteligente":
+    - img "MACHTIA Tutor IA Robot Oficial"
+    - generic: MACHTIA
+    - generic: Tutor Educativo Inteligente
+  - button "Profesor":
+    - generic: Profesor
+  - button "Alumna":
+    - generic: Alumna
+  - button "Opciones de demostración":
+- main:
+  - heading "Buenos días, Prof. Carlos" [level=1]
+  - generic: 3° B • Matemáticas
+  - paragraph: Tu grupo 3° B tiene 2 estudiantes que necesitan apoyo esta semana.
+  - button "Revisar alumnos":
+    - generic: Revisar alumnos
+  - generic: Alumnos
+  - generic: "5"
+  - paragraph: Grupo 3° B Primaria
+  - generic: Necesitan apoyo
+  - generic: "2"
+  - paragraph: Mariana (52%) · Luis (58%)
+  - generic: Prácticas activas
+  - generic: "1"
+  - paragraph: En progreso o por iniciar
+  - generic: Evidencias
+  - generic: "1"
+  - paragraph: Registro auditable
+  - heading "Atención prioritaria del grupo" [level=2]
+  - generic: Recomendación del Tutor IA
+  - generic: ML
+  - heading "Mariana López" [level=3]
+  - generic: • Matemáticas • Fracciones equivalentes
+  - generic: 52% • Necesita refuerzo
+  - generic: "Dificultad detectada: Comparación de denominadores"
+  - paragraph: Asume erróneamente que a mayor denominador mayor es la fracción, sin comprobar amplificación. Falló reactivos de comparación visual en la última evaluación.
+  - button "Crear práctica personalizada":
+    - generic: Crear práctica personalizada
+  - button "Ver diagnóstico detallado"
+- contentinfo:
+  - paragraph: MACHTIA Adaptive Tutor • Desarrollado para Hackathon Amazon / Alexa+ • Protocolo MCP Compatible
+- alert

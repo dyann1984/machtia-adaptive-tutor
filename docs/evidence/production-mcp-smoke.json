@@ -1,0 +1,200 @@
+{
+  "timestamp": "2026-10-02T19:08:03.206Z",
+  "base": "https://machtia-tutor-mcp-server.onrender.com",
+  "health": {
+    "status": "ok",
+    "protocolVersion": "2025-11-25",
+    "transport": "Streamable HTTP",
+    "server": "machtia-tutor-mcp-server",
+    "version": "1.0.0",
+    "toolsCount": 15,
+    "timestamp": "2026-10-02T19:07:58.341Z"
+  },
+  "checks": [
+    {
+      "method": "initialize",
+      "passed": true
+    },
+    {
+      "method": "tools/list",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "analyze_student_performance",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "find_students_needing_support",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_student_learning_gap",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_student_context",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "generate_adaptive_practice",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "assign_practice_to_student",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_assigned_practice",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "start_practice",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_hint",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_adaptive_explanation",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "submit_answer",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "complete_practice",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_practice_result",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "get_student_progress",
+      "passed": true
+    },
+    {
+      "method": "tools/call",
+      "name": "report_progress_to_teacher",
+      "passed": true
+    }
+  ],
+  "completed": {
+    "practiceId": "prac-mariana-lopez-9545",
+    "studentId": "mariana-lopez",
+    "studentName": "Mariana López",
+    "status": "completed",
+    "totalExercises": 5,
+    "correctCount": 5,
+    "finalScore": 100,
+    "initialScore": 52,
+    "improvementDelta": 48,
+    "masteredConcepts": [
+      "Equivalencia visual de 1/2",
+      "Amplificación por factor 2",
+      "Comparación de denominadores y factores",
+      "Comprobación por productos cruzados",
+      "Simplificación por división común"
+    ],
+    "pendingConcepts": [],
+    "evidenceId": "evi-alexa-1790968081541",
+    "evidence": {
+      "id": "evi-alexa-1790968081541",
+      "studentId": "mariana-lopez",
+      "studentName": "Mariana López",
+      "practiceId": "prac-mariana-lopez-9545",
+      "subjectId": "matematicas",
+      "topicName": "Fracciones equivalentes",
+      "initialScore": 52,
+      "finalScore": 100,
+      "improvementDelta": 48,
+      "status": "Mejora detectada",
+      "masteredConcepts": [
+        "Equivalencia visual de 1/2",
+        "Amplificación por factor 2",
+        "Comparación de denominadores y factores",
+        "Comprobación por productos cruzados",
+        "Simplificación por división común"
+      ],
+      "pendingConcepts": [],
+      "tutorObservations": "Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 100%. Cambio de +48 puntos.",
+      "timestamp": "2026-10-02T19:08:01.541Z",
+      "attemptId": "att-1790968081541"
+    },
+    "alexaCelebrationSpeech": "¡Felicidades Mariana López! Has completado tu práctica con 100% de aciertos, con un cambio de 48 puntos desde tu diagnóstico inicial. Conceptos comprobados: Equivalencia visual de 1/2, Amplificación por factor 2, Comparación de denominadores y factores, Comprobación por productos cruzados, Simplificación por división común. Tu profesor ya puede ver tu avance en el panel escolar."
+  },
+  "persisted": {
+    "practiceId": "prac-mariana-lopez-9545",
+    "studentId": "mariana-lopez",
+    "studentName": "Mariana López",
+    "topicName": "Fracciones equivalentes",
+    "status": "completed",
+    "initialScore": 52,
+    "finalScore": 100,
+    "improvementDelta": 48,
+    "evidenceStatus": "Mejora detectada",
+    "masteredConcepts": [
+      "Equivalencia visual de 1/2",
+      "Amplificación por factor 2",
+      "Comparación de denominadores y factores",
+      "Comprobación por productos cruzados",
+      "Simplificación por división común"
+    ],
+    "pendingConcepts": [],
+    "tutorObservations": "Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 100%. Cambio de +48 puntos.",
+    "timestamp": "2026-10-02T19:08:01.541Z",
+    "verifiedInTeacherDashboard": true
+  },
+  "idorDenied": true
+}

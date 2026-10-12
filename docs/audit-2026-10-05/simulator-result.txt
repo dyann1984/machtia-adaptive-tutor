@@ -1,0 +1,172 @@
+- banner:
+  - button "MACHTIA Tutor IA Robot Oficial MACHTIA Adaptive Tutor Tutor Educativo Inteligente":
+    - img "MACHTIA Tutor IA Robot Oficial"
+    - generic: MACHTIA
+    - generic: Adaptive Tutor
+    - generic: Tutor Educativo Inteligente
+  - generic "MCP Streamable HTTP conectado (24ms)":
+    - generic: MCP Conectado
+  - button "Alexa+ Ready"
+  - navigation:
+    - button "Dashboard":
+      - generic: Dashboard
+    - button "Mi grupo":
+      - generic: Mi grupo
+    - button "Tutor IA":
+      - generic: Tutor IA
+    - button "Apoyo 2":
+      - generic: Apoyo
+      - generic: "2"
+    - button "Prácticas":
+      - generic: Prácticas
+    - button "Evidencias":
+      - generic: Evidencias
+    - button "Progreso":
+      - generic: Progreso
+  - button "Profesor":
+    - generic: Profesor
+  - button "Alumna":
+    - generic: Alumna
+  - generic: CV
+  - generic: Prof. Carlos Vega
+  - generic: 3° B • Primaria
+  - button "Opciones de demostración":
+- main:
+  - heading "Tutor IA • Asistente Pedagógico" [level=1]
+  - generic: Profesor Carlos Vega
+  - paragraph: Consulta en lenguaje natural el estado de tus alumnos, detecta rezagos y prescribe apoyo adaptativo.
+  - button "¿Quién necesita apoyo?"
+  - button "Crear práctica para Mariana"
+  - button "Simulador Alexa+ (Echo Show)":
+    - generic: Simulador Alexa+ (Echo Show)
+  - img "MACHTIA Tutor IA Robot Oficial"
+  - generic: Tutor IA • Asistente Pedagógico
+  - generic: Grupo 3° B • Matemáticas
+  - heading "“Hola, Profesor Carlos. Ya analicé el grupo 3° B y encontré estudiantes que necesitan apoyo específico en Matemáticas.”" [level=3]
+  - paragraph:
+    - text: Detecté rezagos específicos en el tema de
+    - strong: fracciones equivalentes
+    - text: ". Puedes consultarme en cualquier momento o seleccionar una acción rápida:"
+  - button "¿Quién necesita apoyo en matemáticas?":
+    - generic: ¿Quién necesita apoyo en matemáticas?
+  - button "Ver brecha de Mariana López"
+  - generic: Profesor Carlos
+  - paragraph: ¿Quién necesita apoyo en matemáticas?
+  - img "MACHTIA Tutor IA Robot Oficial"
+  - generic: Tutor IA
+  - paragraph: "He analizado el desempeño curricular del grupo **3° B** en **Matemáticas** mediante herramientas MCP: • **Mariana López** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**. - **Calificación actual:** 52% (4 de 7 reactivos fallados en examen diagnóstico). - **Brecha de aprendizaje detectada:** *Comparación de denominadores* — Asume que a mayor denominador mayor es la fracción, sin comprobar la relación multiplicativa (confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6). • **Luis Hernández** necesita apoyo en **Matemáticas**, específicamente en **fracciones equivalentes**. - **Calificación actual:** 58%. - **Brecha de aprendizaje detectada:** *Simplificación* — Omite dividir ambos términos uniformemente entre el factor común. El resto del grupo mantiene un desempeño óptimo (promedio 89%). Te recomiendo generar una práctica de apoyo personalizada para **Mariana López**."
+  - generic: Mariana López
+  - generic: 52%
+  - generic: Matemáticas • Fracciones equivalentes
+  - button "Crear práctica de apoyo":
+    - generic: Crear práctica de apoyo
+  - generic: Luis Hernández
+  - generic: 58%
+  - generic: Matemáticas • Simplificación
+  - button "Ver diagnóstico de Luis"
+  - button "Crear práctica de apoyo para Mariana":
+    - generic: Crear práctica de apoyo para Mariana
+  - button "Ver brecha de Mariana López":
+    - generic: Ver brecha de Mariana López
+  - button "Ver brecha de Luis Hernández":
+    - generic: Ver brecha de Luis Hernández
+  - generic: Profesor Carlos
+  - paragraph: Crear práctica de apoyo para Mariana López
+  - img "MACHTIA Tutor IA Robot Oficial"
+  - generic: Tutor IA
+  - paragraph: "✅ **¡Práctica de apoyo asignada exitosamente!** • **Alumno:** Mariana López • **Materia:** Matemáticas | **Tema:** Fracciones equivalentes • **Práctica:** Práctica de apoyo: Fracciones equivalentes • **Estado:** Pendiente en portal del alumno • **Enfoque pedagógico:** 5 ejercicios interactivos adaptativos con apoyo visual paso a paso. Ahora puedes cambiar al rol **Alumno** en la barra superior para ver la práctica asignada y comenzar la resolución guiada."
+  - generic: Mariana López
+  - generic: 52%
+  - generic: Matemáticas • Fracciones equivalentes
+  - button "Crear práctica de apoyo":
+    - generic: Crear práctica de apoyo
+  - generic: Luis Hernández
+  - generic: 58%
+  - generic: Matemáticas • Simplificación
+  - button "Ver diagnóstico de Luis"
+  - button "Entrar como Mariana a resolver práctica":
+    - generic: Entrar como Mariana a resolver práctica
+  - generic: Profesor Carlos
+  - paragraph: ¿Mejoró Mariana López después de la práctica?
+  - img "MACHTIA Tutor IA Robot Oficial"
+  - generic: Tutor IA
+  - paragraph: 📊 **Reporte de Progreso de Mariana López** • **Materia:** Matemáticas | **Tema:** Fracciones equivalentes • **ANTES:** 52% • **DESPUÉS:** 52% • **DELTA DE MEJORA:** +0% 📈 • **ESTADO:** **En proceso** **Evidencia del progreso:** Mariana López mantiene un desempeño de 52%. Aún no concluye la práctica asignada. **Conceptos dominados:** ✓ Comprensión de fracciones equivalentes **Pendientes para siguiente ciclo:** ⏳ Simplificación de fracciones
+  - generic: Mariana López
+  - generic: 52%
+  - generic: Matemáticas • Fracciones equivalentes
+  - button "Crear práctica de apoyo":
+    - generic: Crear práctica de apoyo
+  - generic: Luis Hernández
+  - generic: 58%
+  - generic: Matemáticas • Simplificación
+  - button "Ver diagnóstico de Luis"
+  - button "Ver tabla completa de evidencias":
+    - generic: Ver tabla completa de evidencias
+  - textbox "Escribe una pregunta para el Tutor IA (ej. ¿Quién necesita apoyo en matemáticas?)..."
+  - button "Enviar" [disabled]:
+    - generic: Enviar
+  - heading "Actividad del agente" [level=3]
+  - generic: Tiempo real
+  - generic: Analizó desempeño grupal en Matemáticas
+  - generic: Detectó 2 estudiantes bajo el umbral de 65%
+  - generic: Identificó brecha conceptual en denominadores
+  - generic: Calibró reactivos con barras visuales
+  - heading "MCP conectado" [level=4]
+  - paragraph: 15 herramientas disponibles
+  - button "Comprobar estado de conexión MCP":
+  - button "Detalles técnicos":
+    - generic: Detalles técnicos
+  - heading "Simulador de Experiencia Alexa+ (Inspirado en Echo Show)" [level=2]
+  - generic: Streamable HTTP MCP Real
+  - generic: Spec 2025-11-25
+  - paragraph: Experiencia Alexa+ simulada respaldada por el servidor MCP real de MACHTIA sobre Streamable HTTP (8 herramientas)
+  - button "Cerrar simulador":
+  - img "MACHTIA Tutor IA Robot Oficial"
+  - text: Alexa+ Voz Sintetizada • MACHTIA Tutor
+  - generic: "Alumno: Mariana López (mariana-lopez)"
+  - generic: "¡Felicidades Mariana López! Has completado tu práctica con 20% de aciertos, con un cambio de -32 puntos desde tu diagnóstico inicial. Conceptos comprobados: Equivalencia visual de 1/2. Tu profesor ya puede ver tu avance en el panel escolar."
+  - button "PASO 1 1. get_student_context Identificar alumna y rezago":
+    - generic: PASO 1
+    - generic: 1. get_student_context
+    - generic: Identificar alumna y rezago
+  - button "PASO 2 2. start_practice Iniciar reactivo oral 1":
+    - generic: PASO 2
+    - generic: 2. start_practice
+    - generic: Iniciar reactivo oral 1
+  - generic: PASO 3
+  - generic: 3. submit_answer
+  - generic: Normalizador oral
+  - button "PASO 4 4. complete_practice Registrar respuestas realizadas":
+    - generic: PASO 4
+    - generic: 4. complete_practice
+    - generic: Registrar respuestas realizadas
+  - heading "Interacción Vocal Simulada (Normalizador de Lenguaje Hablado)" [level=3]:
+    - text: Interacción Vocal Simulada (Normalizador de Lenguaje Hablado)
+  - generic: Prueba frases coloquiales en español
+  - text: "Respuestas orales de la alumna (con normalización fonética y semántica):"
+  - button "\"dos cuartos\" (Acierto canónico 2/4)"
+  - button "\"la A\" (Selección por letra)"
+  - button "\"dos sobre cuatro\" (Fracción hablada)"
+  - button "\"un tercio\" (Opción incorrecta para activar pista)"
+  - text: "Solicitudes de andamiaje durante la práctica (Niveles 1, 2 y 3):"
+  - button "\"Dame una pista\" (get_hint)":
+    - text: "\"Dame una pista\" (get_hint)"
+  - button "\"Explícamelo con un ejemplo cotidiano\" (get_adaptive_explanation)":
+    - text: "\"Explícamelo con un ejemplo cotidiano\" (get_adaptive_explanation)"
+  - button "\"Explícamelo paso a paso\" (step-by-step)":
+    - text: "\"Explícamelo paso a paso\" (step-by-step)"
+  - 'textbox "Escribe otra frase oral de prueba (ej: ''la primera opción'', ''creo que dos partes'')..."'
+  - button "Simular Voz" [disabled]:
+    - generic: Simular Voz
+  - text: Pruebas de Seguridad en Tiempo Real (Defensa Multi-Tenant e IDOR)
+  - button "Probar rechazo de Tenant Ajeno"
+  - button "Probar rechazo IDOR"
+  - button "Ver Inspector Técnico JSON-RPC 2.0 (Streamable HTTP POST /mcp)":
+    - generic: Ver Inspector Técnico JSON-RPC 2.0 (Streamable HTTP POST /mcp)
+  - generic: "Persistencia en tiempo real: Los datos viajan desde Alexa+ al expediente del docente."
+  - button "Ver evidencia en Panel Docente":
+    - generic: Ver evidencia en Panel Docente
+  - button "Cerrar"
+- contentinfo:
+  - paragraph: MACHTIA Adaptive Tutor • Desarrollado para Hackathon Amazon / Alexa+ • Protocolo MCP Compatible
+- alert

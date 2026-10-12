@@ -1,0 +1,14 @@
+[
+  {
+    "label": "Foreign Origin accepted",
+    "httpStatus": 200
+  },
+  {
+    "label": "Initialization notification status",
+    "httpStatus": 204
+  },
+  {
+    "label": "Non JSON-RPC accepted",
+    "httpStatus": 200
+  }
+]

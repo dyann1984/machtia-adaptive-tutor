@@ -1,0 +1,149 @@
+- banner:
+  - button "MACHTIA Tutor IA Robot Oficial MACHTIA Adaptive Tutor Tutor Educativo Inteligente":
+    - img "MACHTIA Tutor IA Robot Oficial"
+    - generic: MACHTIA
+    - generic: Adaptive Tutor
+    - generic: Tutor Educativo Inteligente
+  - generic "MCP Streamable HTTP conectado (24ms)":
+    - generic: MCP Conectado
+  - button "Alexa+ Ready"
+  - navigation:
+    - button "Dashboard":
+      - generic: Dashboard
+    - button "Mi grupo":
+      - generic: Mi grupo
+    - button "Tutor IA":
+      - generic: Tutor IA
+    - button "Apoyo 2":
+      - generic: Apoyo
+      - generic: "2"
+    - button "Prácticas":
+      - generic: Prácticas
+    - button "Evidencias":
+      - generic: Evidencias
+    - button "Progreso":
+      - generic: Progreso
+  - button "Profesor":
+    - generic: Profesor
+  - button "Alumna":
+    - generic: Alumna
+  - generic: CV
+  - generic: Prof. Carlos Vega
+  - generic: 3° B • Primaria
+  - button "Opciones de demostración":
+- main:
+  - heading "Registro de Evidencias de Aprendizaje" [level=1]
+  - generic: Auditoría Docente
+  - paragraph: Métricas comparativas cuantitativas y cualitativas de asimilación conceptual Antes vs. Después.
+  - button "Consultar progreso con Tutor IA":
+    - generic: Consultar progreso con Tutor IA
+  - generic: MA
+  - heading "Mariana López" [level=2]
+  - paragraph:
+    - text: "Tema:"
+    - strong: Comprensión lectora
+    - text: • 5 de octubre de 2026
+  - generic: "Antes:"
+  - generic: Sin diagnóstico
+  - generic: →
+  - generic: "Después:"
+  - generic: 100%
+  - generic: Primera medición • Primera medición
+  - generic: Español · Resultado generado a partir de la práctica realizada
+  - text: Dictamen Pedagógico del Tutor IA
+  - paragraph: "Mariana López completó la práctica guiada por el Tutor IA. Resolvió correctamente 1 de 1 reactivos obteniendo un puntaje de 100%. Sin diagnóstico inicial comparable; este resultado establece su primera medición. Intentos: 1. Pistas: 0. Re-explicaciones: 0."
+  - text: Conceptos Dominados en la Práctica
+  - list:
+    - generic: ✓
+    - generic: Cuidar un espacio en equipo
+  - text: Conceptos Pendientes para Siguiente Sesión
+  - list:
+    - listitem: No hay pendientes críticos
+  - generic: MA
+  - heading "Mariana López" [level=2]
+  - paragraph:
+    - text: "Tema:"
+    - strong: Fracciones equivalentes
+    - text: • 5 de octubre de 2026
+  - generic: "Antes:"
+  - generic: 52%
+  - generic: →
+  - generic: "Después:"
+  - generic: 20%
+  - generic: "-32 pts • Progreso moderado"
+  - generic: Matemáticas · Resultado generado a partir de la práctica realizada
+  - text: Dictamen Pedagógico del Tutor IA
+  - paragraph: "Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 20%. Cambio de -32 puntos."
+  - text: Conceptos Dominados en la Práctica
+  - list:
+    - generic: ✓
+    - generic: Equivalencia visual de 1/2
+  - text: Conceptos Pendientes para Siguiente Sesión
+  - list:
+    - generic: ⏳
+    - generic: Amplificación por factor 2
+    - generic: ⏳
+    - generic: Comparación de denominadores y factores
+    - generic: ⏳
+    - generic: Comprobación por productos cruzados
+    - generic: ⏳
+    - generic: Simplificación por división común
+  - generic: MA
+  - heading "Mariana López" [level=2]
+  - paragraph:
+    - text: "Tema:"
+    - strong: Fracciones equivalentes
+    - text: • 5 de octubre de 2026
+  - generic: "Antes:"
+  - generic: 52%
+  - generic: →
+  - generic: "Después:"
+  - generic: 100%
+  - generic: +48 pts • Mejora detectada
+  - generic: Matemáticas · Resultado generado a partir de la práctica realizada
+  - text: Dictamen Pedagógico del Tutor IA
+  - paragraph: "Mariana López completó la práctica guiada por el Tutor IA. Resolvió correctamente 5 de 5 reactivos obteniendo un puntaje de 100%. Diagnóstico inicial: 52%. Intentos: 6. Pistas: 1. Re-explicaciones: 0."
+  - generic "Qué apoyo recibió · 1 intervenciones"
+  - text: Conceptos Dominados en la Práctica
+  - list:
+    - generic: ✓
+    - generic: Equivalencia visual de 1/2
+    - generic: ✓
+    - generic: Amplificación por factor 2
+    - generic: ✓
+    - generic: Comparación de denominadores y factores
+    - generic: ✓
+    - generic: Comprobación por productos cruzados
+    - generic: ✓
+    - generic: Simplificación por división común
+  - text: Conceptos Pendientes para Siguiente Sesión
+  - list:
+    - listitem: No hay pendientes críticos
+  - generic: MA
+  - heading "Mariana López" [level=2]
+  - paragraph:
+    - text: "Tema:"
+    - strong: Suma y resta de fracciones homogéneas
+    - text: • 20 de septiembre de 2026
+  - generic: "Antes:"
+  - generic: 65%
+  - generic: →
+  - generic: "Después:"
+  - generic: 82%
+  - generic: +17 pts • Mejora detectada
+  - generic: Matemáticas · Resultado generado a partir de la práctica realizada
+  - text: Dictamen Pedagógico del Tutor IA
+  - paragraph: Mariana logró consolidar la suma manteniendo el denominador común tras dos sesiones de práctica.
+  - text: Conceptos Dominados en la Práctica
+  - list:
+    - generic: ✓
+    - generic: Suma con mismo denominador
+    - generic: ✓
+    - generic: Conversión gráfica básica
+  - text: Conceptos Pendientes para Siguiente Sesión
+  - list:
+    - generic: ⏳
+    - generic: Resta con transformación de enteros
+- contentinfo:
+  - paragraph: MACHTIA Adaptive Tutor • Desarrollado para Hackathon Amazon / Alexa+ • Protocolo MCP Compatible
+- alert

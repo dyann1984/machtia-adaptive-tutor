@@ -1,0 +1,720 @@
+{
+  "auditTimestamp": "2026-10-05T17:26:30.401Z",
+  "protocolVersion": "2025-11-25",
+  "serverInfo": {
+    "status": "ok",
+    "protocolVersion": "2025-11-25",
+    "transport": "Streamable HTTP",
+    "server": "machtia-tutor-mcp-server",
+    "version": "1.0.0",
+    "toolsCount": 15,
+    "timestamp": "2026-10-05T17:26:30.459Z"
+  },
+  "e2eSession": [
+    {
+      "step": "1. initialize",
+      "method": "initialize",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-init-1",
+        "method": "initialize",
+        "params": {
+          "protocolVersion": "2025-11-25",
+          "clientInfo": {
+            "name": "amazon-developer-auditor",
+            "version": "1.0.0"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-init-1",
+        "result": {
+          "protocolVersion": "2025-11-25",
+          "capabilities": {
+            "tools": {
+              "listChanged": false
+            }
+          },
+          "serverInfo": {
+            "name": "machtia-tutor-mcp-server",
+            "version": "1.0.0"
+          },
+          "instructions": "MACHTIA Adaptive Tutor MCP Server - Exposes educational diagnostics, adaptive practice generation, and teacher reporting for Amazon Alexa+ and AI tutors."
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.475Z"
+    },
+    {
+      "step": "2. tools/list",
+      "method": "tools/list",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-list-2",
+        "method": "tools/list"
+      },
+      "responsePayload": {
+        "toolsCount": 15,
+        "toolNames": [
+          "analyze_student_performance",
+          "find_students_needing_support",
+          "get_student_learning_gap",
+          "generate_adaptive_practice",
+          "assign_practice_to_student",
+          "get_student_progress",
+          "report_progress_to_teacher",
+          "get_student_context",
+          "get_assigned_practice",
+          "start_practice",
+          "submit_answer",
+          "get_hint",
+          "get_adaptive_explanation",
+          "complete_practice",
+          "get_practice_result"
+        ]
+      },
+      "timestamp": "2026-10-05T17:26:30.490Z"
+    },
+    {
+      "step": "3. get_student_context",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-ctx-3",
+        "method": "tools/call",
+        "params": {
+          "name": "get_student_context",
+          "arguments": {
+            "studentId": "mariana-lopez",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez",
+            "requesterRole": "student"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-ctx-3",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"studentId\": \"mariana-lopez\",\n  \"name\": \"Mariana López\",\n  \"groupId\": \"grupo-3b\",\n  \"groupName\": \"3° B\",\n  \"grade\": \"3° Primaria\",\n  \"overallAverage\": 8.1,\n  \"topicPerformances\": {\n    \"fracciones-equivalentes\": 52,\n    \"sumas-restas-fracciones\": 80,\n    \"multiplicacion-basica\": 88\n  },\n  \"learningGaps\": [\n    {\n      \"id\": \"gap-mariana-1\",\n      \"studentId\": \"mariana-lopez\",\n      \"studentName\": \"Mariana López\",\n      \"subjectId\": \"matematicas\",\n      \"topicId\": \"fracciones-equivalentes\",\n      \"topicName\": \"Fracciones equivalentes\",\n      \"errorPattern\": \"Comparación de denominadores\",\n      \"severity\": \"high\",\n      \"currentScore\": 52,\n      \"detectionEvidence\": \"Falló 4 de 7 reactivos de comparación en el último examen diagnóstico. Confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6.\",\n      \"detectedAt\": \"2026-09-26T10:00:00Z\",\n      \"resolved\": false\n    }\n  ],\n  \"assignedPracticesCount\": 0,\n  \"pendingPracticesCount\": 0,\n  \"alexaVoicePrompt\": \"Hola, estás en la sesión de Mariana López, del grupo 3° B. Tienes 0 práctica pendiente asignada por tu profesor. ¿Quieres comenzar?\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "studentId": "mariana-lopez",
+            "name": "Mariana López",
+            "groupId": "grupo-3b",
+            "groupName": "3° B",
+            "grade": "3° Primaria",
+            "overallAverage": 8.1,
+            "topicPerformances": {
+              "fracciones-equivalentes": 52,
+              "sumas-restas-fracciones": 80,
+              "multiplicacion-basica": 88
+            },
+            "learningGaps": [
+              {
+                "id": "gap-mariana-1",
+                "studentId": "mariana-lopez",
+                "studentName": "Mariana López",
+                "subjectId": "matematicas",
+                "topicId": "fracciones-equivalentes",
+                "topicName": "Fracciones equivalentes",
+                "errorPattern": "Comparación de denominadores",
+                "severity": "high",
+                "currentScore": 52,
+                "detectionEvidence": "Falló 4 de 7 reactivos de comparación en el último examen diagnóstico. Confunde 1/2 con 1/4 y afirma que 2/6 es menor que 1/6.",
+                "detectedAt": "2026-09-26T10:00:00Z",
+                "resolved": false
+              }
+            ],
+            "assignedPracticesCount": 0,
+            "pendingPracticesCount": 0,
+            "alexaVoicePrompt": "Hola, estás en la sesión de Mariana López, del grupo 3° B. Tienes 0 práctica pendiente asignada por tu profesor. ¿Quieres comenzar?"
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.506Z"
+    },
+    {
+      "step": "4. get_assigned_practice",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-assigned-4",
+        "method": "tools/call",
+        "params": {
+          "name": "get_assigned_practice",
+          "arguments": {
+            "studentId": "mariana-lopez",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez",
+            "requesterRole": "student"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-assigned-4",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"studentId\": \"mariana-lopez\",\n  \"studentName\": \"Mariana López\",\n  \"totalCount\": 1,\n  \"practices\": [\n    {\n      \"practiceId\": \"prac-mariana-lopez-0506\",\n      \"title\": \"Práctica de apoyo: Fracciones equivalentes\",\n      \"description\": \"Refuerzo adaptativo focalizado en superar errores de comparación de denominadores con barras visuales para Mariana López.\",\n      \"subjectId\": \"matematicas\",\n      \"topicId\": \"fracciones-equivalentes\",\n      \"topicName\": \"Fracciones equivalentes\",\n      \"exerciseCount\": 5,\n      \"status\": \"pending\",\n      \"createdAt\": \"2026-10-05T17:26:30.506Z\"\n    }\n  ],\n  \"alexaVoicePrompt\": \"Tienes disponible la práctica: Práctica de apoyo: Fracciones equivalentes, con 5 reactivos. ¿La empezamos ahora?\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "studentId": "mariana-lopez",
+            "studentName": "Mariana López",
+            "totalCount": 1,
+            "practices": [
+              {
+                "practiceId": "prac-mariana-lopez-0506",
+                "title": "Práctica de apoyo: Fracciones equivalentes",
+                "description": "Refuerzo adaptativo focalizado en superar errores de comparación de denominadores con barras visuales para Mariana López.",
+                "subjectId": "matematicas",
+                "topicId": "fracciones-equivalentes",
+                "topicName": "Fracciones equivalentes",
+                "exerciseCount": 5,
+                "status": "pending",
+                "createdAt": "2026-10-05T17:26:30.506Z"
+              }
+            ],
+            "alexaVoicePrompt": "Tienes disponible la práctica: Práctica de apoyo: Fracciones equivalentes, con 5 reactivos. ¿La empezamos ahora?"
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.512Z"
+    },
+    {
+      "step": "5. start_practice",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-start-5",
+        "method": "tools/call",
+        "params": {
+          "name": "start_practice",
+          "arguments": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "studentId": "mariana-lopez",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-start-5",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"practiceId\": \"prac-mariana-lopez-0506\",\n  \"title\": \"Práctica de apoyo: Fracciones equivalentes\",\n  \"topicName\": \"Fracciones equivalentes\",\n  \"studentId\": \"mariana-lopez\",\n  \"status\": \"in_progress\",\n  \"totalExercises\": 5,\n  \"currentExerciseIndex\": 0,\n  \"firstExercise\": {\n    \"id\": \"ex-frac-1\",\n    \"questionNumber\": 1,\n    \"prompt\": \"¿Cuál de las siguientes fracciones es equivalente a 1/2?\",\n    \"options\": [\n      \"2/4\",\n      \"1/4\",\n      \"2/6\",\n      \"1/3\"\n    ],\n    \"difficulty\": \"easy\",\n    \"conceptTag\": \"Equivalencia visual de 1/2\",\n    \"visualDescription\": \"Barra visual comparativa entre 1/2 y 2/4\"\n  },\n  \"alexaSpeechPrompt\": \"Comenzamos tu práctica de Fracciones equivalentes. Ejercicio 1: ¿Cuál de las siguientes fracciones es equivalente a 1/2?. Tus opciones son: 2/4, 1/4, 2/6, 1/3. ¿Cuál es tu respuesta?\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "title": "Práctica de apoyo: Fracciones equivalentes",
+            "topicName": "Fracciones equivalentes",
+            "studentId": "mariana-lopez",
+            "status": "in_progress",
+            "totalExercises": 5,
+            "currentExerciseIndex": 0,
+            "firstExercise": {
+              "id": "ex-frac-1",
+              "questionNumber": 1,
+              "prompt": "¿Cuál de las siguientes fracciones es equivalente a 1/2?",
+              "options": [
+                "2/4",
+                "1/4",
+                "2/6",
+                "1/3"
+              ],
+              "difficulty": "easy",
+              "conceptTag": "Equivalencia visual de 1/2",
+              "visualDescription": "Barra visual comparativa entre 1/2 y 2/4"
+            },
+            "alexaSpeechPrompt": "Comenzamos tu práctica de Fracciones equivalentes. Ejercicio 1: ¿Cuál de las siguientes fracciones es equivalente a 1/2?. Tus opciones son: 2/4, 1/4, 2/6, 1/3. ¿Cuál es tu respuesta?"
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.519Z"
+    },
+    {
+      "step": "6. submit_answer (incorrecta)",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-submit-wrong-6",
+        "method": "tools/call",
+        "params": {
+          "name": "submit_answer",
+          "arguments": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "exerciseId": "ex-frac-1",
+            "studentAnswer": "un tercio",
+            "attemptNumber": 1,
+            "studentId": "mariana-lopez",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-submit-wrong-6",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"practiceId\": \"prac-mariana-lopez-0506\",\n  \"exerciseId\": \"ex-frac-1\",\n  \"rawInput\": \"un tercio\",\n  \"recognizedAnswer\": \"1/3\",\n  \"isCorrect\": false,\n  \"supportLevel\": \"hint\",\n  \"feedback\": \"No es correcto todavía, pero ¡no te preocupes! Vamos a razonarlo juntos.\",\n  \"hint\": \"Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?\",\n  \"allowRetry\": true,\n  \"currentDifficulty\": \"easy\",\n  \"nextDifficulty\": \"easy\",\n  \"alexaSpeechFeedback\": \"Casi lo tienes. Escucha esta pista: Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?. Intenta de nuevo.\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "exerciseId": "ex-frac-1",
+            "rawInput": "un tercio",
+            "recognizedAnswer": "1/3",
+            "isCorrect": false,
+            "supportLevel": "hint",
+            "feedback": "No es correcto todavía, pero ¡no te preocupes! Vamos a razonarlo juntos.",
+            "hint": "Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?",
+            "allowRetry": true,
+            "currentDifficulty": "easy",
+            "nextDifficulty": "easy",
+            "alexaSpeechFeedback": "Casi lo tienes. Escucha esta pista: Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?. Intenta de nuevo."
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.537Z"
+    },
+    {
+      "step": "7. get_hint",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-hint-7",
+        "method": "tools/call",
+        "params": {
+          "name": "get_hint",
+          "arguments": {
+            "exerciseId": "ex-frac-1",
+            "studentId": "mariana-lopez",
+            "practiceId": "prac-mariana-lopez-0506",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-hint-7",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"exerciseId\": \"ex-frac-1\",\n  \"supportLevel\": \"hint\",\n  \"hint\": \"Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?\",\n  \"conceptTag\": \"Equivalencia visual de 1/2\",\n  \"alexaSpeechHint\": \"Aquí tienes una pista de tu Tutor: Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?. ¿Cuál crees que sea la respuesta?\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "exerciseId": "ex-frac-1",
+            "supportLevel": "hint",
+            "hint": "Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?",
+            "conceptTag": "Equivalencia visual de 1/2",
+            "alexaSpeechHint": "Aquí tienes una pista de tu Tutor: Observa qué pasó con el numerador y el denominador: ¿por qué número multiplicamos el 1 para obtener el numerador equivalente?. ¿Cuál crees que sea la respuesta?"
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.551Z"
+    },
+    {
+      "step": "8. get_adaptive_explanation",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-explain-8",
+        "method": "tools/call",
+        "params": {
+          "name": "get_adaptive_explanation",
+          "arguments": {
+            "exerciseId": "ex-frac-1",
+            "studentId": "mariana-lopez",
+            "practiceId": "prac-mariana-lopez-0506",
+            "level": "step_by_step",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-explain-8",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"exerciseId\": \"ex-frac-1\",\n  \"supportLevel\": \"step_by_step\",\n  \"explanation\": \"Observa las dos barras gráficas: 1 parte de 2 es del mismo tamaño que 2 partes de 4. Ambas cubren exactamente la misma mitad.\",\n  \"conceptTag\": \"Equivalencia visual de 1/2\",\n  \"alexaSpeechExplanation\": \"Te lo explico paso a paso: Observa las dos barras gráficas: 1 parte de 2 es del mismo tamaño que 2 partes de 4. Ambas cubren exactamente la misma mitad.\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "exerciseId": "ex-frac-1",
+            "supportLevel": "step_by_step",
+            "explanation": "Observa las dos barras gráficas: 1 parte de 2 es del mismo tamaño que 2 partes de 4. Ambas cubren exactamente la misma mitad.",
+            "conceptTag": "Equivalencia visual de 1/2",
+            "alexaSpeechExplanation": "Te lo explico paso a paso: Observa las dos barras gráficas: 1 parte de 2 es del mismo tamaño que 2 partes de 4. Ambas cubren exactamente la misma mitad."
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.567Z"
+    },
+    {
+      "step": "9. submit_answer (correcta con normalización)",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-submit-right-9",
+        "method": "tools/call",
+        "params": {
+          "name": "submit_answer",
+          "arguments": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "exerciseId": "ex-frac-1",
+            "studentAnswer": "dos cuartos",
+            "attemptNumber": 2,
+            "studentId": "mariana-lopez",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-submit-right-9",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"practiceId\": \"prac-mariana-lopez-0506\",\n  \"exerciseId\": \"ex-frac-1\",\n  \"rawInput\": \"dos cuartos\",\n  \"recognizedAnswer\": \"2/4\",\n  \"isCorrect\": true,\n  \"supportLevel\": \"none\",\n  \"feedback\": \"¡Excelente trabajo! Si multiplicamos tanto el numerador como el denominador por 2: 1×2=2 y 2×2=4. Por eso 1/2 = 2/4. ¡Ocupan exactamente la misma cantidad en la barra!\",\n  \"allowRetry\": false,\n  \"currentDifficulty\": \"easy\",\n  \"nextDifficulty\": \"medium\",\n  \"alexaSpeechFeedback\": \"¡Muy bien, excelente! ¡Excelente trabajo! Si multiplicamos tanto el numerador como el denominador por 2: 1×2=2 y 2×2=4. Por eso 1/2 = 2/4. ¡Ocupan exactamente la misma cantidad en la barra!\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "exerciseId": "ex-frac-1",
+            "rawInput": "dos cuartos",
+            "recognizedAnswer": "2/4",
+            "isCorrect": true,
+            "supportLevel": "none",
+            "feedback": "¡Excelente trabajo! Si multiplicamos tanto el numerador como el denominador por 2: 1×2=2 y 2×2=4. Por eso 1/2 = 2/4. ¡Ocupan exactamente la misma cantidad en la barra!",
+            "allowRetry": false,
+            "currentDifficulty": "easy",
+            "nextDifficulty": "medium",
+            "alexaSpeechFeedback": "¡Muy bien, excelente! ¡Excelente trabajo! Si multiplicamos tanto el numerador como el denominador por 2: 1×2=2 y 2×2=4. Por eso 1/2 = 2/4. ¡Ocupan exactamente la misma cantidad en la barra!"
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.584Z"
+    },
+    {
+      "step": "10. complete_practice",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-complete-10",
+        "method": "tools/call",
+        "params": {
+          "name": "complete_practice",
+          "arguments": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "studentId": "mariana-lopez",
+            "answers": [
+              {
+                "exerciseId": "ex-frac-1",
+                "isCorrect": true,
+                "studentAnswer": "2/4"
+              },
+              {
+                "exerciseId": "ex-frac-2",
+                "isCorrect": true,
+                "studentAnswer": "2 partes"
+              },
+              {
+                "exerciseId": "ex-frac-3",
+                "isCorrect": true,
+                "studentAnswer": "multiplicar por 2"
+              },
+              {
+                "exerciseId": "ex-frac-4",
+                "isCorrect": true,
+                "studentAnswer": "3x8 = 24"
+              },
+              {
+                "exerciseId": "ex-frac-5",
+                "isCorrect": false,
+                "studentAnswer": "2/4"
+              }
+            ],
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-complete-10",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"practiceId\": \"prac-mariana-lopez-0506\",\n  \"studentId\": \"mariana-lopez\",\n  \"studentName\": \"Mariana López\",\n  \"status\": \"completed\",\n  \"totalExercises\": 5,\n  \"correctCount\": 4,\n  \"finalScore\": 80,\n  \"initialScore\": 52,\n  \"improvementDelta\": 28,\n  \"masteredConcepts\": [\n    \"Equivalencia visual de 1/2\",\n    \"Amplificación por factor 2\",\n    \"Comparación de denominadores y factores\",\n    \"Comprobación por productos cruzados\"\n  ],\n  \"pendingConcepts\": [\n    \"Simplificación por división común\"\n  ],\n  \"evidenceId\": \"evi-alexa-1791221190598\",\n  \"evidence\": {\n    \"id\": \"evi-alexa-1791221190598\",\n    \"studentId\": \"mariana-lopez\",\n    \"studentName\": \"Mariana López\",\n    \"practiceId\": \"prac-mariana-lopez-0506\",\n    \"subjectId\": \"matematicas\",\n    \"topicName\": \"Fracciones equivalentes\",\n    \"initialScore\": 52,\n    \"finalScore\": 80,\n    \"improvementDelta\": 28,\n    \"status\": \"Mejora detectada\",\n    \"masteredConcepts\": [\n      \"Equivalencia visual de 1/2\",\n      \"Amplificación por factor 2\",\n      \"Comparación de denominadores y factores\",\n      \"Comprobación por productos cruzados\"\n    ],\n    \"pendingConcepts\": [\n      \"Simplificación por división común\"\n    ],\n    \"tutorObservations\": \"Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 80%. Cambio de +28 puntos.\",\n    \"timestamp\": \"2026-10-05T17:26:30.598Z\",\n    \"attemptId\": \"att-1791221190598\"\n  },\n  \"alexaCelebrationSpeech\": \"¡Felicidades Mariana López! Has completado tu práctica con 80% de aciertos, con un cambio de 28 puntos desde tu diagnóstico inicial. Conceptos comprobados: Equivalencia visual de 1/2, Amplificación por factor 2, Comparación de denominadores y factores, Comprobación por productos cruzados. Tu profesor ya puede ver tu avance en el panel escolar.\"\n}"
+            }
+          ],
+          "structuredContent": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "studentId": "mariana-lopez",
+            "studentName": "Mariana López",
+            "status": "completed",
+            "totalExercises": 5,
+            "correctCount": 4,
+            "finalScore": 80,
+            "initialScore": 52,
+            "improvementDelta": 28,
+            "masteredConcepts": [
+              "Equivalencia visual de 1/2",
+              "Amplificación por factor 2",
+              "Comparación de denominadores y factores",
+              "Comprobación por productos cruzados"
+            ],
+            "pendingConcepts": [
+              "Simplificación por división común"
+            ],
+            "evidenceId": "evi-alexa-1791221190598",
+            "evidence": {
+              "id": "evi-alexa-1791221190598",
+              "studentId": "mariana-lopez",
+              "studentName": "Mariana López",
+              "practiceId": "prac-mariana-lopez-0506",
+              "subjectId": "matematicas",
+              "topicName": "Fracciones equivalentes",
+              "initialScore": 52,
+              "finalScore": 80,
+              "improvementDelta": 28,
+              "status": "Mejora detectada",
+              "masteredConcepts": [
+                "Equivalencia visual de 1/2",
+                "Amplificación por factor 2",
+                "Comparación de denominadores y factores",
+                "Comprobación por productos cruzados"
+              ],
+              "pendingConcepts": [
+                "Simplificación por división común"
+              ],
+              "tutorObservations": "Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 80%. Cambio de +28 puntos.",
+              "timestamp": "2026-10-05T17:26:30.598Z",
+              "attemptId": "att-1791221190598"
+            },
+            "alexaCelebrationSpeech": "¡Felicidades Mariana López! Has completado tu práctica con 80% de aciertos, con un cambio de 28 puntos desde tu diagnóstico inicial. Conceptos comprobados: Equivalencia visual de 1/2, Amplificación por factor 2, Comparación de denominadores y factores, Comprobación por productos cruzados. Tu profesor ya puede ver tu avance en el panel escolar."
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.599Z"
+    },
+    {
+      "step": "11. get_practice_result",
+      "method": "tools/call",
+      "httpStatus": 200,
+      "requestHeaders": {
+        "Content-Type": "application/json",
+        "x-mcp-protocol-version": "2025-11-25"
+      },
+      "requestPayload": {
+        "jsonrpc": "2.0",
+        "id": "req-result-11",
+        "method": "tools/call",
+        "params": {
+          "name": "get_practice_result",
+          "arguments": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "studentId": "mariana-lopez",
+            "tenantId": "escuela-benito-juarez",
+            "requesterId": "mariana-lopez"
+          }
+        }
+      },
+      "responsePayload": {
+        "jsonrpc": "2.0",
+        "id": "req-result-11",
+        "result": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\n  \"practiceId\": \"prac-mariana-lopez-0506\",\n  \"studentId\": \"mariana-lopez\",\n  \"studentName\": \"Mariana López\",\n  \"topicName\": \"Fracciones equivalentes\",\n  \"status\": \"completed\",\n  \"initialScore\": 52,\n  \"finalScore\": 80,\n  \"improvementDelta\": 28,\n  \"evidenceStatus\": \"Mejora detectada\",\n  \"masteredConcepts\": [\n    \"Equivalencia visual de 1/2\",\n    \"Amplificación por factor 2\",\n    \"Comparación de denominadores y factores\",\n    \"Comprobación por productos cruzados\"\n  ],\n  \"pendingConcepts\": [\n    \"Simplificación por división común\"\n  ],\n  \"tutorObservations\": \"Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 80%. Cambio de +28 puntos.\",\n  \"timestamp\": \"2026-10-05T17:26:30.598Z\",\n  \"verifiedInTeacherDashboard\": true\n}"
+            }
+          ],
+          "structuredContent": {
+            "practiceId": "prac-mariana-lopez-0506",
+            "studentId": "mariana-lopez",
+            "studentName": "Mariana López",
+            "topicName": "Fracciones equivalentes",
+            "status": "completed",
+            "initialScore": 52,
+            "finalScore": 80,
+            "improvementDelta": 28,
+            "evidenceStatus": "Mejora detectada",
+            "masteredConcepts": [
+              "Equivalencia visual de 1/2",
+              "Amplificación por factor 2",
+              "Comparación de denominadores y factores",
+              "Comprobación por productos cruzados"
+            ],
+            "pendingConcepts": [
+              "Simplificación por división común"
+            ],
+            "tutorObservations": "Completado a través de interacción vocal y conversacional con Amazon Alexa+ vía MCP. Calificación: 80%. Cambio de +28 puntos.",
+            "timestamp": "2026-10-05T17:26:30.598Z",
+            "verifiedInTeacherDashboard": true
+          },
+          "isError": false
+        }
+      },
+      "timestamp": "2026-10-05T17:26:30.614Z"
+    }
+  ],
+  "evidenceVerification": {
+    "evidenceExists": true,
+    "evidenceId": "evi-alexa-1791221190598",
+    "studentName": "Mariana López",
+    "topicName": "Fracciones equivalentes",
+    "initialScore": 52,
+    "finalScore": 80,
+    "improvementDelta": 28,
+    "studentScoreInRepo": 80,
+    "practiceStatusInRepo": "completed"
+  },
+  "securityMatrix": [
+    {
+      "testCase": "1. Tenant Correcto",
+      "description": "Acceso con tenant institucional válido 'escuela-benito-juarez'.",
+      "expectedCode": "SUCCESS_200",
+      "actualCode": "SUCCESS_200",
+      "passed": true,
+      "evidence": "Mariana López"
+    },
+    {
+      "testCase": "2. Tenant Incorrecto",
+      "description": "Intento de acceso con tenant ajeno 'escuela-rival-ajena'. Debe rechazarse con TENANT_MISMATCH (403).",
+      "expectedCode": "TENANT_MISMATCH_403",
+      "actualCode": "TENANT_MISMATCH_403",
+      "passed": true,
+      "evidence": "[MCP Execution Error] Error ejecutando 'get_student_context': [MCP Security Error] Violación de aislamiento multi-tenant: El tenant 'escuela-rival-ajena' no tiene autorización para acceder a los datos de 'escuela-benito-juarez'."
+    },
+    {
+      "testCase": "3. Alumno Autorizado",
+      "description": "Mariana López consulta sus propios datos con requesterRole 'student'.",
+      "expectedCode": "SUCCESS_200",
+      "actualCode": "SUCCESS_200",
+      "passed": true,
+      "evidence": "mariana-lopez"
+    },
+    {
+      "testCase": "4. Alumno Intentando Acceder a Otro Alumno (IDOR)",
+      "description": "Juan Pérez intenta ver el expediente de Mariana López. Debe ser bloqueado por IDOR_FORBIDDEN (403).",
+      "expectedCode": "IDOR_FORBIDDEN_403",
+      "actualCode": "IDOR_FORBIDDEN_403",
+      "passed": true,
+      "evidence": "[MCP Execution Error] Error ejecutando 'get_student_context': [MCP Security Error] Violación IDOR detectada: El alumno 'juan-perez' intentó acceder o modificar recursos del alumno 'mariana-lopez'."
+    },
+    {
+      "testCase": "5. Práctica de Otro Alumno",
+      "description": "Luis Hernández intenta iniciar la práctica creada para Mariana. Debe rechazarse por discordancia (400).",
+      "expectedCode": "PRACTICE_STUDENT_MISMATCH_400",
+      "actualCode": "PRACTICE_STUDENT_MISMATCH_400",
+      "passed": true,
+      "evidence": "[MCP Execution Error] Error ejecutando 'start_practice': [MCP Security Error] Inconsistencia: La práctica 'prac-mariana-lopez-0506' pertenece al alumno 'mariana-lopez', no a 'luis-hernandez'."
+    },
+    {
+      "testCase": "6. Evidencia de Otro Tenant",
+      "description": "Consulta de resultados con tenant ajeno. Debe bloquearse con TENANT_MISMATCH (403).",
+      "expectedCode": "TENANT_MISMATCH_403",
+      "actualCode": "TENANT_MISMATCH_403",
+      "passed": true,
+      "evidence": "[MCP Execution Error] Error ejecutando 'get_practice_result': [MCP Security Error] Violación de aislamiento multi-tenant: El tenant 'escuela-ajena-foranea' no tiene autorización para acceder a los datos de 'escuela-benito-juarez'."
+    },
+    {
+      "testCase": "7. requesterRole Manipulado",
+      "description": "Invocador con requesterId falso intentando suplantar a Mariana con rol de alumno.",
+      "expectedCode": "IDOR_FORBIDDEN_403",
+      "actualCode": "IDOR_FORBIDDEN_403",
+      "passed": true,
+      "evidence": "[MCP Execution Error] Error ejecutando 'get_student_context': [MCP Security Error] Violación IDOR detectada: El alumno 'alumno-falso' intentó acceder o modificar recursos del alumno 'mariana-lopez'."
+    },
+    {
+      "testCase": "8. IDs Inexistentes",
+      "description": "Consulta de alumno no registrado. Debe responder con STUDENT_NOT_FOUND de forma sanitizada.",
+      "expectedCode": "STUDENT_NOT_FOUND",
+      "actualCode": "STUDENT_NOT_FOUND",
+      "passed": true,
+      "evidence": "[MCP Execution Error] Error ejecutando 'get_student_context': Estudiante con ID 'alumno-no-existe-9999' no encontrado."
+    }
+  ]
+}

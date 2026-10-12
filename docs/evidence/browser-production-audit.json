@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-10-11T01:53:51.847Z",
+  "targetUrl": "https://machtia-adaptive-tutor.vercel.app/?demo=judge",
+  "chromeVersion": "Chrome/154.0.8037.99",
+  "historyReplyReceived": false,
+  "mathReplyReceived": false,
+  "reformulationReceived": false,
+  "ttsNetworkCallsCount": 0,
+  "webSpeechInvoluntarilyUsed": false,
+  "audioElementsCreated": 0,
+  "screenshots": [
+    "browser_01_landing.png",
+    "browser_02_companion_open.png",
+    "browser_03_history_columbus.png",
+    "browser_04_math_fractions.png",
+    "browser_05_adaptive_reformulation.png",
+    "browser_06_alexa_simulator_modal.png"
+  ]
+}

@@ -209,8 +209,8 @@ export function useSpeech(): UseSpeechReturn {
           try {
             const utterance = new SpeechSynthesisUtterance(cleanText);
             utterance.lang = "es-MX";
-            utterance.rate = 0.92; // Calm, clear tempo for primary school learners
-            utterance.pitch = 1.05; // Warm, friendly tone
+            utterance.rate = 0.94; // Natural, lively tempo for primary school learners
+            utterance.pitch = 1.08; // Cheerful, warm, youthful female tone
 
             // Fetch latest voices
             const voices = voicesRef.current.length > 0 ? voicesRef.current : window.speechSynthesis.getVoices();
