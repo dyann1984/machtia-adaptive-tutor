@@ -88,20 +88,28 @@ export function isGreeting(text: string): boolean {
     "hola como estas",
     "hola que haces",
     "hola quien eres",
+    "excelente",
+    "muy bien",
+    "gracias",
+    "muchas gracias",
+    "completado",
+    "excelente trabajo",
   ];
   if (directGreetings.includes(q)) return true;
-  if (q.startsWith("hola") && q.split(" ").length <= 4) {
-    if (
-      !q.includes("explic") &&
-      !q.includes("fraccion") &&
-      !q.includes("america") &&
-      !q.includes("por que") &&
-      !q.includes("cuanto") &&
-      !q.includes("color") &&
-      !q.includes("tarea")
-    ) {
-      return true;
-    }
+  if (
+    q.startsWith("hola") &&
+    !q.includes("explic") &&
+    !q.includes("fraccion") &&
+    !q.includes("america") &&
+    !q.includes("por que") &&
+    !q.includes("cuanto") &&
+    !q.includes("color") &&
+    !q.includes("tarea")
+  ) {
+    return true;
+  }
+  if (q.includes("excelente trabajo") || q.includes("completado esta actividad") || q.includes("muy bien hecho")) {
+    return true;
   }
   return false;
 }

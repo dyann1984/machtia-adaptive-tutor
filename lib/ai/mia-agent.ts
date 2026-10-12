@@ -774,11 +774,17 @@ export class MiaAgentService {
       };
     };
 
-    // Intent 0: Greetings ("Hola MIA", "Hola", "Buenos días")
+    // Intent 0: Greetings & Celebrations
     if (classification.intent === "greeting") {
+      const q = cleanPrompt(rawTrimmed);
+      const isCelebration = q.includes("excelente") || q.includes("complet") || q.includes("muy bien") || q.includes("felicidades");
+      const reply = isCelebration
+        ? `¡Muchísimas felicidades! 🌟 ¡Hiciste un trabajo increíble en tu actividad! Tu esfuerzo y curiosidad hacen a tu mente más fuerte cada día.\n\n¿Quieres que repasemos alguna duda o descansamos un momento? ✨`
+        : `¡Hola! 👋 ¡Qué gusto saludarte! Soy MIA, tu compañera de aprendizaje en MACHTIA.\n\nAquí puedes preguntarme cualquier duda de tu clase, pedirme explicaciones sencillas con ejemplos divertidos o practicar tus retos de matemáticas y ciencias.\n\n¿Qué te gustaría aprender o descubrir hoy? ✨`;
+
       return {
-        reply: `¡Hola! 👋 ¡Qué gusto saludarte! Soy MIA, tu compañera de aprendizaje en MACHTIA.\n\nAquí puedes preguntarme cualquier duda de tu clase, pedirme explicaciones sencillas con ejemplos divertidos o practicar tus retos de matemáticas y ciencias.\n\n¿Qué te gustaría aprender o descubrir hoy? ✨`,
-        topic: "Bienvenida y Saludo",
+        reply,
+        topic: isCelebration ? "Celebración y Logro" : "Bienvenida y Saludo",
         mode,
         intent: "greeting",
         funFact: "En MACHTIA no hay preguntas tontas: ¡todas las preguntas hacen más inteligente a tu cerebro!",
@@ -917,10 +923,11 @@ export class MiaAgentService {
       return formatKnowledge(KNOWLEDGE_BASE[detected.key]);
     }
 
-    // Default: Transparent Out-of-Catalog Curricular Boundary
+    // Default: Transparent Out-of-Catalog Curricular Boundary (Concise < 460 chars for TTS safety)
+    const topicHint = rawTrimmed.length > 40 ? `${rawTrimmed.slice(0, 37)}...` : rawTrimmed;
     const outOfCatalogReply = mode === "curiosity"
-      ? `¡Hola, explorador! 🚀 Como tutora escolar de MACHTIA, mi catálogo autónomo está especializado en los temas curriculares de primaria: **Matemáticas** (fracciones, operaciones y retos), **Ciencias Naturales** (el ciclo del agua, dinosaurios, el universo, planetas, volcanes, cuerpo humano), **Historia** (1492 y pueblos originarios, historia de México) y **Arte** (colores primarios) 📚💡.\n\nTu pregunta sobre "${rawTrimmed}" está fuera de mi catálogo escolar determinista. Para responder preguntas abiertas de cultura general se requiere conexión activa a un motor de IA generativa en la nube (Google Gemini / OpenAI), el cual no está activo en esta sesión.\n\n¿Te gustaría que exploremos alguna duda sobre matemáticas, ciencias, historia o tu lección activa?`
-      : `¡Hola! Como tutora escolar de MACHTIA, mi especialidad está en los temas curriculares de primaria: **Matemáticas** (fracciones, operaciones y tablas), **Ciencias Naturales** (ciclo del agua, dinosaurios, planetas, volcanes, cuerpo humano), **Historia** (1492 y pueblos originarios, historia de México) y **Arte** (colores primarios) 📚💡.\n\nTu pregunta sobre "${rawTrimmed}" está fuera de mi catálogo escolar determinista. Para responder preguntas abiertas de cultura general se requiere conexión activa a un motor de IA generativa en la nube (Google Gemini / OpenAI), el cual no está configurado en esta demostración.\n\n¿Te gustaría que exploremos alguna duda sobre matemáticas, ciencias, historia o tu ejercicio en pantalla?`;
+      ? `¡Hola, explorador! 🚀 Como tutora de MACHTIA, mi catálogo escolar se enfoca en primaria: **Matemáticas** (fracciones y tablas), **Ciencias** (ciclo del agua, dinosaurios, universo), **Historia** (1492 y México) y **Arte** (colores primarios) 📚💡.\n\nTu pregunta sobre "${topicHint}" requiere IA generativa en la nube no activa en esta demo.\n\n¿Quieres explorar matemáticas, ciencias o historia?`
+      : `¡Hola! Como tutora escolar de MACHTIA, mi especialidad está en los temas curriculares de primaria: **Matemáticas** (fracciones y tablas), **Ciencias** (ciclo del agua, dinosaurios, universo), **Historia** (1492 y México) y **Arte** (colores primarios) 📚💡.\n\nTu pregunta sobre "${topicHint}" requiere IA generativa en la nube no configurada en esta demo.\n\n¿Te gustaría que exploremos alguna duda sobre matemáticas, ciencias o tu ejercicio?`;
 
     return {
       reply: outOfCatalogReply,
