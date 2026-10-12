@@ -15,6 +15,8 @@
  * 6. "general_curiosity": Daily life, technology, study habits, languages (English/Spanish).
  */
 
+import { detectLanguage } from "@/lib/translation/translator-service";
+
 export type StudentIntent =
   | "practice_hint"
   | "practice_direct_answer"
@@ -34,6 +36,16 @@ export type StudentIntent =
   | "colors_primary"
   | "math_arithmetic_calc"
   | "out_of_catalog"
+  | "english_greeting"
+  | "english_name_who"
+  | "english_fractions"
+  | "english_reformulation"
+  | "english_switch_to_spanish"
+  | "english_switch_to_english"
+  | "english_lesson_colors"
+  | "english_lesson_animals"
+  | "english_lesson_numbers"
+  | "english_conversation"
   | "general_curiosity";
 
 export interface IntentClassification {
@@ -248,6 +260,114 @@ export function classifyStudentIntent(
       intent: "science_dinosaurs",
       confidence: 0.96,
       extractedTopic: "Paleontología · Dinosaurios",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.5 English switch to Spanish: "No entendí, explícamelo en español", "en español por favor", "dímelo en español"
+  if (
+    q.includes("explicamelo en espanol") ||
+    q.includes("dimelo en espanol") ||
+    q.includes("en espanol por favor") ||
+    (q.includes("en espanol") && (q.includes("explic") || q.includes("entendi") || q.includes("di"))) ||
+    q.includes("what does that mean in spanish")
+  ) {
+    return {
+      intent: "english_switch_to_spanish",
+      confidence: 0.98,
+      extractedTopic: "Explicación Bilingüe en Español",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.6 English Name & Identity: "What is your name?", "Who are you?"
+  if (
+    q.includes("what is your name") ||
+    q.includes("whats your name") ||
+    q.includes("who are you") ||
+    q.includes("tell me your name")
+  ) {
+    return {
+      intent: "english_name_who",
+      confidence: 0.99,
+      extractedTopic: "English · Introductions & Name",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.7 English Greetings: "Good morning", "Hello MIA", "How are you", "Good afternoon"
+  if (
+    q.includes("good morning") ||
+    q.includes("good afternoon") ||
+    q.includes("good evening") ||
+    q.includes("hello mia") ||
+    q.includes("hi mia") ||
+    q === "hello" ||
+    q === "hi" ||
+    q === "how are you" ||
+    q === "how are you today"
+  ) {
+    return {
+      intent: "english_greeting",
+      confidence: 0.98,
+      extractedTopic: "English · Friendly Greetings",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.8 English Fractions: "Explain fractions in English", "What is one half?"
+  if (
+    q.includes("explain fractions in english") ||
+    q.includes("fractions in english") ||
+    (q.includes("fraction") && (q.includes("english") || q.includes("explain") || q.includes("what is") || q.includes("what are") || q.includes("how to"))) ||
+    q.includes("one half") ||
+    q.includes("one quarter")
+  ) {
+    return {
+      intent: "english_fractions",
+      confidence: 0.98,
+      extractedTopic: "Mathematics · Fractions in English",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.9 English Reformulation: "I don't understand", "I dont understand"
+  if (
+    q.includes("understand") &&
+    (q.includes("don") || q.includes("not") || q.includes("didn") || q.includes("cant") || q.includes("couldnt"))
+  ) {
+    return {
+      intent: "english_reformulation",
+      confidence: 0.98,
+      extractedTopic: "English · Adaptive Reformulation",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.10 English Lessons: Colors, Animals, Numbers
+  if (q.includes("teach me colors") || (q.includes("color") && q.includes("in english"))) {
+    return {
+      intent: "english_lesson_colors",
+      confidence: 0.96,
+      extractedTopic: "English · Colors Vocabulary",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  if (q.includes("teach me animals") || (q.includes("animal") && q.includes("in english"))) {
+    return {
+      intent: "english_lesson_animals",
+      confidence: 0.96,
+      extractedTopic: "English · Animals Vocabulary",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  if (q.includes("teach me numbers") || q.includes("count to ten") || (q.includes("number") && q.includes("in english"))) {
+    return {
+      intent: "english_lesson_numbers",
+      confidence: 0.96,
+      extractedTopic: "English · Numbers Vocabulary",
       isEvaluatingExercise: false,
     };
   }
@@ -503,6 +623,16 @@ export function classifyStudentIntent(
       intent: "technology_coding",
       confidence: 0.9,
       extractedTopic: "Tecnología y Programación",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 12. English conversation fallback
+  if (detectLanguage(rawPrompt) === "en") {
+    return {
+      intent: "english_conversation",
+      confidence: 0.88,
+      extractedTopic: "English with MIA · Conversation",
       isEvaluatingExercise: false,
     };
   }

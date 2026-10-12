@@ -13,7 +13,7 @@
 
 import { classifyStudentIntent, cleanPrompt, isGreeting, parseArithmetic } from "./intent-router";
 
-export type MiaMode = "practice" | "free" | "curiosity";
+export type MiaMode = "practice" | "free" | "curiosity" | "english";
 
 export interface MiaPracticeContext {
   practiceId?: string;
@@ -39,6 +39,7 @@ export interface MiaHistoryItem {
   timestamp?: string;
   mode?: MiaMode;
   topic?: string;
+  language?: "es" | "en";
 }
 
 export interface MiaMessage {
@@ -48,6 +49,7 @@ export interface MiaMessage {
   timestamp: string;
   mode?: MiaMode;
   topic?: string;
+  language?: "es" | "en";
   funFact?: string;
   challenge?: string;
   audioPrompt?: string;
@@ -58,6 +60,7 @@ export interface MiaResponse {
   topic: string;
   mode: MiaMode;
   intent?: string;
+  language?: "es" | "en";
   funFact?: string;
   challenge?: string;
   audioPrompt?: string;
@@ -825,6 +828,181 @@ export class MiaAgentService {
           providerNotice: "Motor pedagógico curricular MACHTIA activo.",
         };
       }
+    }
+
+    // Intent 0.5: English Switch to Spanish ("No entendí, explícamelo en español")
+    if (classification.intent === "english_switch_to_spanish") {
+      const lastHistoryItem = history && history.length > 0 ? history[history.length - 1] : null;
+      const lastTopic = (lastHistoryItem?.topic || "").toLowerCase();
+      const isFractions = lastTopic.includes("fraction") || lastTopic.includes("fraccion");
+      const isColors = lastTopic.includes("color");
+
+      let replyText = `¡Claro que sí! Con mucho gusto te lo explico en español con calma 😊:\n\nAquí estamos para aprender con confianza y sin presiones. En cualquier momento puedes pedirme que cambiemos de idioma o usemos ejemplos más fáciles.\n\n¿Qué partecita te causó duda y la revisamos juntos? ✨`;
+
+      if (isFractions) {
+        replyText = `¡Claro que sí! Con mucho gusto te lo explico en español 😊:\n\nLas fracciones son partes iguales de un entero. Imagina una pizza 🍕:\n• Si la cortas en 2 rebanadas iguales, cada una es **un medio (1/2)**.\n• Si la cortas en 4 rebanadas, cada una es **un cuarto (1/4)**.\n\n¡Comerte 2 cuartos (2/4) es exactamente la misma cantidad que comerte un medio (1/2)!\n\n¿Te gustaría otro ejemplo con monedas o chocolates? 🍫`;
+      } else if (isColors) {
+        replyText = `¡Claro que sí! Con mucho gusto te lo explico en español 🎨:\n\nEn inglés, los colores van antes del objeto:\n• 🔴 Red = Rojo (ej. "red apple")\n• 🔵 Blue = Azul (ej. "blue cat")\n• 🟡 Yellow = Amarillo\n• 🟢 Green = Verde\n\n¿Cuál es tu color favorito? 🌈`;
+      }
+
+      return {
+        reply: replyText,
+        topic: "Explicación Bilingüe en Español",
+        mode: "free",
+        intent: "english_switch_to_spanish",
+        language: "es",
+        funFact: "Poder saltar entre inglés y español es una súper habilidad de los cerebros bilingües.",
+        challenge: "¿Quieres continuar la explicación en español o practicar una palabra en inglés?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Puente Bilingüe (Español activo).",
+      };
+    }
+
+    // Intent 0.6: English Name & Identity ("What is your name?")
+    if (classification.intent === "english_name_who") {
+      return {
+        reply: `Hello! 👋 My name is MIA, your AI learning companion at MACHTIA!\n\nI can help you learn math, science, and English with fun games, stories, and easy examples ✨.\n\nWhat is your name? What would you like to explore today? 🌟`,
+        topic: "English · Introductions & Name",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_name_who",
+        language: "en",
+        funFact: "In English, names start with a capital letter, just like in Spanish!",
+        challenge: "Can you practice saying: 'My name is...'?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    // Intent 0.7: English Greetings ("Good morning", "Hello MIA")
+    if (classification.intent === "english_greeting") {
+      return {
+        reply: `Hello there! 👋 Good morning! I'm so happy to learn with you today! 🌟\n\nWe can practice English conversation, vocabulary (colors, animals, numbers), or solve math and science questions together.\n\nHow are you feeling today? ✨`,
+        topic: "English · Friendly Greetings",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_greeting",
+        language: "en",
+        funFact: "Did you know? In English, 'Good morning' is used until 12:00 PM, and then we say 'Good afternoon'!",
+        challenge: "Can you say: 'Good morning, MIA'?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    // Intent 0.8: English Fractions ("Explain fractions in English")
+    if (classification.intent === "english_fractions") {
+      return {
+        reply: `💡 **Math · Fractions in English**\n\nFractions are equal parts of a whole! 🍕✨\n\nImagine a delicious pizza:\n• If you cut it into **2 equal slices**, each slice is **1/2 (one half)**.\n• If you cut it into **4 equal slices**, each slice is **1/4 (one quarter)**.\n\nTwo quarters (2/4) equal exactly one half (1/2)! 😋\n\nWould you like another fun example with chocolate bars? 🍫`,
+        topic: "Mathematics · Fractions in English",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_fractions",
+        language: "en",
+        funFact: "In English, 1/4 is called 'one quarter', just like a quarter dollar coin!",
+        challenge: "How do you say 1/2 in English? (Hint: one half)",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    // Intent 0.9: English Reformulation ("I don't understand")
+    if (classification.intent === "english_reformulation") {
+      return {
+        reply: `Don't worry at all! 😊 When we don't understand something, the secret is to use a new, simpler example! 💡\n\nImagine a chocolate bar with 4 little squares 🍫. If you eat 2 squares, you ate half of the bar (2/4 = 1/2)!\n\nWhich part felt a little tricky? Tell me, and we'll practice together step by step! 🌟`,
+        topic: "English · Adaptive Reformulation",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_reformulation",
+        language: "en",
+        funFact: "Learning in two languages makes your brain create twice as many connections!",
+        challenge: "Would you like me to explain this in Spanish or with another English example?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    // Intent 0.10: English Lessons: Colors, Animals, Numbers
+    if (classification.intent === "english_lesson_colors") {
+      return {
+        reply: `🎨 **Colors in English!**\n\nLet's learn the most fun colors:\n• 🔴 **Red** (rojo)\n• 🔵 **Blue** (azul)\n• 🟡 **Yellow** (amarillo)\n• 🟢 **Green** (verde)\n• 🟠 **Orange** (naranja)\n• 🟣 **Purple** (morado)\n\nIn English, we say the color first: "The cat is blue" 🐱 or "A red apple" 🍎!\n\nWhat is your favorite color? 🌈`,
+        topic: "English · Colors Vocabulary",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_lesson_colors",
+        language: "en",
+        funFact: "In English, adjectives like colors always go before the noun: 'red car', not 'car red'!",
+        challenge: "Can you say: 'The cat is blue'?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    if (classification.intent === "english_lesson_animals") {
+      return {
+        reply: `🐾 **Animals in English!**\n\nHere are some awesome animal friends:\n• 🐶 **Dog** (perro)\n• 🐱 **Cat** (gato)\n• 🦁 **Lion** (león)\n• 🐘 **Elephant** (elefante)\n• 🦅 **Eagle** (águila)\n\nFor example: "The lion is strong" and "The dog is happy"!\n\nWhat is your favorite animal? 🦁`,
+        topic: "English · Animals Vocabulary",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_lesson_animals",
+        language: "en",
+        funFact: "Dogs can learn more than 100 words in English and Spanish!",
+        challenge: "How do you say 'gato' in English? (Hint: cat)",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    if (classification.intent === "english_lesson_numbers") {
+      return {
+        reply: `🔢 **Numbers in English!**\n\nLet's count from 1 to 10 together:\n1 - **One**, 2 - **Two**, 3 - **Three**, 4 - **Four**, 5 - **Five**\n6 - **Six**, 7 - **Seven**, 8 - **Eight**, 9 - **Nine**, 10 - **Ten**! ⚡\n\nTip: For 'Three', softly place your tongue between your teeth: /θriː/.\n\nCan you count up to five? 🌟`,
+        topic: "English · Numbers Vocabulary",
+        mode: (mode === "english" ? "english" : mode),
+        intent: "english_lesson_numbers",
+        language: "en",
+        funFact: "Zero is the only number in English that cannot be represented with Roman numerals!",
+        challenge: "Can you count: one, two, three?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
+    }
+
+    // Intent 0.11: General English Conversation or Mode English
+    if (classification.intent === "english_conversation" || mode === "english") {
+      const lowerQ = rawTrimmed.toLowerCase();
+      if (lowerQ.includes("dinosaur") || lowerQ.includes("t-rex")) {
+        return {
+          reply: `🦖 **Paleontology · Dinosaurs in English**\n\nDinosaurs were amazing reptiles that lived on Earth more than 65 million years ago! 🌿\n\nSome were giant plant-eaters like the Brachiosaurus, and some were fast carnivores like the T-Rex. Today we study their **fossils**, and their closest living relatives are birds! 🦅\n\nDo you have a favorite dinosaur?`,
+          topic: "English · Dinosaurs",
+          mode: "english",
+          intent: "english_conversation",
+          language: "en",
+          funFact: "The word Dinosaur comes from ancient Greek and means 'terrible lizard'!",
+          challenge: "Can you say: 'The dinosaur is big'?",
+          aiProvider: "pedagogical-engine",
+          providerNotice: "MIA Bilingual Engine (English active).",
+        };
+      }
+
+      if (lowerQ.includes("rain") || lowerQ.includes("water")) {
+        return {
+          reply: `🌧️ **Science · Why Does It Rain?**\n\nWater on Earth is on an endless round-trip journey called the **water cycle**! 💧🔄\n\n1. **Evaporation:** The Sun warms water, turning it into invisible vapor.\n2. **Condensation:** Up in the cold sky, vapor turns into fluffy clouds ☁️.\n3. **Precipitation:** When clouds get heavy, water drops fall as **rain**! 🌧️\n\nIsn't nature amazing?`,
+          topic: "English · The Water Cycle",
+          mode: "english",
+          intent: "english_conversation",
+          language: "en",
+          funFact: "The raindrops falling today might be the same water that dinosaurs drank millions of years ago!",
+          challenge: "Can you say: 'I see the rain'?",
+          aiProvider: "pedagogical-engine",
+          providerNotice: "MIA Bilingual Engine (English active).",
+        };
+      }
+
+      return {
+        reply: `Hello! 🌟 In **English with MIA**, you can practice conversation, learn words (colors, animals, numbers), and ask school questions in English!\n\nYou can ask: "What is your name?", "Explain fractions in English", or "Teach me colors" ✨.\n\nWhat would you like to practice today?`,
+        topic: "English with MIA · Conversation",
+        mode: "english",
+        intent: "english_conversation",
+        language: "en",
+        funFact: "Practicing English a few minutes each day helps your brain learn naturally!",
+        challenge: "Try asking me: 'What is your name?'",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "MIA Bilingual Engine (English active).",
+      };
     }
 
     // Intent A: Diagnostic Inquiry
