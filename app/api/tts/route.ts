@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ElevenLabsTTSAdapter } from "@/lib/tts/elevenlabs-adapter";
 import { ttsSessionGuard, registerActorResolver } from "@/lib/tts/session-guard";
-import { sanitizePiiForTTS, normalizeOralMathText, validateContentSafety } from "@/lib/tts/normalization";
+import { sanitizePiiForTTS, normalizeOralMathText, normalizeOralSpeech, validateContentSafety } from "@/lib/tts/normalization";
 import { verifyDidacticSignatureDetail } from "@/lib/tts/signature";
 import { authenticate } from "@/mcp/server/session";
 
@@ -143,8 +143,9 @@ export async function POST(req: NextRequest) {
     // 4. Data minimization & PII scrubbing (Zero Student PII)
     const anonymizedText = sanitizePiiForTTS(validation.cleanText);
 
-    // 5. Pedagogical and oral math phonetic normalization
-    const normalizedText = normalizeOralMathText(anonymizedText);
+    // 5. Pedagogical and oral math phonetic normalization (Language aware: es-MX vs en-US)
+    const requestedLang = typeof body?.lang === "string" && body.lang.toLowerCase().startsWith("en") ? "en-US" : "es-MX";
+    const normalizedText = normalizeOralSpeech(anonymizedText, requestedLang);
 
     if (!normalizedText) {
       return NextResponse.json(

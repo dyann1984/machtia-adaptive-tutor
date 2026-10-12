@@ -1,11 +1,17 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { findPreferredSpanishVoice, cancelGlobalSpeech, stopAllGlobalAudio, registerGlobalAudioSource } from "./use-speech";
-import { normalizeOralMathText } from "@/lib/tts/normalization";
+import { findPreferredSpanishVoice, findPreferredEnglishVoice, cancelGlobalSpeech, stopAllGlobalAudio, registerGlobalAudioSource } from "./use-speech";
+import { normalizeOralMathText, normalizeOralSpeech } from "@/lib/tts/normalization";
+import { detectLanguage } from "@/lib/translation/translator-service";
+
+export interface SpeakOptions {
+  lang?: "es-MX" | "en-US";
+  rate?: number;
+}
 
 export interface UseMiaVoiceReturn {
-  speak: (text: string, signature?: string) => Promise<void>;
+  speak: (text: string, signature?: string, options?: SpeakOptions) => Promise<void>;
   stop: () => void;
   replay: () => Promise<void>;
   isSpeaking: boolean;
@@ -13,6 +19,9 @@ export interface UseMiaVoiceReturn {
   isSupported: boolean;
   activeText: string | null;
   activeRawText: string | null;
+  activeLang: "es-MX" | "en-US";
+  speechRate: number;
+  setSpeechRate: (rate: number) => void;
   voiceSource: "elevenlabs" | "webspeech" | null;
   provider: string | null;
   latencyMs: number | null;
@@ -29,6 +38,8 @@ export function useMiaVoice(): UseMiaVoiceReturn {
   const [isSupported, setIsSupported] = useState(true);
   const [activeText, setActiveText] = useState<string | null>(null);
   const [activeRawText, setActiveRawText] = useState<string | null>(null);
+  const [activeLang, setActiveLang] = useState<"es-MX" | "en-US">("es-MX");
+  const [speechRate, setSpeechRate] = useState<number>(0.94);
   const [voiceSource, setVoiceSource] = useState<"elevenlabs" | "webspeech" | null>(null);
   const [provider, setProvider] = useState<string | null>("ElevenLabs HD (Paulina · es-MX)");
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
@@ -142,9 +153,10 @@ export function useMiaVoice(): UseMiaVoiceReturn {
 
   /**
    * Fallback synthesis using local browser Web Speech API.
+   * Language-aware (es-MX vs en-US) with dynamic speech rate control.
    */
   const speakWebSpeech = useCallback(
-    (rawText: string, reasonNotice?: string) => {
+    (rawText: string, reasonNotice?: string, targetLang?: "es-MX" | "en-US", targetRate?: number) => {
       if (typeof window === "undefined" || !("speechSynthesis" in window)) {
         stop();
         return;
@@ -156,21 +168,27 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           window.speechSynthesis.resume();
         }
 
-        const cleanText = normalizeOralMathText(rawText);
+        const effectiveLang = targetLang || (detectLanguage(rawText) === "en" ? "en-US" : "es-MX");
+        const effectiveRate = targetRate || speechRate || (effectiveLang === "en-US" ? 0.95 : 0.94);
+        const cleanText = normalizeOralSpeech(rawText, effectiveLang);
         if (!cleanText) {
           stop();
           return;
         }
 
         const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = "es-MX";
-        utterance.rate = 0.94;
-        utterance.pitch = 1.08;
+        utterance.lang = effectiveLang;
+        utterance.rate = effectiveRate;
 
         const voices = window.speechSynthesis.getVoices();
-        const preferred = findPreferredSpanishVoice(voices);
-        if (preferred) {
-          utterance.voice = preferred;
+        if (effectiveLang === "en-US") {
+          utterance.pitch = 1.05;
+          const preferred = findPreferredEnglishVoice(voices);
+          if (preferred) utterance.voice = preferred;
+        } else {
+          utterance.pitch = 1.08;
+          const preferred = findPreferredSpanishVoice(voices);
+          if (preferred) utterance.voice = preferred;
         }
 
         utterance.onstart = () => {
@@ -178,8 +196,13 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           setIsLoading(false);
           setActiveText(cleanText);
           setActiveRawText(rawText);
+          setActiveLang(effectiveLang);
           setVoiceSource("webspeech");
-          setProvider("Web Speech API (Síntesis del navegador · es-MX)");
+          setProvider(
+            effectiveLang === "en-US"
+              ? "Web Speech API (Síntesis del navegador · en-US)"
+              : "Web Speech API (Síntesis del navegador · es-MX)"
+          );
           setIsFallback(true);
           if (reasonNotice) setFallbackReason(reasonNotice);
         };
@@ -203,21 +226,24 @@ export function useMiaVoice(): UseMiaVoiceReturn {
         stop();
       }
     },
-    [stop]
+    [stop, speechRate]
   );
 
   /**
    * Main speak function:
-   * Prioritizes ElevenLabs HD via /api/tts.
-   * If unconfigured, quota-limited, or failed, falls back gracefully to Web Speech,
-   * accurately reporting the effective provider.
+   * Prioritizes ElevenLabs HD via /api/tts with language awareness.
+   * If unconfigured, quota-limited, or failed, falls back gracefully to Web Speech
+   * in the correct target language (es-MX or en-US).
    */
   const speak = useCallback(
-    async (rawText: string, signature?: string) => {
+    async (rawText: string, signature?: string, options?: SpeakOptions) => {
       const trimmed = (rawText || "").trim();
       if (!trimmed) return;
 
       activeSignatureRef.current = signature;
+      const targetLang = options?.lang || (detectLanguage(trimmed) === "en" ? "en-US" : "es-MX");
+      const targetRate = options?.rate || speechRate;
+      setActiveLang(targetLang);
 
       // Stop any ongoing speech across the entire app immediately before starting new phrase
       stopAllGlobalAudio();
@@ -253,7 +279,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ text: trimmed, signature }),
+          body: JSON.stringify({ text: trimmed, signature, lang: targetLang }),
           signal: controller.signal,
         });
 
@@ -277,14 +303,18 @@ export function useMiaVoice(): UseMiaVoiceReturn {
             if (jsonBody.reason === "RATE_LIMITED" || jsonBody.message?.includes("Cuota") || jsonBody.reason === "QUOTA_EXCEEDED") {
               setTtsStatus("quota_exhausted");
               setIsElevenLabsAvailable(false);
-              setProvider("Web Speech API (es-MX · Respaldo por cuota)");
+              setProvider(
+                targetLang === "en-US"
+                  ? "Web Speech API (en-US · Respaldo por cuota)"
+                  : "Web Speech API (es-MX · Respaldo por cuota)"
+              );
               if (typeof window !== "undefined") {
                 sessionStorage.setItem("machtia_tts_status", "quota_exhausted");
               }
             }
           } catch {}
           setFallbackReason(reason);
-          speakWebSpeech(trimmed, reason);
+          speakWebSpeech(trimmed, reason, targetLang, targetRate);
           return;
         }
 
@@ -297,15 +327,20 @@ export function useMiaVoice(): UseMiaVoiceReturn {
 
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
+        if (targetRate !== 1.0) {
+          audio.playbackRate = targetRate;
+        }
 
         audio.onplay = () => {
           setIsSpeaking(true);
           setIsLoading(false);
-          setActiveText(normalizeOralMathText(trimmed));
+          setActiveText(normalizeOralSpeech(trimmed, targetLang));
           setVoiceSource("elevenlabs");
           setTtsStatus("available");
           setProvider(
-            sourceHeader === "cache"
+            targetLang === "en-US"
+              ? "ElevenLabs HD (English · en-US)"
+              : sourceHeader === "cache"
               ? "ElevenLabs HD (Caché didáctico · es-MX)"
               : "ElevenLabs HD (Paulina · es-MX)"
           );
@@ -320,7 +355,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
         audio.onerror = () => {
           console.warn("[useMiaVoice] HTMLAudioElement playback error. Falling back to Web Speech.");
           stop();
-          speakWebSpeech(trimmed, "AUDIO_ELEMENT_ERROR");
+          speakWebSpeech(trimmed, "AUDIO_ELEMENT_ERROR", targetLang, targetRate);
         };
 
         // Attempt playback (respecting browser autoplay policies)
@@ -333,7 +368,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           } else {
             console.warn("[useMiaVoice] Audio play error:", playErr);
             stop();
-            speakWebSpeech(trimmed, "PLAY_ERROR");
+            speakWebSpeech(trimmed, "PLAY_ERROR", targetLang, targetRate);
           }
         }
       } catch (err: any) {
@@ -342,25 +377,27 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           return;
         }
         console.warn("[useMiaVoice] /api/tts request failed. Falling back to Web Speech:", err);
-        speakWebSpeech(trimmed, "NETWORK_ERROR");
+        speakWebSpeech(trimmed, "NETWORK_ERROR", targetLang, targetRate);
       }
     },
-    [stop, speakWebSpeech]
+    [stop, speakWebSpeech, speechRate]
   );
 
   /**
-   * Replays the active message from the beginning.
+   * Replays the active message from the beginning with the active language and rate.
    */
   const replay = useCallback(async () => {
     if (activeRawText) {
       const textToReplay = activeRawText;
       const sigToReplay = activeSignatureRef.current;
+      const langToReplay = activeLang;
+      const rateToReplay = speechRate;
       stop();
       // brief pause before restarting to clear audio channels cleanly
       await new Promise((r) => setTimeout(r, 60));
-      await speak(textToReplay, sigToReplay);
+      await speak(textToReplay, sigToReplay, { lang: langToReplay, rate: rateToReplay });
     }
-  }, [activeRawText, stop, speak]);
+  }, [activeRawText, activeLang, speechRate, stop, speak]);
 
   // Stop speech if page is hidden, tab switched, or unmounted
   useEffect(() => {
@@ -392,6 +429,9 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       isSupported,
       activeText,
       activeRawText,
+      activeLang,
+      speechRate,
+      setSpeechRate,
       voiceSource,
       provider,
       latencyMs,
@@ -410,6 +450,9 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       isSupported,
       activeText,
       activeRawText,
+      activeLang,
+      speechRate,
+      setSpeechRate,
       voiceSource,
       provider,
       latencyMs,

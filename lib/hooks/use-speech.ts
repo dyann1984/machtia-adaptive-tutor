@@ -95,6 +95,67 @@ export function findPreferredSpanishVoice(voices: SpeechSynthesisVoice[]): Speec
 }
 
 /**
+ * Priority-based English voice finder:
+ * 1. en-US female natural / online voice (e.g. Microsoft Jenny Online Natural en-US, Google US English)
+ * 2. en-US female voice (e.g. Samantha, Zira, Victoria, Aria)
+ * 3. Any en-US natural/neural voice
+ * 4. Any en-US voice
+ * 5. Any English female voice across any dialect (en-*)
+ * 6. Any English voice (en-*)
+ * 7. First available voice fallback
+ */
+export function findPreferredEnglishVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | undefined {
+  if (!voices || voices.length === 0) return undefined;
+
+  const femaleKeywords = /jenny|aria|ava|samantha|victoria|zira|susan|allison|karen|catherine|linda|female|girl/i;
+  const naturalKeywords = /natural|neural|online/i;
+
+  // 1. en-US female with Natural/Online priority
+  const enUsNaturalFemale = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    return lang === "en-us" && femaleKeywords.test(v.name) && naturalKeywords.test(v.name);
+  });
+  if (enUsNaturalFemale) return enUsNaturalFemale;
+
+  // 2. en-US female voice
+  const enUsFemale = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    const isEnUs = lang === "en-us";
+    return isEnUs && femaleKeywords.test(v.name);
+  });
+  if (enUsFemale) return enUsFemale;
+
+  // 3. Any en-US natural/neural voice
+  const enUsNatural = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    return lang === "en-us" && naturalKeywords.test(v.name);
+  });
+  if (enUsNatural) return enUsNatural;
+
+  // 4. Any en-US voice
+  const enUsAny = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    return lang === "en-us";
+  });
+  if (enUsAny) return enUsAny;
+
+  // 5. Any English female voice (en-*)
+  const enFemaleAny = voices.find((v) => {
+    const lang = v.lang.toLowerCase().replace(/_/g, "-");
+    const isEn = lang.startsWith("en");
+    return isEn && femaleKeywords.test(v.name);
+  });
+  if (enFemaleAny) return enFemaleAny;
+
+  // 6. Any English voice
+  const enAny = voices.find((v) => v.lang.toLowerCase().startsWith("en"));
+  if (enAny) return enAny;
+
+  // 7. Fallback default
+  return voices[0];
+}
+
+/**
  * Cancels any active speech synthesis globally.
  * Safe to invoke anywhere on the client.
  */

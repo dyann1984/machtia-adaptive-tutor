@@ -200,3 +200,67 @@ export function normalizeOralMathText(rawText: string): string {
 
   return text;
 }
+
+/**
+ * Phonetically and pedagogically normalizes raw text for natural US English TTS.
+ * Converts fraction notations, math operators, and symbols into clear spoken English words.
+ */
+export function normalizeOralEnglishText(rawText: string): string {
+  if (!rawText) return "";
+
+  let text = rawText
+    // Remove markdown formatting
+    .replace(/[*_#`~>]/g, "")
+    // Remove common emojis and symbols
+    .replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]|[\u2600-\u27BF]|\uFE0F|\u200D/g, "")
+    // Spoken fractions in English
+    .replace(/\b1\/2\b/g, "one half")
+    .replace(/\b2\/4\b/g, "two quarters")
+    .replace(/\b3\/4\b/g, "three quarters")
+    .replace(/\b1\/3\b/g, "one third")
+    .replace(/\b2\/3\b/g, "two thirds")
+    .replace(/\b1\/4\b/g, "one quarter")
+    .replace(/\b1\/5\b/g, "one fifth")
+    .replace(/\b2\/5\b/g, "two fifths")
+    .replace(/\b3\/5\b/g, "three fifths")
+    .replace(/\b4\/5\b/g, "four fifths")
+    .replace(/\b1\/8\b/g, "one eighth")
+    .replace(/\b3\/8\b/g, "three eighths")
+    .replace(/\b5\/8\b/g, "five eighths")
+    .replace(/\b7\/8\b/g, "seven eighths")
+    .replace(/\b1\/10\b/g, "one tenth")
+    // Dynamic fractions
+    .replace(/\b(\d+)\/(\d+)\b/g, "$1 over $2")
+    // Math operations
+    .replace(/(\d+)\s*[×x*]\s*(\d+)/g, "$1 times $2")
+    .replace(/(\d+)\s*[÷/]\s*(\d+)/g, "$1 divided by $2")
+    .replace(/(\d+)\s*=\s*(\d+)/g, "$1 equals $2")
+    .replace(/=\s*/g, " equals ")
+    .replace(/(\d+)\s*[\-−]\s*(\d+)/g, "$1 minus $2")
+    .replace(/(\d+)\s*\+\s*(\d+)/g, "$1 plus $2")
+    .replace(/\+/g, " plus ")
+    .replace(/%/g, " percent")
+    // Decimals
+    .replace(/(\d+)\.(\d+)/g, "$1 point $2")
+    // School grade
+    .replace(/\b3rd\s*grade\b/gi, "third grade")
+    .replace(/\bp\.\s*(\d+)/gi, "page $1")
+    .replace(/\bex\.\s*(\d+)/gi, "example $1")
+    .replace(/&ldquo;|&rdquo;|&quot;|"/g, "")
+    // Normalize spaces
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return text;
+}
+
+/**
+ * Language-aware speech normalizer selecting the proper oral rules
+ * for Mexican Spanish vs American English.
+ */
+export function normalizeOralSpeech(rawText: string, lang: string = "es-MX"): string {
+  if (lang.toLowerCase().startsWith("en")) {
+    return normalizeOralEnglishText(rawText);
+  }
+  return normalizeOralMathText(rawText);
+}

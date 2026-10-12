@@ -29,6 +29,10 @@ import { useTutor } from "@/lib/context/tutor-context";
 import { useMiaVoice } from "@/lib/hooks/use-mia-voice";
 import { MiaLivingAvatar, MiaAvatarEmotion } from "./MiaLivingAvatar";
 import { MiaMode, MiaResponse } from "@/lib/ai/mia-agent";
+import { MiaBilingualTranslator } from "./MiaBilingualTranslator";
+import { MiaPronunciationPractice } from "./MiaPronunciationPractice";
+
+export type CompanionTab = "spanish" | "english" | "translator" | "pronunciation";
 
 interface ChatEntry {
   id: string;
@@ -37,6 +41,7 @@ interface ChatEntry {
   timestamp: string;
   topic?: string;
   mode?: MiaMode;
+  language?: "es" | "en";
   funFact?: string;
   challenge?: string;
   aiProvider?: string;
@@ -71,6 +76,18 @@ const CURIOSITY_SUGGESTIONS = [
   { text: "¿Cómo funciona un volcán? 🌋", mode: "curiosity" as const },
 ];
 
+const ENGLISH_SUGGESTIONS = [
+  { text: "What is your name? 👋", mode: "english" as const },
+  { text: "Good morning MIA! ☀️", mode: "english" as const },
+  { text: "Explain fractions in English 🍕", mode: "english" as const },
+  { text: "I don't understand 💡", mode: "english" as const },
+  { text: "Teach me colors 🎨", mode: "english" as const },
+  { text: "Teach me animals 🐾", mode: "english" as const },
+  { text: "Teach me numbers 🔢", mode: "english" as const },
+  { text: "Why does it rain? 🌧️", mode: "english" as const },
+  { text: "No entendí, explícamelo en español 🇲🇽", mode: "free" as const },
+];
+
 export function MiaFloatingCompanion() {
   const {
     role,
@@ -82,6 +99,7 @@ export function MiaFloatingCompanion() {
   } = useTutor();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [companionTab, setCompanionTab] = useState<CompanionTab>("spanish");
   const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [currentMode, setCurrentMode] = useState<MiaMode>("free");
   const [inputText, setInputText] = useState("");
@@ -229,6 +247,7 @@ export function MiaFloatingCompanion() {
     } else {
       stop();
       try {
+        recognitionRef.current.lang = companionTab === "english" ? "en-US" : "es-MX";
         recognitionRef.current.start();
         setIsListeningVoice(true);
       } catch (e: any) {
@@ -339,6 +358,7 @@ export function MiaFloatingCompanion() {
         timestamp: new Date().toISOString(),
         topic: data.topic,
         mode: data.mode,
+        language: data.language,
         funFact: data.funFact,
         challenge: data.challenge,
         aiProvider: data.aiProvider,
@@ -348,7 +368,8 @@ export function MiaFloatingCompanion() {
       setMessages((prev) => [...prev, miaEntry]);
 
       if (autoSpeak) {
-        void speak(data.reply, data.ttsSignature);
+        const targetLang = data.language === "en" || currentMode === "english" ? "en-US" : "es-MX";
+        void speak(data.reply, data.ttsSignature, { lang: targetLang });
       }
     } catch {
       // Graceful offline fallback with pedagogical encouragement
@@ -401,9 +422,11 @@ export function MiaFloatingCompanion() {
     ? "curiosity"
     : "idle";
 
-  // Select dynamic suggestion list based on current active mode
+  // Select dynamic suggestion list based on current active tab and mode
   const currentSuggestions =
-    currentMode === "practice"
+    companionTab === "english"
+      ? ENGLISH_SUGGESTIONS
+      : currentMode === "practice"
       ? PRACTICE_SUGGESTIONS
       : currentMode === "curiosity"
       ? CURIOSITY_SUGGESTIONS
@@ -643,58 +666,126 @@ export function MiaFloatingCompanion() {
             </div>
           </header>
 
-          {/* Mode Switcher Tabs */}
-          <div className="bg-slate-100/90 border-b border-slate-200 p-1 flex gap-1">
+          {/* Main Companion Navigation Tabs (MIA 3.0 Bilingüe) */}
+          <div className="bg-slate-900/95 border-b border-blue-900/40 p-1 flex gap-1">
             <button
               type="button"
-              onClick={() => setCurrentMode("practice")}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                currentMode === "practice"
-                  ? "bg-white text-blue-700 shadow-xs border border-blue-200/60"
-                  : "text-slate-600 hover:text-slate-900"
+              onClick={() => {
+                setCompanionTab("spanish");
+                if (currentMode === "english") setCurrentMode("free");
+              }}
+              className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                companionTab === "spanish"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span>Modo Práctica</span>
+              <span>🇲🇽 Español</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setCurrentMode("free")}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                currentMode === "free"
-                  ? "bg-white text-blue-700 shadow-xs border border-blue-200/60"
-                  : "text-slate-600 hover:text-slate-900"
+              onClick={() => {
+                setCompanionTab("english");
+                setCurrentMode("english");
+              }}
+              className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                companionTab === "english"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <Compass className="w-3.5 h-3.5 text-blue-600" />
-              <span>Pregunta Libre</span>
+              <span>🇺🇸 English</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setCurrentMode("curiosity")}
-              className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
-                currentMode === "curiosity"
-                  ? "bg-white text-blue-700 shadow-xs border border-blue-200/60"
-                  : "text-slate-600 hover:text-slate-900"
+              onClick={() => setCompanionTab("translator")}
+              className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                companionTab === "translator"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
               }`}
             >
-              <Rocket className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Curiosidad</span>
+              <span>🔄 Traductor</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCompanionTab("pronunciation")}
+              className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold transition flex items-center justify-center gap-1 ${
+                companionTab === "pronunciation"
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-slate-300 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <span>🗣️ Pronunciación</span>
             </button>
           </div>
+
+          {/* Submode Switcher Tabs (Only when in Spanish mode) */}
+          {companionTab === "spanish" && (
+            <div className="bg-slate-100/90 border-b border-slate-200 p-1 flex gap-1">
+              <button
+                type="button"
+                onClick={() => setCurrentMode("practice")}
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  currentMode === "practice"
+                    ? "bg-white text-blue-700 shadow-xs border border-blue-200/60"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                <span>Modo Práctica</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentMode("free")}
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  currentMode === "free"
+                    ? "bg-white text-blue-700 shadow-xs border border-blue-200/60"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5 text-blue-600" />
+                <span>Pregunta Libre</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCurrentMode("curiosity")}
+                className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+                  currentMode === "curiosity"
+                    ? "bg-white text-blue-700 shadow-xs border border-blue-200/60"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Rocket className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Curiosidad</span>
+              </button>
+            </div>
+          )}
 
           {/* Subtitle / Mode guidance */}
           <div className="bg-blue-50/70 px-3.5 py-1.5 border-b border-blue-100/80 text-[11px] text-blue-900 flex items-center justify-between">
             <span>
-              {currentMode === "practice" && (
+              {companionTab === "english" && (
+                <>🇺🇸 <strong>English with MIA:</strong> Practice natural conversation, vocabulary, and school topics in English!</>
+              )}
+              {companionTab === "translator" && (
+                <>🔄 <strong>Traductor IA:</strong> Traducción bidireccional en tiempo real con audio en ambos idiomas.</>
+              )}
+              {companionTab === "pronunciation" && (
+                <>🗣️ <strong>Pronunciación:</strong> Escucha a velocidad normal o lenta (0.8x) y evalúa tu voz con IA.</>
+              )}
+              {companionTab === "spanish" && currentMode === "practice" && (
                 <>🎯 <strong>Modo Práctica:</strong> Pistas socráticas para tu ejercicio sin dar la respuesta final.</>
               )}
-              {currentMode === "free" && (
+              {companionTab === "spanish" && currentMode === "free" && (
                 <>💡 <strong>Pregunta Libre:</strong> Respuestas reales a historia, ciencias, dudas y matemáticas.</>
               )}
-              {currentMode === "curiosity" && (
+              {companionTab === "spanish" && currentMode === "curiosity" && (
                 <>🚀 <strong>Modo Curiosidad:</strong> Historias fascinantes, analogías y mini-retos.</>
               )}
             </span>
@@ -800,6 +891,22 @@ export function MiaFloatingCompanion() {
                 )}
               </div>
             </div>
+          ) : companionTab === "translator" ? (
+            <div className="flex-1 overflow-hidden">
+              <MiaBilingualTranslator
+                onSpeak={(text, lang, sig) => void speak(text, sig, { lang })}
+                isSpeaking={isSpeaking}
+                onStop={stop}
+              />
+            </div>
+          ) : companionTab === "pronunciation" ? (
+            <div className="flex-1 overflow-hidden">
+              <MiaPronunciationPractice
+                onSpeak={(text, lang, sig, opts) => void speak(text, sig, { lang, rate: opts?.rate })}
+                isSpeaking={isSpeaking}
+                onStop={stop}
+              />
+            </div>
           ) : (
             /* ============================================================== */
             /* B. VISTA CHAT DIDÁCTICO CON TARJETAS VISUALES                 */
@@ -853,7 +960,8 @@ export function MiaFloatingCompanion() {
                                   if (isSpeaking && activeRawText === m.text) {
                                     stop();
                                   } else {
-                                    void speak(m.text, m.ttsSignature);
+                                    const targetLang = m.language === "en" || m.mode === "english" ? "en-US" : "es-MX";
+                                    void speak(m.text, m.ttsSignature, { lang: targetLang });
                                   }
                                 }}
                                 className={`inline-flex items-center gap-1 transition text-[11px] font-semibold px-2 py-0.5 rounded-lg ${
@@ -1011,7 +1119,9 @@ export function MiaFloatingCompanion() {
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     placeholder={
-                      currentMode === "practice"
+                      companionTab === "english"
+                        ? "Ask MIA anything in English (e.g. What is your name?)..."
+                        : currentMode === "practice"
                         ? "Pide una pista o pregunta sobre tu ejercicio..."
                         : "Pregúntale a MIA lo que quieras saber..."
                     }
