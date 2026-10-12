@@ -56,7 +56,7 @@ export function AlexaPlusSimulatorModal({
   const [attempt, setAttempt] = useState(1);
   const [input, setInput] = useState("");
   const [speechText, setSpeechText] = useState(
-    "¡Hola! Soy la simulación de Alexa+ integrada con MACHTIA. Utilizo el protocolo MCP real y el motor pedagógico para acompañarte en tu práctica."
+    "¡Hola! Soy el simulador web de Alexa+ integrado con MACHTIA. Emulo la experiencia de un dispositivo Echo Show ejecutando herramientas en vivo sobre el servidor MCP real vía JSON-RPC 2.0."
   );
   const [resolved, setResolved] = useState(false);
   const [finished, setFinished] = useState(false);
@@ -347,9 +347,9 @@ export function AlexaPlusSimulatorModal({
         </header>
 
         {/* Disclaimer Banner */}
-        <div className="bg-sky-950/40 border-b border-sky-500/20 px-5 py-2 text-[11px] text-sky-200 flex items-center justify-between">
+        <div className="bg-sky-950/40 border-b border-sky-500/20 px-5 py-2 text-[11px] text-sky-200 flex flex-wrap items-center justify-between gap-2">
           <span>
-            ℹ️ <strong>Simulación Didáctica:</strong> Conecta directamente con herramientas MCP sin requerir hardware físico Echo.
+            ℹ️ <strong>Simulador Web Echo Show:</strong> Emula la experiencia de voz de Alexa+ conectando directamente con las herramientas del servidor MCP real (/mcp).
           </span>
           <span className="font-semibold text-amber-300">
             {voiceSource === "elevenlabs" ? "🎙️ ElevenLabs HD" : "🗣️ Voz de Respaldo"}

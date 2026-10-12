@@ -49,12 +49,19 @@ function canonicalizeText(text: string): string {
 export const CANONICAL_WELCOME_TEXT =
   "Hola, soy MIA 👋\nTu compañera de aprendizaje.\nPregúntame lo que quieras aprender.\nAquí puedes preguntar, equivocarte y volver a intentar.";
 
+export const CANONICAL_WELCOME_TEXT_LONG =
+  "¡Hola! Soy MIA 👋 Tu compañera de aprendizaje.\n\nPuedes preguntarme sobre tus ejercicios escolares, historia, ciencias o cualquier curiosidad.\n\nAquí puedes preguntar, equivocarte y volver a intentar con toda confianza.";
+
 /**
  * Checks whether text matches the official, static didactic welcome greeting.
  */
 export function isCanonicalDidacticText(text: string): boolean {
   if (!text) return false;
-  return canonicalizeText(text) === canonicalizeText(CANONICAL_WELCOME_TEXT);
+  const canonical = canonicalizeText(text);
+  return (
+    canonical === canonicalizeText(CANONICAL_WELCOME_TEXT) ||
+    canonical === canonicalizeText(CANONICAL_WELCOME_TEXT_LONG)
+  );
 }
 
 /**

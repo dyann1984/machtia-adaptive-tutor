@@ -240,6 +240,56 @@ Por eso **1/2 es el DOBLE de grande que 1/4** 💡.`,
     funFact: `¿Sabías que la letra "H" es la única letra muda en español? No suena, pero es súper elegante y viene del latín antiguo 🎩.`,
     challenge: `A ver si puedes descifrar esto: ¿Cuál palabra lleva tilde: "camion" o "mesa"?`,
   },
+
+  // 14. Ciencias: El Ciclo del Agua y la Lluvia
+  ciclo_agua: {
+    topic: "El Ciclo del Agua y la Lluvia",
+    subject: "Ciencias Naturales",
+    freeAnswer: `¡El agua del planeta está en un viaje redondo que nunca termina! 💧🔄\n\n1. **Evaporación:** El Sol calienta el agua de ríos, lagos y mares, convirtiéndola en vapor invisible que sube al cielo.\n2. **Condensación:** Arriba hace frío, así que el vapor se junta en gotitas que forman nubes esponjosas ☁️.\n3. **Precipitación:** Cuando las nubes se llenan y pesan mucho, las gotas caen a la tierra en forma de **lluvia** 🌧️ (¡o nieve si hace mucho frío!).\n\nEl agua regresa a los ríos y el ciclo vuelve a empezar.`,
+    curiosityStory: `¿Sabías que el agua que tomas hoy en tu vaso es exactamente la misma agua que bebían los dinosaurios hace millones de años? 🦖💧 ¡La Tierra recicla su agua una y otra vez!`,
+    funFact: `Una sola nube de tormenta puede pesar más de 500,000 kilogramos... ¡el peso de 100 elefantes flotando en el aire! 🐘☁️`,
+    challenge: `¿Has visto gotitas de agua afuera de un vaso con agua helada? ¡Eso es condensación en tu propia mesa! 🧊`,
+  },
+
+  // 15. Ciencias y Geografía: Volcanes
+  volcanes: {
+    topic: "Los Volcanes y la Tierra",
+    subject: "Ciencias de la Tierra",
+    freeAnswer: `Un volcán es como una chimenea de la Tierra 🌋. Muy profundo bajo nuestros pies, la temperatura es tan caliente que las rocas se derriten y forman **magma**. Cuando se acumulan gases y mucha presión (¡como agitar una botella con gas!), el magma sube con fuerza y sale por el cráter, convirtiéndose en **lava** roja y ardiente.`,
+    curiosityStory: `En México tenemos volcanes legendarios muy famosos como el **Popocatépetl** y el **Iztaccíhuatl** 🗻. Hay una leyenda prehispánica hermosa que cuenta que eran un guerrero valiente y una princesa enamorados convertidos en montañas eternas.`,
+    funFact: `¿Sabías que la lava al enfriarse se convierte en roca sólida? ¡Muchos de los suelos más fértiles para sembrar frutas y flores nacieron de ceniza volcánica! 🌺`,
+    challenge: `¿Conoces algún volcán cerca de tu estado o en México?`,
+  },
+
+  // 16. Ciencias: El Cuerpo Humano y los Huesos
+  cuerpo_humano: {
+    topic: "El Cuerpo Humano y los Huesos",
+    subject: "Ciencias Naturales",
+    freeAnswer: `¡Tu cuerpo es la máquina más inteligente del mundo! 🧠🦴 Un adulto tiene **206 huesos** que forman el esqueleto para que puedas correr, bailar y saltar. Tus costillas protegen al corazón y a los pulmones como un escudo protector. Además, tu corazón late unas 100,000 veces al día para enviar oxígeno a cada rincón de tu cuerpo.`,
+    curiosityStory: `Cuando eras un bebé recién nacido tenías alrededor de 300 huesos suaves, pero a medida que creciste, algunos se unieron para hacerse más fuertes. ¡Tus huesos están vivos y se renuevan todos los días!`,
+    funFact: `El hueso más largo y fuerte de todo tu cuerpo es el **fémur**, en tu muslo 🦵. ¡Es más resistente que el concreto!`,
+    challenge: `Tócate el codo y la rodilla. ¿Sientes cómo tus articulaciones funcionan como bisagras de una puerta? 🚪`,
+  },
+
+  // 17. Historia: La Independencia de México
+  independencia_mexico: {
+    topic: "La Independencia de México (1810)",
+    subject: "Historia",
+    freeAnswer: `En la madrugada del **16 de septiembre de 1810**, el cura Miguel Hidalgo y Costilla tocó la campana de la iglesia de Dolores (el famoso **"Grito de Dolores"**) 🔔🇲🇽 para invitar a la gente a unirse y luchar por la libertad de México. Personajes valientes como José María Morelos, Ignacio Allende y Josefa Ortiz de Domínguez lucharon para que hoy seamos un país independiente y libre.`,
+    curiosityStory: `Imagina a Doña Josefa Ortiz de Domínguez avisando en secreto a los insurgentes dando taconazos en el suelo de su habitación para que no los descubrieran 👢🤫. ¡Gracias a su valentía comenzó la lucha por nuestra libertad!`,
+    funFact: `La campana original que tocó Hidalgo en 1810 todavía existe y se encuentra en el Palacio Nacional de la Ciudad de México. Cada 15 de septiembre se toca para recordar el Grito 🇲🇽✨.`,
+    challenge: `¿Cómo celebras en tu escuela o con tu familia las fiestas patrias de septiembre?`,
+  },
+
+  // 18. Ciencias: Las Plantas y la Fotosíntesis
+  fotosintesis: {
+    topic: "Las Plantas y la Fotosíntesis",
+    subject: "Ciencias Naturales",
+    freeAnswer: `Las plantas son los únicos seres vivos que cocinan su propio alimento 🌱☀️. A través de sus raíces absorben agua y minerales de la tierra. Con sus hojas verdes atrapan la luz del Sol y un gas del aire llamado dióxido de carbono. En una fábrica mágica llamada **fotosíntesis**, producen azúcares para crecer y liberan **oxígeno puro**, ¡el aire que respiramos tú y yo!`,
+    curiosityStory: `Los bosques y las selvas son como los pulmones verdes del planeta Tierra 🌳🌎. Por eso cuidar los árboles y regar las plantas ayuda a que todo el mundo tenga aire limpio y fresco.`,
+    funFact: `El color verde de las hojas se debe a una sustancia llamada **clorofila**, que es como un panel solar diminuto que atrapa los rayos del sol 🌿☀️.`,
+    challenge: `¿Tienes alguna planta en tu casa o en tu escuela? ¿Te gusta ver cómo busca la luz de la ventana?`,
+  },
 };
 
 /**
@@ -281,8 +331,23 @@ export function detectEducationalTopic(text: string): { key: string; topicName: 
   if (q.includes("america") || q.includes("colon") || q.includes("1492")) {
     return { key: "historia_america", topicName: "La llegada a América y los Pueblos Originarios", subject: "Historia" };
   }
+  if (q.includes("independencia") || q.includes("hidalgo") || q.includes("16 de septiembre") || q.includes("grito")) {
+    return { key: "independencia_mexico", topicName: "La Independencia de México (1810)", subject: "Historia" };
+  }
   if (q.includes("azteca") || q.includes("mexica") || q.includes("maya") || q.includes("mexico")) {
     return { key: "historia_mexico", topicName: "Historia de México y culturas originarias", subject: "Historia" };
+  }
+  if (q.includes("lluvia") || q.includes("ciclo del agua") || q.includes("nube") || (q.includes("por que llueve"))) {
+    return { key: "ciclo_agua", topicName: "El Ciclo del Agua y la Lluvia", subject: "Ciencias Naturales" };
+  }
+  if (q.includes("volcan") || q.includes("lava") || q.includes("magma")) {
+    return { key: "volcanes", topicName: "Los Volcanes y la Tierra", subject: "Ciencias de la Tierra" };
+  }
+  if (q.includes("hueso") || q.includes("cuerpo humano") || q.includes("esqueleto") || q.includes("corazon")) {
+    return { key: "cuerpo_humano", topicName: "El Cuerpo Humano y los Huesos", subject: "Ciencias Naturales" };
+  }
+  if (q.includes("planta") || q.includes("fotosintesis") || q.includes("hoja") || q.includes("oxigeno")) {
+    return { key: "fotosintesis", topicName: "Las Plantas y la Fotosíntesis", subject: "Ciencias Naturales" };
   }
 
   return { key: "general", topicName: "Curiosidad General", subject: "Aprendizaje Integral" };
@@ -616,11 +681,13 @@ export class MiaAgentService {
       };
     }
 
-    // 2. Classify Student Intent with Strict Boundaries
+    // 2. Classify Student Intent with Strict Educational Boundaries
+    // Only bind to exercise-specific hints if explicitly in practice mode.
+    const isPracticeMode = mode === "practice";
     const classification = classifyStudentIntent(
       rawTrimmed,
-      mode === "practice",
-      Boolean(context?.exercisePrompt)
+      isPracticeMode,
+      isPracticeMode && Boolean(context?.exercisePrompt)
     );
 
     // Intent A: Diagnostic Inquiry

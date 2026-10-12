@@ -19,6 +19,7 @@ export interface UseMiaVoiceReturn {
   error: string | null;
   isFallback: boolean;
   fallbackReason: string | null;
+  isElevenLabsAvailable: boolean;
 }
 
 export function useMiaVoice(): UseMiaVoiceReturn {
@@ -28,11 +29,31 @@ export function useMiaVoice(): UseMiaVoiceReturn {
   const [activeText, setActiveText] = useState<string | null>(null);
   const [activeRawText, setActiveRawText] = useState<string | null>(null);
   const [voiceSource, setVoiceSource] = useState<"elevenlabs" | "webspeech" | null>(null);
-  const [provider, setProvider] = useState<string | null>(null);
+  const [provider, setProvider] = useState<string | null>("ElevenLabs HD (Paulina · es-MX)");
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isFallback, setIsFallback] = useState(false);
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
+  const [isElevenLabsAvailable, setIsElevenLabsAvailable] = useState<boolean>(true);
+
+  // Probe server TTS capability on mount to ensure transparent provider status
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/tts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (mounted && typeof data?.isConfigured === "boolean") {
+          setIsElevenLabsAvailable(data.isConfigured);
+          if (!data.isConfigured) {
+            setProvider("Web Speech API (Síntesis del navegador · es-MX)");
+          }
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
@@ -343,6 +364,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       error,
       isFallback,
       fallbackReason,
+      isElevenLabsAvailable,
     }),
     [
       speak,
@@ -359,6 +381,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       error,
       isFallback,
       fallbackReason,
+      isElevenLabsAvailable,
     ]
   );
 }

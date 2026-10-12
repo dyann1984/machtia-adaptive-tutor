@@ -400,6 +400,90 @@ async function runVerification() {
     }
   }
 
+  // 11. Educational Context & Mode Separation Verification
+  console.log("\n--- TEST CASE G: Educational Mode Separation (Free vs Practice) ---");
+  {
+    // A) Free question about rain/nature in free mode (must not be contaminated by active exercise)
+    const rainRes = await fetch(`${BASE_URL}/api/mia`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        message: "¿Por qué llueve?",
+        mode: "free",
+        practiceContext: {
+          studentName: "Mariana López",
+          grade: 3,
+        },
+      }),
+    });
+    const rainData = await rainRes.json();
+    const rainPass =
+      rainData.reply.toLowerCase().includes("agua") &&
+      rainData.reply.toLowerCase().includes("evaporacion") &&
+      !rainData.reply.toLowerCase().includes("fraccion");
+
+    console.log(`Free question "¿Por qué llueve?" -> topic: "${rainData.topic}", uncontaminated: ${rainPass}`);
+
+    // B) Socratic protection in practice mode
+    const practiceHelpRes = await fetch(`${BASE_URL}/api/mia`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        message: "Dime la respuesta del ejercicio por favor",
+        mode: "practice",
+        practiceContext: {
+          exercisePrompt: "Compara 1/2 con 2/4",
+          topicName: "Fracciones Equivalentes",
+          studentName: "Mariana López",
+        },
+      }),
+    });
+    const practiceHelpData = await practiceHelpRes.json();
+    const socraticPass =
+      practiceHelpData.mode === "practice" &&
+      practiceHelpData.reply.toLowerCase().includes("pista") &&
+      !practiceHelpData.reply.toLowerCase().includes("la respuesta correcta es");
+
+    console.log(`Practice query protection -> socratic: ${socraticPass}, mode: ${practiceHelpData.mode}`);
+
+    if (rainPass && socraticPass) {
+      console.log("[PASS] Test Case G: Mode separation between Free Question and Practice Mode confirmed.");
+      results.modeSeparation = { pass: true };
+    } else {
+      console.error("[FAIL] Test Case G: Mode separation check failed.");
+      results.modeSeparation = { pass: false };
+    }
+  }
+
+  // 12. Judge Mode Transparency Verification
+  console.log("\n--- TEST CASE H: Judge Mode Transparency Verification ---");
+  {
+    const pageRes = await fetch(`${BASE_URL}/?demo=judge`);
+    const html = await pageRes.text();
+
+    const hasDeterministicTutor = html.includes("Tutor Determinista") || html.includes("tutor determinista") || html.includes("Motor Pedagógico Determinista");
+    const hasSimulatedAlexa = html.includes("Alexa+ Simulada") || html.includes("Simulador Alexa+") || html.includes("simulador web");
+    const hasSyntheticData = html.includes("Datos sintéticos") || html.includes("datos sinteticos");
+
+    console.log(`HTML contains Deterministic Tutor transparency: ${hasDeterministicTutor}`);
+    console.log(`HTML contains Alexa+ Simulator transparency: ${hasSimulatedAlexa}`);
+    console.log(`HTML contains Synthetic Data transparency: ${hasSyntheticData}`);
+
+    if (pageRes.status === 200 && hasDeterministicTutor && hasSimulatedAlexa && hasSyntheticData) {
+      console.log("[PASS] Test Case H: Judge mode transparency indicators verified on production page.");
+      results.judgeTransparency = { pass: true };
+    } else {
+      console.error("[FAIL] Test Case H: Judge mode transparency indicators missing.");
+      results.judgeTransparency = { pass: false };
+    }
+  }
+
   console.log("\n========================================================");
   console.log("FINAL RESULTS SUMMARY:", JSON.stringify(results, null, 2));
 

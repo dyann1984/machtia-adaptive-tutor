@@ -102,6 +102,7 @@ export function MiaFloatingCompanion() {
     provider: activeVoiceProvider,
     latencyMs,
     isFallback,
+    isElevenLabsAvailable,
   } = useMiaVoice();
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -134,7 +135,7 @@ export function MiaFloatingCompanion() {
       {
         id: "welcome-mia",
         sender: "mia",
-        text: "¡Hola! Soy MIA 👋 Tu compañera de aprendizaje.\n\nPuedes preguntarme sobre tus ejercicios escolares, historia, ciencias o cualquier curiosidad.\n\nAquí puedes preguntar, equivocarte y volver a intentar con toda confianza.",
+        text: "Hola, soy MIA 👋\nTu compañera de aprendizaje.\nPregúntame lo que quieras aprender.\nAquí puedes preguntar, equivocarte y volver a intentar.",
         timestamp: new Date().toISOString(),
         mode: "free",
         topic: "Bienvenida Didáctica",
@@ -284,22 +285,32 @@ export function MiaFloatingCompanion() {
         mode: m.mode,
       }));
 
-      // Rich educational context
-      const practiceContext = {
-        practiceId: activePractice?.id,
-        exerciseId: activeExerciseContext?.exerciseId,
-        topic: activePractice?.topicId,
-        topicName: activeExerciseContext?.topicName || activePractice?.topicName || "Fracciones Equivalentes",
-        subject: activePractice?.subjectId || "Matemáticas",
-        exercisePrompt: activeExerciseContext?.exercisePrompt,
-        options: activeExerciseContext?.options,
-        attemptNumber: activeExerciseContext?.attemptCount,
-        studentName: student?.name || "Mariana López",
-        studentId: selectedStudentId || "student-mariana-1",
-        grade: 3,
-        diagnosticScore: student?.topicPerformances?.["fracciones-equivalentes"] ?? 52,
-        diagnosticGap: "Comparación de fracciones con distinto denominador",
-      };
+      // Strict separation of Educational Modes:
+      // In practice mode, provide active exercise, options, attempts, and diagnostic context.
+      // In free and curiosity modes, NEVER contaminate the prompt with the exercise so general
+      // questions about history, science, language, and culture receive pertinent, direct answers.
+      const isPracticeMode = currentMode === "practice";
+      const practiceContext = isPracticeMode
+        ? {
+            practiceId: activePractice?.id,
+            exerciseId: activeExerciseContext?.exerciseId,
+            topic: activePractice?.topicId,
+            topicName: activeExerciseContext?.topicName || activePractice?.topicName || "Fracciones Equivalentes",
+            subject: activePractice?.subjectId || "Matemáticas",
+            exercisePrompt: activeExerciseContext?.exercisePrompt,
+            options: activeExerciseContext?.options,
+            attemptNumber: activeExerciseContext?.attemptCount,
+            studentName: student?.name || "Mariana López",
+            studentId: selectedStudentId || "student-mariana-1",
+            grade: 3,
+            diagnosticScore: student?.topicPerformances?.["fracciones-equivalentes"] ?? 52,
+            diagnosticGap: "Comparación de fracciones con distinto denominador",
+          }
+        : {
+            studentName: student?.name || "Mariana López",
+            studentId: selectedStudentId || "student-mariana-1",
+            grade: 3,
+          };
 
       const res = await fetch("/api/mia", {
         method: "POST",
@@ -516,14 +527,14 @@ export function MiaFloatingCompanion() {
                       <span className="font-bold text-amber-200">
                         {voiceSource === "elevenlabs"
                           ? "🎙️ ElevenLabs HD (Paulina · es-MX)"
-                          : "🗣️ Voz del Navegador (es-MX)"}
+                          : "🗣️ Voz del Navegador (es-MX · Respaldo)"}
                       </span>
                     </>
                   ) : (
                     <>
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
                       <span className="opacity-95">
-                        Lista para ti · <span className="text-amber-200 font-semibold">{voiceSource === "elevenlabs" ? "ElevenLabs Activo" : "Voz natural"}</span>
+                        Lista para ti · <span className="text-amber-200 font-semibold">{isElevenLabsAvailable ? "ElevenLabs Neural HD (Activo)" : "Voz natural (es-MX)"}</span>
                       </span>
                     </>
                   )}
@@ -690,6 +701,10 @@ export function MiaFloatingCompanion() {
                   <p className="text-xs text-sky-200">
                     {voiceSource === "elevenlabs"
                       ? "🎙️ Voz neuronal ElevenLabs activa"
+                      : isSpeaking
+                      ? "🗣️ Voz del Navegador (Respaldo activo)"
+                      : isElevenLabsAvailable
+                      ? "🎙️ Voz neuronal ElevenLabs HD lista"
                       : "🗣️ Modo conversación interactiva"}
                   </p>
                 </div>
@@ -1014,7 +1029,7 @@ export function MiaFloatingCompanion() {
                   <span>MACHTIA Adaptive Companion · Primaria 3° B</span>
                   <span className="flex items-center gap-1 font-semibold text-slate-500">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    {voiceSource === "elevenlabs" ? "ElevenLabs HD" : "Modo Seguro"}
+                    {voiceSource === "elevenlabs" || isElevenLabsAvailable ? "ElevenLabs HD Activo" : "Respaldo Navegador"}
                   </span>
                 </div>
               </footer>

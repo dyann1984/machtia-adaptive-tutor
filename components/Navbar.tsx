@@ -46,7 +46,20 @@ export function Navbar() {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-slate-200/80 shadow-xs">
-      <p className="text-center text-xs bg-amber-50 text-amber-950 py-1">Datos sintéticos · Demo aislada · Tutor determinista · Alexa+ simulada</p>
+      <div className="bg-amber-50/95 border-b border-amber-200/80 px-4 py-1 text-center text-xs text-amber-950 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+        <span className="font-semibold text-amber-900 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 inline-block" />
+          Datos sintéticos (Demo Juez · Mariana López)
+        </span>
+        <span className="text-amber-300 hidden sm:inline">•</span>
+        <span className="font-medium text-amber-900" title="Motor curricular basado en reglas pedagógicas y andamiaje socrático para garantizar cero alucinaciones sin revelar respuestas">
+          🎯 <strong>Tutor Determinista:</strong> Motor pedagógico curricular (sin alucinaciones)
+        </span>
+        <span className="text-amber-300 hidden sm:inline">•</span>
+        <span className="font-medium text-amber-900" title="Simulador web que emula la experiencia Echo Show y ejecuta herramientas en vivo sobre el servidor MCP oficial vía JSON-RPC 2.0">
+          📻 <strong>Alexa+ Simulada:</strong> Interfaz web sobre servidor MCP real (/mcp)
+        </span>
+      </div>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between min-h-20 py-3 gap-3">
           {/* IZQUIERDA: Logo MACHTIA + Adaptive Tutor + Badges discretos */}
@@ -93,10 +106,10 @@ export function Navbar() {
 
               <button
                 onClick={() => setShowAlexaSimulator(true)}
-                className="text-[11px] text-slate-500 hover:text-slate-800 font-medium bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md border border-slate-200/60 transition cursor-pointer"
-                title="Simulación Alexa+ • Clic para abrir el Simulador Interactivo Alexa+"
+                className="text-[11px] text-slate-600 hover:text-slate-900 font-semibold bg-slate-100 hover:bg-slate-200 px-2 py-0.5 rounded-md border border-slate-200/80 transition cursor-pointer"
+                title="Simulador Web Alexa+ (Protocolo MCP Real) • Clic para abrir el Simulador Interactivo"
               >
-                Simulación Alexa+
+                Simulador Alexa+ (MCP)
               </button>
             </div>
           </div>

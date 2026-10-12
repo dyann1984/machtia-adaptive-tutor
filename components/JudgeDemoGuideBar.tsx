@@ -131,9 +131,9 @@ export function JudgeDemoGuideBar({
     {
       step: 5,
       badge: "Paso 5 • Alexa+ & Streamable HTTP",
-      title: "Prueba la orquestación vocal sobre MCP real",
+      title: "Prueba la orquestación vocal sobre el protocolo MCP",
       description:
-        "En el simulador interactivo de Alexa+, interactúa con voz o respuestas rápidas ('dos cuartos'). Revisa el Inspector JSON-RPC con llamadas reales al puerto 3100.",
+        "En el simulador interactivo de Alexa+ (Echo Show), interactúa con voz o respuestas rápidas ('dos cuartos'). Revisa el Inspector JSON-RPC con llamadas reales al endpoint oficial /mcp.",
       actionLabel: "Reiniciar Escenario Oficial",
       targetRole: "teacher",
       onAction: () => {
