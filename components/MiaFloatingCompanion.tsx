@@ -103,6 +103,7 @@ export function MiaFloatingCompanion() {
     latencyMs,
     isFallback,
     isElevenLabsAvailable,
+    ttsStatus,
   } = useMiaVoice();
 
   const chatScrollRef = useRef<HTMLDivElement>(null);
@@ -527,14 +528,40 @@ export function MiaFloatingCompanion() {
                       <span className="font-bold text-amber-200">
                         {voiceSource === "elevenlabs"
                           ? "🎙️ ElevenLabs HD (Paulina · es-MX)"
-                          : "🗣️ Voz del Navegador (es-MX · Respaldo)"}
+                          : "🗣️ Voz del Navegador (es-MX · Respaldo Activo)"}
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full inline-block ${
+                          ttsStatus === "quota_exhausted"
+                            ? "bg-amber-400"
+                            : ttsStatus === "available"
+                            ? "bg-emerald-400 animate-pulse"
+                            : "bg-slate-300"
+                        }`}
+                      />
                       <span className="opacity-95">
-                        Lista para ti · <span className="text-amber-200 font-semibold">{isElevenLabsAvailable ? "ElevenLabs Neural HD (Activo)" : "Voz natural (es-MX)"}</span>
+                        {ttsStatus === "quota_exhausted" ? (
+                          <span className="text-amber-200 font-semibold">
+                            ⚠️ Cuota ElevenLabs agotada · Respaldo es-MX
+                          </span>
+                        ) : ttsStatus === "available" ? (
+                          <>
+                            Lista para ti ·{" "}
+                            <span className="text-amber-200 font-semibold">
+                              ElevenLabs HD (Disponible)
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            Lista para ti ·{" "}
+                            <span className="text-amber-200 font-semibold">
+                              Voz natural (es-MX)
+                            </span>
+                          </>
+                        )}
                       </span>
                     </>
                   )}
@@ -1028,8 +1055,26 @@ export function MiaFloatingCompanion() {
                 <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400 px-1">
                   <span>MACHTIA Adaptive Companion · Primaria 3° B</span>
                   <span className="flex items-center gap-1 font-semibold text-slate-500">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    {voiceSource === "elevenlabs" || isElevenLabsAvailable ? "ElevenLabs HD Activo" : "Respaldo Navegador"}
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isSpeaking && voiceSource === "webspeech"
+                          ? "bg-blue-500 animate-pulse"
+                          : ttsStatus === "quota_exhausted"
+                          ? "bg-amber-500"
+                          : ttsStatus === "available"
+                          ? "bg-emerald-500"
+                          : "bg-slate-400"
+                      }`}
+                    />
+                    {isSpeaking && voiceSource === "webspeech"
+                      ? "Respaldo Navegador Hablando"
+                      : isSpeaking && voiceSource === "elevenlabs"
+                      ? "ElevenLabs HD Reproduciendo"
+                      : ttsStatus === "quota_exhausted"
+                      ? "Cuota ElevenLabs Agotada (Respaldo Activo)"
+                      : ttsStatus === "available"
+                      ? "ElevenLabs HD Disponible"
+                      : "Respaldo Navegador (es-MX)"}
                   </span>
                 </div>
               </footer>

@@ -250,7 +250,7 @@ export async function GET() {
   return NextResponse.json(
     {
       service: "MACHTIA MIA TTS Endpoint",
-      status: "ready",
+      serviceStatus: "ready",
       ...adapter.getConfigSummary(),
     },
     { headers: PRIVATE_NO_CACHE_HEADERS }

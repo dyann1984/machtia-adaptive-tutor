@@ -153,4 +153,84 @@ describe("MIA (Machtia Inteligencia Adaptativa) - Companion Tests", () => {
     expect(diag.reply).toContain("Fracciones Equivalentes");
     expect(diag.topic).toContain("Diagnóstico");
   });
+
+  // =========================================================================
+  // REGRESSION SUITE: PREVENCIÓN DE PLANTILLA GENÉRICA (P0 INCIDENT)
+  // =========================================================================
+
+  it("G. 'Hola MIA' responde con saludo breve, cálido y natural (sin plantilla genérica)", async () => {
+    const res = await miaAgent.respond("Hola MIA", "free");
+    expect(res.reply).toContain("¡Hola!");
+    expect(res.reply).toContain("MIA");
+    expect(res.reply.length).toBeLessThan(350);
+    // MUST NOT contain the deprecated generic template
+    expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+    expect(res.topic).toContain("Saludo");
+  });
+
+  it("H. '¿Cuáles son los colores primarios?' responde correctamente diferenciando pintura y luz", async () => {
+    const res = await miaAgent.respond("¿Cuáles son los colores primarios?", "free");
+    expect(res.reply).toContain("colores primarios");
+    expect(res.reply).toContain("Rojo");
+    expect(res.reply).toContain("Amarillo");
+    expect(res.reply).toContain("Azul");
+    // Differentiates paint vs light (RGB / Verde)
+    expect(res.reply).toContain("Verde");
+    expect(res.reply).toContain("luz");
+    expect(res.reply).toContain("pantallas");
+    // MUST NOT contain the deprecated generic template
+    expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+    expect(res.topic).toContain("Colores Primarios");
+  });
+
+  it("I. '¿Por qué llueve?' explica el ciclo del agua (evaporación, condensación, lluvia)", async () => {
+    const res = await miaAgent.respond("¿Por qué llueve?", "free");
+    const norm = res.reply.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+    expect(norm).toContain("agua");
+    expect(norm).toContain("evaporacion");
+    expect(norm).toContain("nubes");
+    expect(norm).toContain("lluvia");
+    expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+    expect(res.topic).toContain("Ciclo del Agua");
+  });
+
+  it("J. '¿Qué es un dinosaurio?' explica reptiles mesozoicos, fósiles y aves descendientes", async () => {
+    const res = await miaAgent.respond("¿Qué es un dinosaurio?", "free");
+    expect(res.reply).toContain("dinosaurios");
+    expect(res.reply).toContain("reptiles");
+    expect(res.reply).toContain("fósiles");
+    expect(res.reply).toContain("aves");
+    expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+    expect(res.topic.toLowerCase()).toContain("dinosaurios");
+  });
+
+  it("K. '¿Cuánto es 8 × 7?' calcula determinísticamente 56 con explicación visual", async () => {
+    const queries = ["¿Cuánto es 8 × 7?", "8 x 7", "8 * 7", "cuanto es 8 por 7"];
+    for (const q of queries) {
+      const res = await miaAgent.respond(q, "free");
+      expect(res.reply).toContain("56");
+      expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+      expect(res.topic).toContain("Matemáticas");
+    }
+  });
+
+  it("L. 'No entendí' reformula contextual y adaptativamente según el turno previo", async () => {
+    const historyWithColors = [
+      { sender: "user" as const, text: "¿Cuáles son los colores primarios?" },
+      { sender: "mia" as const, text: "Los colores primarios son rojo, amarillo y azul...", topic: "Arte y Ciencias · Colores Primarios" },
+    ];
+    const res = await miaAgent.respond("No entendí", "free", undefined, historyWithColors);
+    expect(res.reply).toContain("licuado");
+    expect(res.reply).toContain("frutas");
+    expect(res.topic).toContain("Reformulación");
+    expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+  });
+
+  it("M. Preguntas fuera de catálogo indican limitación pedagógica transparente sin inventar explicaciones", async () => {
+    const res = await miaAgent.respond("¿Cuál es la capital de Kazajistán?", "free");
+    expect(res.reply).toContain("temas curriculares de primaria");
+    expect(res.reply).toContain("IA generativa en la nube");
+    expect(res.reply).not.toContain("todos los temas importantes se construyen pasito a pasito");
+    expect(res.topic).toContain("Catálogo Curricular");
+  });
 });

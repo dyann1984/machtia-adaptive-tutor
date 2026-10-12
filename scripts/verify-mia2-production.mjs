@@ -501,6 +501,90 @@ async function runVerification() {
     }
   }
 
+  // 13. Test Case I: P0 Incident Regression Verification (Greetings, Colors, Arithmetic, Dinosaurs, Rain, Anti-Template)
+  console.log("\n--- TEST CASE I: P0 Incident Regression Verification ---");
+  {
+    const p0Queries = [
+      {
+        q: "Hola MIA",
+        validate: (d) => d.reply.includes("¡Hola!") && d.reply.includes("MIA") && d.reply.length < 350,
+        label: "Saludo 'Hola MIA'",
+      },
+      {
+        q: "¿Cuáles son los colores primarios?",
+        validate: (d) =>
+          d.reply.includes("colores primarios") &&
+          d.reply.includes("Rojo") &&
+          d.reply.includes("Amarillo") &&
+          d.reply.includes("Azul") &&
+          d.reply.includes("Verde"),
+        label: "Colores Primarios (Pintura + Luz RGB)",
+      },
+      {
+        q: "¿Por qué llueve?",
+        validate: (d) => {
+          const norm = d.reply.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          return norm.includes("agua") && (norm.includes("evaporacion") || norm.includes("vapor")) && norm.includes("lluvia");
+        },
+        label: "Ciclo del Agua y Lluvia",
+      },
+      {
+        q: "¿Qué es un dinosaurio?",
+        validate: (d) =>
+          d.reply.includes("dinosaurios") &&
+          d.reply.includes("reptiles") &&
+          d.reply.includes("fósiles") &&
+          d.reply.includes("aves"),
+        label: "Dinosaurios, Fósiles y Aves",
+      },
+      {
+        q: "¿Cuánto es 8 × 7?",
+        validate: (d) => d.reply.includes("56"),
+        label: "Operación Aritmética 8 × 7 = 56",
+      },
+      {
+        q: "¿Cómo vuelan los aviones?",
+        validate: (d) => d.reply.includes("temas curriculares de primaria"),
+        label: "Fuera de Catálogo (Límite Curricular Honesto)",
+      },
+    ];
+
+    let p0AllPass = true;
+    for (const item of p0Queries) {
+      const res = await fetch(`${BASE_URL}/api/mia`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${authToken}`,
+        },
+        body: JSON.stringify({ message: item.q, mode: "free" }),
+      });
+      const data = await res.json();
+      const hasGenericTemplate = data.reply.includes("todos los temas importantes se construyen pasito a pasito");
+      const isValid = item.validate(data) && !hasGenericTemplate;
+
+      console.log(`  [P0] "${item.q}" -> Pass: ${isValid}, HasDeprecatedTemplate: ${hasGenericTemplate}`);
+      if (!isValid) {
+        console.error(`  [P0-FAIL] Query "${item.q}" failed validation. Reply: ${data.reply?.slice(0, 120)}...`);
+        p0AllPass = false;
+      }
+    }
+
+    // Verify GET /api/tts reflects explicit status and circuit breaker
+    const ttsMetaRes = await fetch(`${BASE_URL}/api/tts`);
+    const ttsMeta = await ttsMetaRes.json();
+    const hasExplicitTtsStatus = Boolean(ttsMeta.status && (ttsMeta.status === "available" || ttsMeta.status === "quota_exhausted" || ttsMeta.status === "unconfigured"));
+    console.log(`  [TTS Status Check] status="${ttsMeta.status}", isConfigured=${ttsMeta.isConfigured}, tripped=${ttsMeta.circuitBreakerTripped}`);
+
+    if (p0AllPass && hasExplicitTtsStatus) {
+      console.log("[PASS] Test Case I: All P0 regression checks passed (0 generic templates, real curricular responses, explicit TTS status).");
+      results.p0Regressions = { pass: true };
+    } else {
+      console.error("[FAIL] Test Case I: P0 regressions failed.");
+      results.p0Regressions = { pass: false };
+    }
+  }
+
   console.log("\n========================================================");
   console.log("FINAL RESULTS SUMMARY:", JSON.stringify(results, null, 2));
 

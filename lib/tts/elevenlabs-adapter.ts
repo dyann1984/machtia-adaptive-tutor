@@ -102,14 +102,25 @@ export class ElevenLabsTTSAdapter {
 
   /**
    * Retrieves current configuration details (excluding the secret API key).
+   * Explicitly distinguishes: "available", "quota_exhausted", "unconfigured".
    */
   public getConfigSummary() {
+    const configured = this.isConfigured();
+    const tripped = ElevenLabsTTSAdapter.isCircuitBreakerTripped();
+    const status: "available" | "quota_exhausted" | "unconfigured" = !configured
+      ? "unconfigured"
+      : tripped
+      ? "quota_exhausted"
+      : "available";
+
     return {
-      isConfigured: this.isConfigured(),
+      isConfigured: configured,
+      status,
       hasApiKey: Boolean(this.apiKey.trim()),
       voiceId: this.voiceId ? this.voiceId.slice(0, 6) + "..." : null,
       modelId: this.modelId,
-      circuitBreakerTripped: ElevenLabsTTSAdapter.isCircuitBreakerTripped(),
+      circuitBreakerTripped: tripped,
+      circuitBreakerReason: ElevenLabsTTSAdapter.circuitBreakerReason,
     };
   }
 

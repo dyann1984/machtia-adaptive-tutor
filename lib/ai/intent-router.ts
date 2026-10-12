@@ -30,6 +30,10 @@ export type StudentIntent =
   | "science_nature"
   | "language_english"
   | "technology_coding"
+  | "greeting"
+  | "colors_primary"
+  | "math_arithmetic_calc"
+  | "out_of_catalog"
   | "general_curiosity";
 
 export interface IntentClassification {
@@ -39,14 +43,127 @@ export interface IntentClassification {
   isEvaluatingExercise: boolean;
 }
 
+export interface ArithmeticOperation {
+  op: "mult" | "add" | "sub" | "div";
+  a: number;
+  b: number;
+  res: number;
+  expression: string;
+}
+
 export function cleanPrompt(text: string): string {
-  return text
+  return (text || "")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // remove accents
+    .replace(/[×*]/g, " por ")
+    .replace(/[÷]/g, " entre ")
     .replace(/[^a-z0-9\s]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/**
+ * Detects common friendly child and student greetings
+ */
+export function isGreeting(text: string): boolean {
+  const q = cleanPrompt(text);
+  if (!q) return false;
+  const directGreetings = [
+    "hola",
+    "hola mia",
+    "buenos dias",
+    "buenas tardes",
+    "buenas noches",
+    "hola amiga",
+    "que tal",
+    "que onda",
+    "como estas",
+    "como te va",
+    "saludos",
+    "hey mia",
+    "buen dia",
+    "hola tutora",
+    "hola companera",
+    "hola como estas",
+    "hola que haces",
+    "hola quien eres",
+  ];
+  if (directGreetings.includes(q)) return true;
+  if (q.startsWith("hola") && q.split(" ").length <= 4) {
+    if (
+      !q.includes("explic") &&
+      !q.includes("fraccion") &&
+      !q.includes("america") &&
+      !q.includes("por que") &&
+      !q.includes("cuanto") &&
+      !q.includes("color") &&
+      !q.includes("tarea")
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Elementary school arithmetic expression parser (multiplication tables, additions, subtractions, divisions)
+ */
+export function parseArithmetic(text: string): ArithmeticOperation | null {
+  if (!text) return null;
+  const norm = text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[×*]/g, " por ")
+    .replace(/[÷]/g, " entre ")
+    .replace(/\+/g, " mas ")
+    .replace(/\-/g, " menos ")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Multiplicaciones: 8 x 7, 8 * 7, 8 por 7, cuanto es 8 x 7, multiplica 8 por 7
+  const mult = norm.match(/(?:cuanto es\s+|multiplica\s+)?(\d+)\s+(?:por|x|veces|multiplicado por)\s+(\d+)/);
+  if (mult) {
+    const a = parseInt(mult[1], 10);
+    const b = parseInt(mult[2], 10);
+    if (!isNaN(a) && !isNaN(b)) {
+      return { op: "mult", a, b, res: a * b, expression: `${a} × ${b}` };
+    }
+  }
+
+  // Sumas: 12 + 15, suma 12 y 15, cuanto es 12 mas 15
+  const add = norm.match(/(?:cuanto es\s+|suma\s+)?(\d+)\s+(?:mas|sumado a)\s+(\d+)/);
+  if (add) {
+    const a = parseInt(add[1], 10);
+    const b = parseInt(add[2], 10);
+    if (!isNaN(a) && !isNaN(b)) {
+      return { op: "add", a, b, res: a + b, expression: `${a} + ${b}` };
+    }
+  }
+
+  // Restas: 20 - 5, cuanto es 20 menos 5
+  const sub = norm.match(/(?:cuanto es\s+|resta\s+)?(\d+)\s+(?:menos|restale)\s+(\d+)/);
+  if (sub) {
+    const a = parseInt(sub[1], 10);
+    const b = parseInt(sub[2], 10);
+    if (!isNaN(a) && !isNaN(b)) {
+      return { op: "sub", a, b, res: a - b, expression: `${a} - ${b}` };
+    }
+  }
+
+  // Divisiones: 20 entre 4, divide 20 entre 4, cuanto es 20 entre 4
+  const div = norm.match(/(?:cuanto es\s+|divide\s+)?(\d+)\s+(?:entre|dividido entre)\s+(\d+)/);
+  if (div) {
+    const a = parseInt(div[1], 10);
+    const b = parseInt(div[2], 10);
+    if (!isNaN(a) && !isNaN(b) && b !== 0) {
+      return { op: "div", a, b, res: Math.round((a / b) * 100) / 100, expression: `${a} ÷ ${b}` };
+    }
+  }
+
+  return null;
 }
 
 /**
@@ -60,6 +177,72 @@ export function classifyStudentIntent(
   hasActiveExercise: boolean = false
 ): IntentClassification {
   const q = cleanPrompt(rawPrompt);
+
+  // 0. Greetings ("Hola MIA", "Hola", "Buenos días")
+  if (isGreeting(rawPrompt)) {
+    return {
+      intent: "greeting",
+      confidence: 0.99,
+      extractedTopic: "Saludo y Bienvenida",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.1 Primary colors query ("¿Cuáles son los colores primarios?")
+  if (
+    (q.includes("color") && (q.includes("primario") || q.includes("basico") || q.includes("pintura") || q.includes("luz"))) ||
+    q.includes("colores primarios") ||
+    q.includes("color primario")
+  ) {
+    return {
+      intent: "colors_primary",
+      confidence: 0.98,
+      extractedTopic: "Arte y Ciencias · Colores Primarios",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.2 Arithmetic calculation ("¿Cuánto es 8 × 7?", "8 por 7")
+  if (parseArithmetic(rawPrompt)) {
+    return {
+      intent: "math_arithmetic_calc",
+      confidence: 0.99,
+      extractedTopic: "Matemáticas · Operación Aritmética",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.3 Water cycle / Rain queries ("¿Por qué llueve?")
+  if (
+    q.includes("lluvia") ||
+    q.includes("ciclo del agua") ||
+    (q.includes("por que") && q.includes("llueve")) ||
+    q.includes("como llueve") ||
+    q.includes("nubes de lluvia")
+  ) {
+    return {
+      intent: "science_nature",
+      confidence: 0.96,
+      extractedTopic: "Ciencias Naturales · El Ciclo del Agua",
+      isEvaluatingExercise: false,
+    };
+  }
+
+  // 0.4 Dinosaurs queries ("¿Qué es un dinosaurio?")
+  if (
+    q.includes("dinosaurio") ||
+    q.includes("t rex") ||
+    q.includes("fosil") ||
+    q.includes("paleontol") ||
+    q.includes("velociraptor")
+  ) {
+    return {
+      intent: "science_dinosaurs",
+      confidence: 0.96,
+      extractedTopic: "Paleontología · Dinosaurios",
+      isEvaluatingExercise: false,
+    };
+  }
 
   // 1. Diagnostic / Performance queries
   if (

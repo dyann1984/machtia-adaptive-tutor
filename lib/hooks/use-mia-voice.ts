@@ -20,6 +20,7 @@ export interface UseMiaVoiceReturn {
   isFallback: boolean;
   fallbackReason: string | null;
   isElevenLabsAvailable: boolean;
+  ttsStatus: "available" | "quota_exhausted" | "unconfigured";
 }
 
 export function useMiaVoice(): UseMiaVoiceReturn {
@@ -35,17 +36,41 @@ export function useMiaVoice(): UseMiaVoiceReturn {
   const [isFallback, setIsFallback] = useState(false);
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
   const [isElevenLabsAvailable, setIsElevenLabsAvailable] = useState<boolean>(true);
+  const [ttsStatus, setTtsStatus] = useState<"available" | "quota_exhausted" | "unconfigured">("available");
 
   // Probe server TTS capability on mount to ensure transparent provider status
   useEffect(() => {
     let mounted = true;
+    if (typeof window !== "undefined") {
+      const saved = sessionStorage.getItem("machtia_tts_status");
+      if (saved === "quota_exhausted") {
+        setTtsStatus("quota_exhausted");
+        setIsElevenLabsAvailable(false);
+        setProvider("Web Speech API (es-MX · Respaldo por cuota)");
+      }
+    }
+
     fetch("/api/tts")
       .then((res) => res.json())
       .then((data) => {
-        if (mounted && typeof data?.isConfigured === "boolean") {
-          setIsElevenLabsAvailable(data.isConfigured);
-          if (!data.isConfigured) {
-            setProvider("Web Speech API (Síntesis del navegador · es-MX)");
+        if (!mounted) return;
+        if (data?.status === "quota_exhausted" || data?.circuitBreakerTripped) {
+          setTtsStatus("quota_exhausted");
+          setIsElevenLabsAvailable(false);
+          setFallbackReason(data.circuitBreakerReason || "RATE_LIMITED");
+          setProvider("Web Speech API (es-MX · Respaldo por cuota)");
+          if (typeof window !== "undefined") {
+            sessionStorage.setItem("machtia_tts_status", "quota_exhausted");
+          }
+        } else if (data?.isConfigured === false) {
+          setTtsStatus("unconfigured");
+          setIsElevenLabsAvailable(false);
+          setProvider("Web Speech API (Síntesis del navegador · es-MX)");
+        } else if (data?.status === "available") {
+          const saved = typeof window !== "undefined" ? sessionStorage.getItem("machtia_tts_status") : null;
+          if (saved !== "quota_exhausted") {
+            setTtsStatus("available");
+            setIsElevenLabsAvailable(true);
           }
         }
       })
@@ -249,6 +274,14 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           try {
             const jsonBody = await response.json();
             reason = jsonBody.reason || jsonBody.message || "Respaldo activo";
+            if (jsonBody.reason === "RATE_LIMITED" || jsonBody.message?.includes("Cuota") || jsonBody.reason === "QUOTA_EXCEEDED") {
+              setTtsStatus("quota_exhausted");
+              setIsElevenLabsAvailable(false);
+              setProvider("Web Speech API (es-MX · Respaldo por cuota)");
+              if (typeof window !== "undefined") {
+                sessionStorage.setItem("machtia_tts_status", "quota_exhausted");
+              }
+            }
           } catch {}
           setFallbackReason(reason);
           speakWebSpeech(trimmed, reason);
@@ -270,6 +303,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
           setIsLoading(false);
           setActiveText(normalizeOralMathText(trimmed));
           setVoiceSource("elevenlabs");
+          setTtsStatus("available");
           setProvider(
             sourceHeader === "cache"
               ? "ElevenLabs HD (Caché didáctico · es-MX)"
@@ -365,6 +399,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       isFallback,
       fallbackReason,
       isElevenLabsAvailable,
+      ttsStatus,
     }),
     [
       speak,
@@ -382,6 +417,7 @@ export function useMiaVoice(): UseMiaVoiceReturn {
       isFallback,
       fallbackReason,
       isElevenLabsAvailable,
+      ttsStatus,
     ]
   );
 }

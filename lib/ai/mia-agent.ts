@@ -11,7 +11,7 @@
  * 6. Soporte híbrido: Conexión con LLM externo (Gemini 2.0 Flash / OpenAI) si está configurado + Motor pedagógico curricular especializado.
  */
 
-import { classifyStudentIntent, cleanPrompt } from "./intent-router";
+import { classifyStudentIntent, cleanPrompt, isGreeting, parseArithmetic } from "./intent-router";
 
 export type MiaMode = "practice" | "free" | "curiosity";
 
@@ -155,7 +155,7 @@ Por eso **1/2 es el DOBLE de grande que 1/4** 💡.`,
   dinosaurios: {
     topic: "Paleontología y dinosaurios",
     subject: "Ciencias de la Tierra",
-    freeAnswer: `Los dinosaurios fueron reptiles asombrosos que vivieron en nuestro planeta hace más de 65 millones de años 🦖🌿. Había desde gigantes de cuello largo como el Braquiosaurio (tan altos como un edificio de 4 pisos), hasta veloces carnívoros como el T-Rex o pequeños cazadores con plumas del tamaño de una gallina.`,
+    freeAnswer: `Los dinosaurios fueron reptiles asombrosos que vivieron en nuestro planeta hace más de 65 millones de años 🦖🌿. Había desde gigantes de cuello largo como el Braquiosaurio (tan altos como un edificio de 4 pisos), hasta veloces carnívoros como el T-Rex o pequeños cazadores con plumas del tamaño de una gallina. Hoy conocemos sus secretos gracias a los **fósiles** (huesos convertidos en piedra enterrados por millones de años), ¡y sus parientes modernos son las **aves**! 🦅`,
     curiosityStory: `Imagina un mundo sin humanos, sin coches y sin ciudades, donde las plantas gigantes crecían en todas partes y el suelo temblaba con los pasos de bestias con garras y escudos en la cabeza 🦕. Los científicos saben cómo eran gracias a los fósiles: huesos convertidos en piedra enterrados por millones de años.`,
     funFact: `¿Sabías que los dinosaurios nunca se extinguieron por completo? 🦅 ¡Las aves modernas (como las palomas, las águilas y los colibríes) son parientes directos y descendientes de los dinosaurios con plumas!`,
     challenge: `¿Cuál es tu dinosaurio favorito: el temible Tiranosaurio Rex con sus dientes gigantes, o el Triceratops con sus 3 cuernos de escudo?`,
@@ -290,6 +290,27 @@ Por eso **1/2 es el DOBLE de grande que 1/4** 💡.`,
     funFact: `El color verde de las hojas se debe a una sustancia llamada **clorofila**, que es como un panel solar diminuto que atrapa los rayos del sol 🌿☀️.`,
     challenge: `¿Tienes alguna planta en tu casa o en tu escuela? ¿Te gusta ver cómo busca la luz de la ventana?`,
   },
+
+  // 19. Arte y Ciencias: Colores Primarios
+  colores_primarios: {
+    topic: "Arte y Ciencias · Colores Primarios",
+    subject: "Arte y Ciencias",
+    freeAnswer: `¡Los colores primarios son los colores "papás" o base de todos los demás colores! 🎨✨ Se llaman así porque **no se pueden crear mezclando otros colores**, pero mezclándolos a ellos puedes inventar cualquier otro color del mundo.
+
+Existen dos formas de verlos según dónde los usemos:
+
+1. **En la pintura y el arte (pigmentos):** son el **Rojo**, el **Amarillo** y el **Azul** 🔴🟡🔵.
+• Si mezclas amarillo + azul = **verde** 🌿
+• Si mezclas rojo + amarillo = **naranja** 🍊
+• Si mezclas rojo + azul = **morado** 🍇
+
+2. **En la luz y las pantallas (como tu tele, tablet o celular):** los científicos descubrieron que los colores primarios de la luz son el **Rojo**, el **Verde** y el **Azul** (modelo RGB) 🔴🟢🔵. ¡Al juntar los tres haces luz blanca brillante! 💡
+
+¿Cuál es tu color favorito para dibujar? 🌈`,
+    curiosityStory: `Imagina que tienes una caja de crayolas mágicas 🖍️. Con solo 3 colores (rojo, amarillo y azul) un pintor puede mezclar y crear un arcoíris completo con miles de tonos diferentes. ¡Todo el color del arte nace de estos tres amigos!`,
+    funFact: `¿Sabías que si mezclas todos los colores de pintura obtienes un café oscuro o negro, pero si mezclas todos los colores de luz obtienes luz blanca pura? 🌈✨`,
+    challenge: `Si tienes pintura amarilla y le agregas una gotita de azul, ¿qué color crees que empieza a nacer?`,
+  },
 };
 
 /**
@@ -298,6 +319,13 @@ Por eso **1/2 es el DOBLE de grande que 1/4** 💡.`,
 export function detectEducationalTopic(text: string): { key: string; topicName: string; subject: string } {
   const q = cleanPrompt(text);
 
+  if (
+    (q.includes("color") && (q.includes("primario") || q.includes("basico") || q.includes("pintura") || q.includes("luz"))) ||
+    q.includes("colores primarios") ||
+    q.includes("color primario")
+  ) {
+    return { key: "colores_primarios", topicName: "Arte y Ciencias · Colores Primarios", subject: "Arte y Ciencias" };
+  }
   if (q.includes("cielo") && (q.includes("azul") || q.includes("color"))) {
     return { key: "cielo_azul", topicName: "La luz y la atmósfera", subject: "Ciencias Naturales" };
   }
@@ -450,6 +478,36 @@ Si estiras una cobija bien apretada entre dos personas y en medio pones una pelo
       mode,
       challenge: "¿Has visto cómo el agua en la bañera gira en remolino al quitar el tapón?",
       funFact: "Los mejores físicos del mundo usan dibujos y cobijas para entender el espacio.",
+      aiProvider: "pedagogical-engine",
+    };
+  }
+
+  // Case 4: Primary colors
+  if (lastTopic.includes("color") || lastText.includes("color") || lastText.includes("primario")) {
+    return {
+      reply: `¡No te preocupes! Imagina preparar un licuado de frutas en la cocina 🍓🍌:
+El rojo es como una fresa y el amarillo es como un plátano. No puedes inventar una fresa mezclando otras cosas: ¡es un ingrediente puro! Pero si licúas fresa con plátano, sale un licuado anaranjado delicioso.
+Eso son los colores primarios: los 3 ingredientes puros (rojo, amarillo y azul) que preparan todos los demás colores del mundo. ¿Se entiende mejor así? 🎨`,
+      topic: "Arte · Reformulación con Frutas",
+      mode,
+      intent: "reformulation",
+      challenge: "¿Qué fruta azul usarías para tu licuado: moras o arándanos?",
+      funFact: "Los grandes pintores siempre empezaban con pocos colores puros en su paleta.",
+      aiProvider: "pedagogical-engine",
+    };
+  }
+
+  // Case 5: Rain / water cycle
+  if (lastTopic.includes("agua") || lastTopic.includes("lluvia") || lastText.includes("llueve") || lastText.includes("lluvia")) {
+    return {
+      reply: `¡Tranquilo! Imagina una olla con sopa caliente en la cocina de tu casa 🍲:
+Cuando la sopa se calienta en la estufa, sale vapor blanco hacia arriba. Si le pones una tapa de vidrio fría, el vapor choca con la tapa, se enfría y se convierte en gotitas de agua que escurren hacia abajo.
+¡Eso mismo pasa en la naturaleza! El Sol es la estufa, los mares son la sopa, el cielo frío es la tapa y las gotitas que caen son la lluvia 🌧️. ¿A poco no está facilísimo?`,
+      topic: "Ciencias · Reformulación de la Lluvia",
+      mode,
+      intent: "reformulation",
+      challenge: "¿Has visto el vapor empañando el espejo cuando te bañas con agua caliente?",
+      funFact: "La Tierra tiene su propio sistema de reciclaje de agua desde hace millones de años.",
       aiProvider: "pedagogical-engine",
     };
   }
@@ -690,6 +748,79 @@ export class MiaAgentService {
       isPracticeMode && Boolean(context?.exercisePrompt)
     );
 
+    // Helper to format knowledge items based on active mode
+    const formatKnowledge = (knowledge: TopicKnowledge) => {
+      if (mode === "curiosity") {
+        return {
+          reply: `🌟 **¡Qué gran curiosidad sobre ${knowledge.topic}!**\n\n${knowledge.curiosityStory}\n\n💡 **Dato Asombroso:** ${knowledge.funFact}`,
+          topic: `${knowledge.subject} · ${knowledge.topic}`,
+          mode: "curiosity" as MiaMode,
+          intent: classification.intent,
+          funFact: knowledge.funFact,
+          challenge: knowledge.challenge,
+          aiProvider: "pedagogical-engine",
+          providerNotice: "Motor pedagógico curricular MACHTIA activo.",
+        };
+      }
+      return {
+        reply: `💡 **${knowledge.topic}**\n\n${knowledge.freeAnswer}`,
+        topic: knowledge.topic,
+        mode: "free" as MiaMode,
+        intent: classification.intent,
+        funFact: knowledge.funFact,
+        challenge: knowledge.challenge,
+        aiProvider: "pedagogical-engine",
+        providerNotice: "Motor pedagógico curricular MACHTIA activo.",
+      };
+    };
+
+    // Intent 0: Greetings ("Hola MIA", "Hola", "Buenos días")
+    if (classification.intent === "greeting") {
+      return {
+        reply: `¡Hola! 👋 ¡Qué gusto saludarte! Soy MIA, tu compañera de aprendizaje en MACHTIA.\n\nAquí puedes preguntarme cualquier duda de tu clase, pedirme explicaciones sencillas con ejemplos divertidos o practicar tus retos de matemáticas y ciencias.\n\n¿Qué te gustaría aprender o descubrir hoy? ✨`,
+        topic: "Bienvenida y Saludo",
+        mode,
+        intent: "greeting",
+        funFact: "En MACHTIA no hay preguntas tontas: ¡todas las preguntas hacen más inteligente a tu cerebro!",
+        challenge: "¿Quieres preguntarme sobre matemáticas, dinosaurios, el ciclo del agua o los colores?",
+        aiProvider: "pedagogical-engine",
+        providerNotice: "Motor pedagógico curricular MACHTIA activo.",
+      };
+    }
+
+    // Intent 0.1: Primary Colors ("¿Cuáles son los colores primarios?")
+    if (classification.intent === "colors_primary") {
+      return formatKnowledge(KNOWLEDGE_BASE.colores_primarios);
+    }
+
+    // Intent 0.2: Arithmetic Operations ("¿Cuánto es 8 × 7?", etc.)
+    if (classification.intent === "math_arithmetic_calc") {
+      const calc = parseArithmetic(rawTrimmed);
+      if (calc) {
+        let explanation = "";
+        if (calc.op === "mult") {
+          explanation = `Un truco para recordarlo: imagina ${calc.a} bolsitas con ${calc.b} canicas en cada una (o ${calc.b} veces ${calc.a}). Si cuentas de ${calc.b} en ${calc.b}: ${Array.from({ length: Math.min(calc.a, 6) }, (_, i) => (i + 1) * calc.b).join(", ")}... ¡llegas exactamente a ${calc.res}!`;
+        } else if (calc.op === "add") {
+          explanation = `Si tienes ${calc.a} y le sumas ${calc.b}, juntas un total de ${calc.res}.`;
+        } else if (calc.op === "sub") {
+          explanation = `Si tienes ${calc.a} y le restas ${calc.b}, te quedan exactamente ${calc.res}.`;
+        } else if (calc.op === "div") {
+          explanation = `Si divides ${calc.a} en partes iguales entre ${calc.b}, a cada quien le tocan exactamente ${calc.res}.`;
+        }
+
+        return {
+          reply: `¡El resultado de **${calc.expression}** es **${calc.res}**! ✖️⚡\n\n${explanation}\n\n¿Quieres que practiquemos otra operación o tienes alguna duda con tu tarea?`,
+          topic: `Matemáticas · Operación ${calc.expression}`,
+          mode,
+          intent: "math_arithmetic_calc",
+          funFact: "La multiplicación es simplemente una suma súper veloz: ¡en vez de sumar el mismo número varias veces, tu cerebro lo resuelve en un segundo!",
+          challenge: "¿Te gustaría intentar otra operación de matemáticas?",
+          aiProvider: "pedagogical-engine",
+          providerNotice: "Motor pedagógico curricular MACHTIA activo.",
+        };
+      }
+    }
+
     // Intent A: Diagnostic Inquiry
     if (classification.intent === "diagnostic_inquiry") {
       return handleDiagnosticQuery(rawTrimmed, context);
@@ -756,32 +887,6 @@ export class MiaAgentService {
       return handlePracticeSocraticGuidance(rawTrimmed, context, history);
     }
 
-    // Helper to format knowledge items based on active mode
-    const formatKnowledge = (knowledge: TopicKnowledge) => {
-      if (mode === "curiosity") {
-        return {
-          reply: `🌟 **¡Qué gran curiosidad sobre ${knowledge.topic}!**\n\n${knowledge.curiosityStory}\n\n💡 **Dato Asombroso:** ${knowledge.funFact}`,
-          topic: `${knowledge.subject} · ${knowledge.topic}`,
-          mode: "curiosity" as MiaMode,
-          intent: classification.intent,
-          funFact: knowledge.funFact,
-          challenge: knowledge.challenge,
-          aiProvider: "pedagogical-engine",
-          providerNotice: "Motor pedagógico curricular MACHTIA activo.",
-        };
-      }
-      return {
-        reply: `💡 **${knowledge.topic}**\n\n${knowledge.freeAnswer}`,
-        topic: knowledge.topic,
-        mode: "free" as MiaMode,
-        intent: classification.intent,
-        funFact: knowledge.funFact,
-        challenge: knowledge.challenge,
-        aiProvider: "pedagogical-engine",
-        providerNotice: "Motor pedagógico curricular MACHTIA activo.",
-      };
-    };
-
     // Intent G: Curricular Topics from Knowledge Base
     if (classification.intent === "science_space") {
       return formatKnowledge(KNOWLEDGE_BASE.agujero_negro);
@@ -790,6 +895,10 @@ export class MiaAgentService {
       return formatKnowledge(KNOWLEDGE_BASE.dinosaurios);
     }
     if (classification.intent === "science_nature") {
+      const cleanQ = cleanPrompt(rawTrimmed);
+      if (cleanQ.includes("lluvia") || cleanQ.includes("agua") || cleanQ.includes("llueve")) {
+        return formatKnowledge(KNOWLEDGE_BASE.ciclo_agua);
+      }
       return formatKnowledge(KNOWLEDGE_BASE.cielo_azul);
     }
     if (classification.intent === "math_general") {
@@ -808,19 +917,20 @@ export class MiaAgentService {
       return formatKnowledge(KNOWLEDGE_BASE[detected.key]);
     }
 
-    // Default: General Curiosity
-    const genericReply = mode === "curiosity"
-      ? `¡Esa es una pregunta fascinante sobre el mundo, explorador! 🚀\n\nImagina que cada cosa que aprendemos en la escuela es como una pieza de un gran rompecabezas. Cuando investigamos sobre "${rawTrimmed}", observar con atención, hacer preguntas y experimentar nos ayuda a entender los secretos de la naturaleza.\n\n¿Sabías que los niños que hacen más preguntas en primaria desarrollan una imaginación más rápida y poderosa? ¡Sigue preguntando!`
-      : `¡Me encanta que me preguntes sobre eso! 💡\n\nSobre "${rawTrimmed}": en la escuela y en la vida, todos los temas importantes se construyen pasito a pasito. Si es una duda de clase o de tarea, piensa primero en qué es lo que ya conoces, qué parte se te hace difícil y qué ejemplo de la vida diaria se le parece.\n\n¿Quieres que exploremos un ejemplo juntos o te gustaría que lo comparemos con un juego?`;
+    // Default: Transparent Out-of-Catalog Curricular Boundary
+    const outOfCatalogReply = mode === "curiosity"
+      ? `¡Hola, explorador! 🚀 Como tutora escolar de MACHTIA, mi catálogo autónomo está especializado en los temas curriculares de primaria: **Matemáticas** (fracciones, operaciones y retos), **Ciencias Naturales** (el ciclo del agua, dinosaurios, el universo, planetas, volcanes, cuerpo humano), **Historia** (1492 y pueblos originarios, historia de México) y **Arte** (colores primarios) 📚💡.\n\nTu pregunta sobre "${rawTrimmed}" está fuera de mi catálogo escolar determinista. Para responder preguntas abiertas de cultura general se requiere conexión activa a un motor de IA generativa en la nube (Google Gemini / OpenAI), el cual no está activo en esta sesión.\n\n¿Te gustaría que exploremos alguna duda sobre matemáticas, ciencias, historia o tu lección activa?`
+      : `¡Hola! Como tutora escolar de MACHTIA, mi especialidad está en los temas curriculares de primaria: **Matemáticas** (fracciones, operaciones y tablas), **Ciencias Naturales** (ciclo del agua, dinosaurios, planetas, volcanes, cuerpo humano), **Historia** (1492 y pueblos originarios, historia de México) y **Arte** (colores primarios) 📚💡.\n\nTu pregunta sobre "${rawTrimmed}" está fuera de mi catálogo escolar determinista. Para responder preguntas abiertas de cultura general se requiere conexión activa a un motor de IA generativa en la nube (Google Gemini / OpenAI), el cual no está configurado en esta demostración.\n\n¿Te gustaría que exploremos alguna duda sobre matemáticas, ciencias, historia o tu ejercicio en pantalla?`;
 
     return {
-      reply: genericReply,
-      topic: classification.extractedTopic,
+      reply: outOfCatalogReply,
+      topic: "Catálogo Curricular MACHTIA",
       mode,
-      funFact: "En MACHTIA no hay preguntas tontas: ¡todas las preguntas nos hacen más inteligentes!",
-      challenge: "¿Te gustaría que lo comparemos con un ejemplo de comida o de superhéroes?",
+      intent: "out_of_catalog",
+      funFact: "En MACHTIA puedes explorar con confianza: ¡aquí aprendemos paso a paso sin miedo a equivocarnos!",
+      challenge: "¿Quieres preguntarme sobre el ciclo del agua, fracciones o los dinosaurios?",
       aiProvider: "pedagogical-engine",
-      providerNotice: "Motor pedagógico curricular MACHTIA activo.",
+      providerNotice: "Motor pedagógico curricular determinista MACHTIA activo.",
     };
   }
 }
