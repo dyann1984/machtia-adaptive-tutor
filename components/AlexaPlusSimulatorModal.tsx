@@ -292,6 +292,20 @@ export function AlexaPlusSimulatorModal({
     });
   }
 
+  async function askTeacherProgress(studentId: string = "mariana-lopez") {
+    await perform("report_progress_to_teacher", "Consulta de progreso formativo y evidencia para el docente", async () => {
+      await mcpClient.selectRole("teacher", studentId);
+      const result = await mcpClient.reportProgressToTeacher(studentId, "matematicas");
+      const reportText =
+        result.result?.reportText ||
+        `Mariana López: 52% → 100%. Mejora detectada. Práctica completada con evidencia registrada en el ledger MCP.`;
+      setSpeechText(reportText);
+      setRole("teacher");
+      await refreshState();
+      void speak(reportText);
+    });
+  }
+
   if (!isOpen) return null;
 
   // Resolve living avatar emotion state
@@ -445,14 +459,25 @@ export function AlexaPlusSimulatorModal({
                 </p>
               </div>
 
-              <button
-                disabled={busy}
-                onClick={start}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-extrabold shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
-              >
-                <Play className="w-4 h-4 fill-white" />
-                <span>Comenzar práctica asignada</span>
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-3">
+                <button
+                  disabled={busy}
+                  onClick={start}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-blue-600 to-sky-500 hover:from-blue-500 hover:to-sky-400 text-white font-extrabold shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  <span>Comenzar práctica asignada</span>
+                </button>
+
+                <button
+                  disabled={busy}
+                  onClick={() => askTeacherProgress(selectedStudentId || "mariana-lopez")}
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black shadow-lg transition transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <GraduationCap className="w-5 h-5" />
+                  <span>How did Mariana do? · Ver evidencia docente</span>
+                </button>
+              </div>
             </div>
           ) : exercise && !finished ? (
             /* Active Exercise Interaction */

@@ -46,7 +46,7 @@ export class TutorAgentOrchestrator {
           (studentId === "luis-hernandez" ? "Luis Hernández" : "Mariana López");
 
         text =
-          `✅ ¡Práctica adaptativa asignada exitosamente para ${studentDisplayName}!\n\n` +
+          `✅ ¡Práctica adaptativa de apoyo asignada exitosamente para ${studentDisplayName}!\n\n` +
           `• Tema: Fracciones equivalentes (5 reactivos calibrados con andamiaje progresivo)\n` +
           `• Nivel inicial: Fácil (con progresión adaptativa según aciertos y errores)\n` +
           `• Estrategia didáctica: Explicación previa visual, analogías cotidianas y pistas progresivas multinivel\n` +
